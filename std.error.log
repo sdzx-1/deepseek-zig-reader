@@ -1,0 +1,11 @@
+File too big! os/windows.zig, size: 205426
+File too big! os/linux.zig, size: 254118
+File too big! os/windows/ntstatus.zig, size: 237477
+File too big! posix.zig, size: 298610
+File too big! zig/Zir.zig, size: 200732
+File too big! zig/llvm/Builder.zig, size: 589997
+File too big! zig/AstGen.zig, size: 576383
+File too big! c.zig, size: 319755
+resp error! crypto/ecdsa.zig, status: http.Status.bad_request
+resp error! os/linux/syscalls.zig, status: http.Status.bad_request
+resp error! crypto/pcurves/p384/p384_scalar_64.zig, status: http.Status.bad_request
