@@ -12,6 +12,9 @@ zls 代码：
 libxev 代码：
 1. https://github.com/mitchellh/libxev/tree/main/src
 
+mach 代码：
+1. https://github.com/hexops/mach/tree/main/src
+
 当前只阅读目录下所有的zig文件。每个.zig文件都有对应的.md总结文件。
 
 在.md文件中通过分割线区分推理部分和实际输出部分。
@@ -41,6 +44,6 @@ file_template = \
 {question}"""
 ```
 
-由于最近deepseek 在0 ~ 8点之间价格为原来的四分之一。于是我在凌晨运行总结脚本，因此上述api调用的最终费用小于15元。
+由于最近deepseek 在0 ~ 8点之间价格为原来的四分之一。于是我在凌晨运行总结脚本，因此上述api调用的最终费用小于20 元。
 
 
