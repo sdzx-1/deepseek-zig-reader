@@ -9,6 +9,9 @@ zig 编译器代码：
 zls 代码：
 1. https://github.com/zigtools/zls/tree/master/src
 
+libxev 代码：
+1. https://github.com/mitchellh/libxev/tree/main/src
+
 当前只阅读目录下所有的zig文件。每个.zig文件都有对应的.md总结文件。
 
 在.md文件中通过分割线区分推理部分和实际输出部分。
