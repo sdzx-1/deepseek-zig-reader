@@ -1,19 +1,15 @@
 # deepseek-zig-reader
 使用deepseek api自动总结一些zig代码。
 
-zig 编译器代码：
-1. https://github.com/ziglang/zig/tree/master/src
-2. https://github.com/ziglang/zig/tree/master/lib/std
-2. https://github.com/ziglang/zig/tree/master/tools
-
-zls 代码：
-1. https://github.com/zigtools/zls/tree/master/src
-
-libxev 代码：
-1. https://github.com/mitchellh/libxev/tree/main/src
-
-mach 代码：
-1. https://github.com/hexops/mach/tree/main/src
+包括以下项目：
+1. zig
+2. zls
+3. libxev
+4. mach
+5. tigerbeetle
+6. ghostty
+7. zgui
+8. libvaxis
 
 当前只阅读目录下所有的zig文件。每个.zig文件都有对应的.md总结文件。
 
@@ -44,6 +40,6 @@ file_template = \
 {question}"""
 ```
 
-由于最近deepseek 在0 ~ 8点之间价格为原来的四分之一。于是我在凌晨运行总结脚本，因此上述api调用的最终费用小于20 元。
+由于最近deepseek 在0 ~ 8点之间价格为原来的四分之一。于是我在凌晨运行总结脚本。
 
 
