@@ -10,6 +10,8 @@
 6. ghostty
 7. zgui
 8. libvaxis
+9. flow
+10. zephyr/kernel
 
 当前只阅读目录下所有的zig文件。每个.zig文件都有对应的.md总结文件。
 
