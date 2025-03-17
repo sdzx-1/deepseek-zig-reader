@@ -293,7 +293,8 @@ fn genBody(func: *Func, body: []const Air.Inst.Index) InnerError!void {
         }
     }
     verbose_tracking_log.debug("{}", .{func.fmtTracking()});
-}```
+}
+```
 嗯，我需要理解这段Zig代码的思维模型。首先，这个函数叫做genBody，参数是一个Func指针和一个body数组。看起来这个函数是在处理某种中间表示（IR）的指令，可能是编译器的一部分，负责生成机器码或者进行某种优化。
 
 首先，函数开始的时候，获取了pt、zcu和ip这些变量，可能是一些上下文或者配置信息。然后遍历body数组中的每个指令。对于每个指令，首先检查是否未被使用且不需要强制处理，如果是的话就跳过。接着记录一些调试信息，比如用wip_mir_log和verbose_tracking_log输出当前指令和跟踪状态。

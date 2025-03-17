@@ -263,7 +263,8 @@ fn genBody(self: *Self, body: []const Air.Inst.Index) InnerError!void {
             }
         }
     }
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，我看到这是一个函数`genBody`，它属于某个结构体`Self`的方法。函数的作用是处理一组AIR（可能是指抽象中间表示）指令。参数`body`是一个指令索引的切片。
 
 首先，函数内部获取了一些上下文变量，比如`pt`、`zcu`、`ip`，还有`air_tags`，这些可能和编译器的中间表示有关。接着，函数遍历`body`中的每一个指令`inst`。

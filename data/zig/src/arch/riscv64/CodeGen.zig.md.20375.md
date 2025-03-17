@@ -467,7 +467,8 @@ fn airAsm(func: *Func, inst: Air.Inst.Index) !void {
     for (outputs) |output| if (output != .none) try func.feed(&bt, output);
     for (inputs) |input| try func.feed(&bt, input);
     return func.finishAirResult(inst, result);
-}```
+}
+```
 嗯，这段代码看起来是Zig语言中的一个函数，处理内联汇编（Inline Assembly）的部分。让我试着一步步理清楚它的逻辑。
 
 首先，函数名是`airAsm`，可能和Zig的中间表示（AIR）有关。参数`func`是一个指向函数的指针，`inst`是某个指令的索引。函数的返回类型是`!void`，说明可能会抛出错误。

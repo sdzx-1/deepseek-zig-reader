@@ -275,7 +275,8 @@ pub const File = struct {
     }
 
     pub const Index = InternPool.FileIndex;
-}```
+}
+```
 好的，我需要总结这段Zig代码的思维模型。首先，我看到了一个名为`File`的结构体，它似乎用于表示一个文件的各种状态和信息。让我先仔细看一下各个字段和方法的作用。
 
 `sub_file_path`是相对于包的根目录的路径，使用gpa分配的内存。`status`枚举表示文件的不同状态，比如从未加载、可重试的失败、AstGen失败、成功等。`stat`字段看起来和文件的状态有关，具体取决于`status`的值。`source`存储文件内容，`tree`可能是抽象语法树（AST），`zir`和`zoir`可能是中间表示（IR）。`mod`指向所属的模块，`multi_pkg`标记是否属于多个包，`references`存储对该文件的引用。

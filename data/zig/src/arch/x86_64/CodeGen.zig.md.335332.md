@@ -252,7 +252,8 @@ fn airIntCast(self: *CodeGen, inst: Air.Inst.Index) !void {
         src_ty.fmt(pt), dst_ty.fmt(pt),
     });
     return self.finishAir(inst, result, .{ ty_op.operand, .none, .none });
-}```
+}
+```
 嗯，我现在需要理解这段Zig代码中的airIntCast函数。首先，这个函数看起来是关于类型转换的，特别是整型转换。让我先看看函数的参数和结构。函数接受一个CodeGen指针和一个指令索引，返回void或者错误。里面涉及到了类型操作，比如获取源类型和目标类型，然后处理不同的情况。
 
 首先，代码开头获取了pt、zcu，然后从指令中提取ty_op，得到源类型src_ty和目标类型dst_ty。接下来有一个result的声明，看起来是在处理不同的转换情况。这里有关于ABI大小的处理，src_abi_size和dst_abi_size是通过类型的abiSize方法得到的，转换成u31类型。

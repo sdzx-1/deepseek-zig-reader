@@ -499,7 +499,8 @@ pub fn addCCArgs(
 
     try argv.appendSlice(comp.global_cc_argv);
     try argv.appendSlice(mod.cc_argv);
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，这段代码是一个函数`addCCArgs`，看起来是在为Clang编译器准备命令行参数。让我先看看函数的参数：
 
 - `comp`: 编译的上下文，可能包含各种配置信息。

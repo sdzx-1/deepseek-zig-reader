@@ -362,7 +362,8 @@ fn unionFields(
     }
 
     try sema.flushExports();
-}```
+}
+```
 好的，我需要总结这段Zig代码的思维模型。首先，这段代码是一个函数`unionFields`，属于某个编译器或静态分析工具的一部分，可能是在处理联合类型（union）的字段信息。让我逐步理解它的结构和功能。
 
 首先，函数参数包括`sema`（可能是语义分析器的指针）、`union_ty`（联合类型的索引）和`union_type`（已加载的联合类型信息）。函数返回`CompileError!void`，说明它可能会抛出编译错误。

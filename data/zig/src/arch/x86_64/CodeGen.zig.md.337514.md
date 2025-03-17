@@ -224,7 +224,8 @@ fn airMulDivBinOp(self: *CodeGen, inst: Air.Inst.Index, tag: Air.Inst.Tag) !void
         break :result try self.genMulDivBinOp(tag, inst, dst_ty, src_ty, lhs_mcv, rhs_mcv);
     };
     return self.finishAir(inst, result, .{ bin_op.lhs, bin_op.rhs, .none });
-}```
+}
+```
 嗯，我需要理解这段Zig代码的功能和结构。首先，函数名是airMulDivBinOp，看起来和二进制乘除操作有关。参数里有self指针，应该是一个CodeGen实例，还有inst和tag。可能是在处理某种中间表示（IR）的指令，比如乘法、除法等。
 
 函数一开始获取了pt和zcu，可能是某些上下文或配置。接着从self.air.instructions中取出bin_op的数据，这里可能是在解析二元操作的操作数。然后有一个result的作用域块，里面处理不同情况。

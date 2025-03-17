@@ -287,7 +287,8 @@ pub const Decoration = enum(u32) {
         CacheControlLoadINTEL: struct { cache_level: LiteralInteger, cache_control: LoadCacheControl },
         CacheControlStoreINTEL: struct { cache_level: LiteralInteger, cache_control: StoreCacheControl },
     };
-}```
+}
+```
 好的，我现在需要总结这段Zig代码的思维模型。首先，我得仔细看一下代码的结构和内容。这段代码定义了一个名为`Decoration`的枚举类型，它有很多成员，每个成员都有一个对应的u32值。看起来这些成员可能和某种装饰或标记有关，比如图形API中的着色器装饰或者其他类型的元数据。
 
 接下来，我注意到在枚举定义之后，有一些`pub const`语句，比如`PerPrimitiveNV = Decoration.PerPrimitiveEXT;`，这看起来像是为已有的枚举成员创建别名。这可能为了兼容不同的命名约定或不同版本的API。

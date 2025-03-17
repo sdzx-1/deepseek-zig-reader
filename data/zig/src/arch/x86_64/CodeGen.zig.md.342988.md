@@ -264,7 +264,8 @@ fn airShlShrBinOp(self: *CodeGen, inst: Air.Inst.Index) !void {
         return self.fail("TODO implement airShlShrBinOp for {}", .{lhs_ty.fmt(pt)});
     };
     return self.finishAir(inst, result, .{ bin_op.lhs, bin_op.rhs, .none });
-}```
+}
+```
 嗯，我现在需要理解这段Zig代码，它看起来是一个处理位移操作的函数。函数名是`airShlShrBinOp`，可能是在处理左移（shl）和右移（shr）的二进制操作。让我先看看代码的大致结构。
 
 首先，函数参数是`self: *CodeGen`和`inst: Air.Inst.Index`，返回类型是`!void`。这说明这可能是一个代码生成函数，用于将中间表示（Air）的指令转换为机器码。

@@ -280,7 +280,8 @@ fn validateStructInit(
         const init = Air.internedToRef(field_values[i]);
         try sema.storePtr2(block, init_src, default_field_ptr, init_src, init, field_src, .store);
     }
-}```
+}
+```
 好的，我需要总结这段Zig代码的思维模型。首先，我会通读代码，理解每个部分的功能。这段代码是函数`validateStructInit`，看起来是用于验证结构体初始化的。
 
 首先，函数接受几个参数，包括Sema（语义分析器）、Block（代码块）、结构体类型、初始化的源码位置和指令列表。函数的主要任务似乎是检查结构体初始化是否正确，比如是否有字段缺失或重复，以及处理默认值。

@@ -314,7 +314,8 @@ fn genCall(self: *CodeGen, info: union(enum) {
         } else try self.genExternSymbolRef(.call, lib.lib, lib.callee),
     }
     return call_info.return_value.short;
-}```
+}
+```
 嗯，我现在需要总结这段Zig代码的思维模型。首先，我得仔细读一遍代码，理解它的结构和功能。这段代码看起来是一个函数生成调用的过程，可能是编译器或代码生成器的一部分。函数名是genCall，参数包括self（可能是代码生成器的实例）、info（一个联合类型，可以是air或lib两种类型）、arg_types、args和opts。返回类型是MCValue的错误联合。
 
 首先，我注意到info是一个联合枚举，可能是用来区分不同的调用类型，比如直接通过AIR指令调用，或者调用库函数。接下来，代码开始处理fn_ty，根据info的不同情况，分别处理函数类型。如果是air情况，会获取callee的类型，并检查其类型标签是否为函数或指针，如果是指针则取其子类型。如果是lib情况，则通过funcType生成函数类型。

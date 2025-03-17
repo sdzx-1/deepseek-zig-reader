@@ -393,7 +393,8 @@ fn airMulWithOverflow(self: *CodeGen, inst: Air.Inst.Index) !void {
         else => unreachable,
     };
     return self.finishAir(inst, result, .{ bin_op.lhs, bin_op.rhs, .none });
-}```
+}
+```
 嗯，我现在需要理解这段Zig代码，特别是这个名为`airMulWithOverflow`的函数。看起来这个函数是用来处理整数乘法并检测溢出的情况。首先，我应该看看这个函数的结构，了解它的大致流程。
 
 代码开头定义了一个函数`airMulWithOverflow`，参数包括`self`指针和一个指令索引`inst`。函数返回类型是`!void`，可能表示可能会抛出错误。接下来，函数内部获取了一些上下文相关的变量，比如`pt`、`zcu`，然后解析了指令的数据，提取了二元操作数`bin_op`，并获取了目标类型`tuple_ty`和`dst_ty`。

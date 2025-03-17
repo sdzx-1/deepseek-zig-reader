@@ -369,7 +369,8 @@ fn buildOpcode(args: OpcodeBuildArguments) std.wasm.Opcode {
             .v128 => unreachable, // handled independently
         },
     }
-}```
+}
+```
 嗯，我需要理解这段Zig代码的思维模型。首先，这个函数叫做buildOpcode，参数是args: OpcodeBuildArguments，返回std.wasm.Opcode。看起来它的作用是根据传入的参数构建对应的WebAssembly操作码。
 
 首先，函数内部有一个大的switch语句，根据args.op的不同值来处理不同的操作。每个case对应一个操作，比如.unreachable、.nop、.block等等。很多情况下都是直接返回unreachable，这可能表示这些操作码还没有被实现，或者在某些情况下不应该被调用？

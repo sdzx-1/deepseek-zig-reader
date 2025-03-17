@@ -760,7 +760,8 @@ fn zirSwitchBlock(sema: *Sema, block: *Block, inst: Zir.Inst.Index, operand_is_r
     }
 
     return sema.resolveAnalyzedBlock(block, src, &child_block, merges, false);
-}```
+}
+```
 嗯，我现在要理解这段Zig代码。看起来这是一个处理switch语句的函数，叫做zirSwitchBlock。首先，我需要理清这个函数的主要逻辑和各个部分的作用。
 
 首先，函数参数包括sema、block、inst和operand_is_ref。sema可能是语义分析的上下文，block是当前的代码块，inst是Zir指令的索引，operand_is_ref表示操作数是否是引用。返回类型是CompileError!Air.Inst.Ref，说明这个函数可能会返回一个Air指令的引用或者编译错误。

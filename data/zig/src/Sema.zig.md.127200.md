@@ -1084,7 +1084,8 @@ fn resolvePeerTypesInner(
             return .{ .success = expect_ty.? };
         },
     }
-}```
+}
+```
 嗯，我现在要理解这段Zig代码，看起来是一个叫做resolvePeerTypesInner的函数。这个函数似乎是在处理类型解析的问题，特别是当有多个“peer”类型需要协调时。让我先大致看一下代码的结构和各个部分的功能。
 
 首先，函数接收的参数有sema（可能是语义分析器）、block（代码块）、src（源代码位置）、peer_tys（可能是需要协调的类型列表）和peer_vals（对应的值列表）。返回类型是PeerResolveResult，可能表示解析成功或冲突。

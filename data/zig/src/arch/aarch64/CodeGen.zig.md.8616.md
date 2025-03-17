@@ -221,7 +221,8 @@ fn airMulWithOverflow(self: *Self, inst: Air.Inst.Index) InnerError!void {
         }
     };
     return self.finishAir(inst, result, .{ extra.lhs, extra.rhs, .none });
-}```
+}
+```
 嗯，我现在要理解这段Zig代码，它看起来是一个函数，处理乘法溢出的情况。首先，函数名是airMulWithOverflow，可能属于某种中间表示的代码生成部分，比如编译器后端处理算术运算溢出。
 
 首先，函数参数是self和inst，inst可能是指令的索引。函数返回类型是InnerError!void，说明可能会抛出内部错误。

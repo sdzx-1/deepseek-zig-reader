@@ -409,7 +409,8 @@ pub const MachTask = extern struct {
             else => |err| return unexpectedKernError(err),
         }
     }
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，这段代码定义了一个名为MachTask的外部结构体，它似乎是对Mach任务的一些操作进行封装。Mach是macOS的内核，所以这可能是在处理底层的任务管理。
 
 结构体中的port字段是mach_port_name_t类型，这应该代表Mach任务的端口。然后有很多方法，比如isValid检查端口是否有效，pidForTask获取任务对应的进程ID。看起来这些方法都是调用C的Mach API，比如std.c.pid_for_task，然后用Zig的错误处理进行包装。

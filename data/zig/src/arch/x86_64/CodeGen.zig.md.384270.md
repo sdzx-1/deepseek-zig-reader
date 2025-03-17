@@ -272,7 +272,8 @@ fn moveStrategy(cg: *CodeGen, ty: Type, class: Register.Class, aligned: bool) !M
         .ip, .cr, .dr => {},
     }
     return cg.fail("TODO moveStrategy for {}", .{ty.fmt(pt)});
-}```
+}
+```
 嗯，我现在要尝试理解这段Zig代码中的`moveStrategy`函数。首先，这个函数看起来像是用来根据不同的条件生成某种移动策略的。参数有`CodeGen`指针、类型`ty`、寄存器类别`class`和一个布尔值`aligned`。返回类型是`!MoveStrategy`，可能是一个错误联合类型。
 
 先从函数的结构开始看。函数开头声明了`pt`和`zcu`，然后进入一个`switch`语句，根据`class`的不同情况来处理。第一个情况是`.general_purpose`和`.segment`，直接返回一个包含`.load_store`和`.mov`的结构。接下来是`.x87`返回`.load_store_x87`，而`.mmx`则没有处理，只是空块，可能需要后续处理？

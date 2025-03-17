@@ -230,7 +230,8 @@ fn analyzeMinMax(
     }
 
     return cur_minmax.?;
-}```
+}
+```
 好的，我现在要总结这段Zig代码的思维模型。首先，我需要仔细阅读代码，理解它的结构和功能。这段代码看起来是一个函数analyzeMinMax，用于处理多个操作数的最小值或最大值分析，可能是在编译器中进行类型推断或优化的一部分。
 
 首先，函数的参数中有sema、block、src、air_tag、operands和operand_srcs。根据名称推测，sema可能是一个语义分析器的上下文，block可能代表当前的代码块，src是源代码位置，air_tag指定操作类型（如min或max），operands是操作数列表，operand_srcs对应每个操作数的位置。

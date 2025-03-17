@@ -1637,7 +1637,8 @@ pub const Opcode = enum(u16) {
             .OpMaskedScatterINTEL => .Memory,
         };
     }
-}```
+}
+```
 嗯，我现在要总结这段Zig代码的思维模型。首先，这段代码看起来像是定义了一个Opcode的枚举类型，每个枚举值对应一个操作码，用u16类型表示。然后，每个操作码可能有不同的操作数结构，用Operands函数根据不同的操作码返回对应的结构体类型。此外，还有一个class函数，将每个操作码分类到不同的类别，比如Miscellaneous、Debug、TypeDeclaration等等。
 
 首先，我需要理解这段代码的整体结构。Opcode枚举列出了所有的操作码，每个操作码都有一个对应的数值。接下来，Operands函数通过switch语句，根据不同的Opcode返回不同的结构体类型，这些结构体描述了该操作码需要的参数。例如，OpNop没有操作数，返回void，而OpUndef需要id_result_type和id_result两个参数。

@@ -292,7 +292,8 @@ pub fn updateContainerType(dwarf: *Dwarf, pt: Zcu.PerThread, type_index: InternP
         try dwarf.debug_loclists.section.replaceEntry(wip_nav.unit, wip_nav.entry, dwarf, wip_nav.debug_loclists.items);
         try wip_nav.updateLazy(ty_src_loc);
     }
-}```
+}
+```
 嗯，我现在要总结这段 Zig 代码的思维模型。首先，我需要理解这段代码是做什么的。看起来这是一个处理 DWARF 调试信息的函数，可能是在编译器或相关工具中生成或更新调试信息的部分。函数名是 `updateContainerType`，可能是在更新容器类型（比如结构体、枚举、联合等）的调试信息。
 
 首先，函数接受 `Dwarf` 结构体的指针、`Zcu.PerThread` 和一个类型索引。然后，它获取 `zcu` 和 `intern_pool`，创建一个 `Type` 实例，记录日志。接着，它处理类型的声明实例，获取对应的文件和单元（unit），这可能是指 DWARF 中的编译单元。

@@ -435,7 +435,8 @@ fn airCmp(self: *CodeGen, inst: Air.Inst.Index, op: std.math.CompareOperator) !v
     if (null_compare) |reloc| self.performReloc(reloc);
     self.eflags_inst = inst;
     return self.finishAir(inst, .{ .eflags = result }, .{ bin_op.lhs, bin_op.rhs, .none });
-}```
+}
+```
 好的，我现在要总结这段Zig代码的思维模型。首先，我得仔细看看这段代码是做什么的。看起来这是一个函数，叫做airCmp，可能用于生成比较操作的机器码。函数参数里有CodeGen指针、指令索引和比较操作符。
 
 首先，函数开始时获取了pt、zcu和bin_op。然后根据bin_op的左右操作数获取类型ty。接着处理了可能的空值比较，比如Optional类型的情况。这里有一个null_compare变量，可能用于后续的条件跳转。

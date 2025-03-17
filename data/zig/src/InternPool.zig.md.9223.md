@@ -279,7 +279,8 @@ pub const LoadedUnionType = struct {
         assert(self.flagsUnordered(ip).any_aligned_fields);
         @memcpy(self.field_aligns.get(ip), aligns);
     }
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，我会从头开始看，看看这个结构体LoadedUnionType是做什么的。它看起来像是用来表示一个联合类型的元数据，包含很多成员，比如tid、extra_index、name、namespace等等。
 
 首先，tid是Zcu.PerThread.Id，可能和线程或上下文有关。extra_index是u32，可能是用来索引额外的数据。name是联合类型的名称，使用NullTerminatedString，可能是一个以空字符结尾的字符串。namespace是命名空间索引，可能指向该联合类型所在的命名空间。enum_tag_ty是Index类型，可能是指向枚举标签类型的索引。field_types是Index.Slice，保存字段类型的索引。field_aligns是Alignment.Slice，保存字段的对齐方式。zir_index可能与ZIR（Zig Intermediate Representation）指令有关。captures是捕获值的切片。

@@ -374,7 +374,8 @@ fn updateLazyValue(
         .memoized_call => unreachable, // not a value
     }
     try dwarf.debug_info.section.replaceEntry(wip_nav.unit, wip_nav.entry, dwarf, wip_nav.debug_info.items);
-}```
+}
+```
 嗯，我现在要总结这段Zig代码的思维模型。首先，我得先大致看一下这段代码是做什么的。看起来这是一个名为updateLazyValue的函数，可能和调试信息生成有关，特别是DWARF格式的调试信息。代码中涉及到很多DWARF相关的术语，比如.debug_info、.debug_line、uleb128等。
 
 函数接收的参数包括一个Dwarf结构体指针、线程相关的pt、源代码位置src_loc、一个value_index，以及一个pending_lazy的列表。函数的主要任务似乎是更新某个懒加载的值，可能是将编译时的信息写入DWARF的各个节中。

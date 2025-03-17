@@ -616,7 +616,8 @@ fn linkWithLLD(self: *Elf, arena: Allocator, tid: Zcu.PerThread.Id, prog_node: s
         // other processes clobbering it.
         self.base.lock = man.toOwnedLock();
     }
-}```
+}
+```
 嗯，我现在需要总结这段Zig代码的思维模型。首先，我得通读代码，理解它的功能和结构。这段代码是Zig语言中的一个函数，名为`linkWithLLD`，看起来是用于使用LLD链接器进行链接的。
 
 首先，函数参数有`self: *Elf`，可能是指ELF格式的可执行文件或库。然后有`arena`分配器，用于内存管理，`tid`线程ID，`prog_node`进度节点。函数返回一个错误联合类型`!void`，说明可能抛出错误。

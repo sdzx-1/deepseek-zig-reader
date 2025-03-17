@@ -279,7 +279,8 @@ fn performAllTheWorkInner(
         }
         break;
     }
-}```
+}
+```
 好的，我需要总结这段代码的思维模型。首先，我得通读一遍代码，理解它的整体结构和功能。这段代码是一个函数`performAllTheWorkInner`，属于Zig语言项目的一部分，看起来和编译过程中的多任务处理相关。
 
 首先，函数参数有两个：`comp: *Compilation`和`main_progress_node: std.Progress.Node`，返回类型是`JobError!void`。这应该是一个执行编译过程中各种任务的函数，可能涉及到并行处理，因为代码中出现了`thread_pool.spawnWg`等操作。

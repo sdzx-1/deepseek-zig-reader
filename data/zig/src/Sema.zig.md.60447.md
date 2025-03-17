@@ -550,7 +550,8 @@ fn analyzeArithmetic(
         }
     }
     return block.addBinOp(air_tag, casted_lhs, casted_rhs);
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，我得看看这个函数是做什么的。函数名是analyzeArithmetic，看起来是处理算术运算的分析，可能涉及类型检查、错误处理和生成中间代码（Air指令）。
 
 首先，函数的参数有很多，比如sema、block、zir_tag、lhs、rhs等等。sema可能是语义分析的上下文，block可能是当前的基本块，zir_tag代表不同的ZIR指令标签，lhs和rhs是左右操作数。

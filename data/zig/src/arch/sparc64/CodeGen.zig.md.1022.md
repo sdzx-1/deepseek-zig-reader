@@ -259,7 +259,8 @@ fn genBody(self: *Self, body: []const Air.Inst.Index) InnerError!void {
             }
         }
     }
-}```
+}
+```
 好的，我现在要总结这段Zig代码的思维模型。首先，我需要仔细阅读代码，理解它的结构和功能。看起来这是一个名为`genBody`的函数，属于某个`Self`类型的方法。函数接收一个`body`参数，这是一个由`Air.Inst.Index`组成的切片，并返回一个`InnerError!void`类型的结果。
 
 首先，函数内部获取了一些上下文变量，比如`pt`、`zcu`、`ip`和`air_tags`。然后，它遍历`body`中的每一个指令（`inst`）。在循环开始前，有一个条件判断，检查当前指令是否未被使用（`isUnused`）且不需要强制处理（`mustLower`），如果是的话，就跳过这个指令。

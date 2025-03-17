@@ -253,7 +253,8 @@ fn reifyUnion(
     try sema.declareDependency(.{ .interned = wip_ty.index });
     try sema.addTypeReferenceEntry(src, wip_ty.index);
     return Air.internedToRef(wip_ty.finish(ip, new_namespace_index));
-}```
+}
+```
 嗯，我需要总结这段代码的思维模型。首先，这段代码是Zig语言中的一个函数，叫做`reifyUnion`，看起来是处理联合类型（union）的。让我仔细看一下。
 
 首先，函数参数很多，包括`sema`、`block`、`inst`、`src`等等。这些可能是在编译器中的各种上下文和位置信息。函数的目标可能是根据提供的字段信息构造一个联合类型。

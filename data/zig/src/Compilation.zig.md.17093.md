@@ -235,7 +235,8 @@ fn updateWin32Resource(comp: *Compilation, win32_resource: *Win32Resource, win32
             .lock = man.toOwnedLock(),
         },
     };
-}```
+}
+```
 嗯，我需要理解这段Zig代码的功能和结构。首先，代码是一个函数叫做`updateWin32Resource`，看起来是处理Windows资源文件的，比如`.rc`或`.manifest`文件。让我逐步看看它是怎么工作的。
 
 首先，函数参数有`comp: *Compilation`，可能是一个编译上下文，`win32_resource`可能表示一个Windows资源，还有一个进度节点。函数返回错误联合类型，所以可能有很多错误处理。

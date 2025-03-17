@@ -499,7 +499,8 @@ fn updateLazyType(
         => unreachable,
     }
     try dwarf.debug_info.section.replaceEntry(wip_nav.unit, wip_nav.entry, dwarf, wip_nav.debug_info.items);
-}```
+}
+```
 好的，我现在需要总结这段 Zig 代码的思维模型。首先，我会仔细阅读代码，理解每个部分的功能。看起来这是一个处理 DWARF 调试信息生成的函数，特别是更新惰性类型（lazy type）的信息。
 
 函数名是 `updateLazyType`，参数包括一个 `Dwarf` 结构体指针、线程本地数据 `pt`、源代码位置 `src_loc`、类型索引 `type_index`，以及一个待处理的惰性类型列表 `pending_lazy`。返回类型是 `UpdateError!void`，说明可能抛出错误。

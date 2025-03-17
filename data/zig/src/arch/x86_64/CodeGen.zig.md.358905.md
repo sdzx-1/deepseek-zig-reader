@@ -637,7 +637,8 @@ fn genShiftBinOpMir(
         @tagName(lhs_mcv),
         @tagName(shift_mcv),
     });
-}```
+}
+```
 嗯，这段代码看起来是关于生成二进制移位操作的中间表示（MIR）的函数。首先，我需要理解函数的大致结构和各个参数的作用。函数名为`genShiftBinOpMir`，接受一个`CodeGen`指针、操作标签`tag`、左值和右值的类型及它们的MCValue（可能是机器码值）。返回值是`void`的错误联合。
 
 首先，代码开始处理一些基本设置，比如获取`pt`和`zcu`，然后计算`abi_size`和`shift_abi_size`。接着，调用`spillEflagsIfOccupied`，这可能是保存标志寄存器状态的函数。

@@ -2964,7 +2964,8 @@ fn buildOutputType(
 
     // Skip resource deallocation in release builds; let the OS do it.
     return cleanExit();
-}```
+}
+```
 好的，我现在要总结这段代码的思维模型。首先，我需要仔细阅读代码，理解它的结构和功能。看起来这是一个用Zig语言编写的函数，名为`buildOutputType`。函数接受多个参数，包括分配器、参数列表、参数模式等，并返回一个可能的错误或`void`。
 
 首先，函数内部声明了很多变量，这些变量似乎用于处理不同的编译选项和配置，比如目标架构、优化选项、链接器设置等等。接着，代码根据不同的`arg_mode`（参数模式）进入不同的处理分支，比如`build`、`translate_c`、`zig_test`、`run`等模式。每个模式下，代码会解析命令行参数，设置相应的编译选项。

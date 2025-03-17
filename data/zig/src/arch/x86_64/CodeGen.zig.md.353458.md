@@ -198,7 +198,8 @@ fn airAbs(self: *CodeGen, inst: Air.Inst.Index) !void {
         break :result .{ .register = dst_reg };
     };
     return self.finishAir(inst, result, .{ ty_op.operand, .none, .none });
-}```
+}
+```
 嗯，我需要理解这段Zig代码的功能，特别是这个`airAbs`函数。看起来这是一个处理绝对值的函数，可能是在编译器后端生成机器码的部分。让我先通读一遍代码，看看能不能理清思路。
 
 首先，函数的参数是`self: *CodeGen`和`inst: Air.Inst.Index`，返回类型是`!void`。这可能是一个生成中间表示（IR）或机器码的函数，处理绝对值操作。

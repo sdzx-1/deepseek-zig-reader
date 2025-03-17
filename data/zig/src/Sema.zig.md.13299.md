@@ -216,7 +216,8 @@ fn resolveComptimeKnownAllocPtr(sema: *Sema, block: *Block, alloc: Air.Inst.Ref,
     // The value is finalized - load it!
     const val = (try sema.pointerDeref(block, LazySrcLoc.unneeded, Value.fromInterned(alloc_ptr), alloc_ty)).?.toIntern();
     return sema.finishResolveComptimeKnownAllocPtr(block, alloc_ty, val, ct_alloc, alloc_inst, comptime_info.value);
-}```
+}
+```
 嗯，我需要理解这段 Zig 代码的功能。首先，代码的入口是 `resolveComptimeKnownAllocPtr` 函数，它接受一些参数，包括 `sema`、`block`、`alloc` 和 `resolved_alloc_ty`。看起来这个函数的作用是解析在编译时已知的内存分配指针。
 
 首先，函数获取了 `alloc_ty`，可能是分配的类型。然后通过 `ptrInfo` 获取指针的信息，包括子类型 `elem_ty`。接下来检查 `alloc` 是否是一个索引，如果是，就从 `maybe_comptime_allocs` 中移除该分配，并获取存储指令。

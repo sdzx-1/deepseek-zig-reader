@@ -267,7 +267,8 @@ fn airStructFieldVal(self: *CodeGen, inst: Air.Inst.Index) !void {
         }
     };
     return self.finishAir(inst, result, .{ extra.struct_operand, .none, .none });
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。让我先看看这段代码是做什么的。看起来这是一个函数，叫做airStructFieldVal，属于某个CodeGen结构体的方法。函数的作用可能和生成结构体字段的值的机器代码有关。
 
 首先，函数接收一个指向CodeGen的self指针和一个Air.Inst.Index类型的指令索引inst。返回类型是void的错误联合，说明这个函数可能会抛出错误。

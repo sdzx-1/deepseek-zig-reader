@@ -1464,7 +1464,8 @@ pub const OperandKind = enum {
             },
         };
     }
-}```
+}
+```
 好的，我现在需要总结这段Zig代码的思维模型。首先，我得仔细看一下代码的结构和内容。这段代码定义了一个名为OperandKind的枚举类型，然后为每个枚举成员实现了两个方法：category和enumerants。
 
 首先，我注意到OperandKind枚举有很多成员，比如Opcode、ImageOperands、FPFastMathMode等等。这些成员可能代表不同的操作数类型或指令类别。然后，category方法根据不同的枚举成员返回对应的OperandCategory，比如literal、bit_enum、value_enum等。这可能是为了分类这些操作数类型，方便后续处理。

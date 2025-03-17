@@ -280,7 +280,8 @@ pub const Function = struct {
             else => {},
         }
     }
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，我看到了一个名为`Function`的结构体，里面有很多字段和方法。让我一个一个来看。
 
 结构体的字段包括`air`、`liveness`、`value_map`、`blocks`等等，这些看起来像是用于管理函数的不同部分，比如基本块、局部变量、参数索引等。`resolveInst`方法似乎用于解析指令并生成对应的C值，可能是将Zig的中间表示（Air）转换为C代码的一部分。里面有条件判断`lowersToArray`，可能是处理数组类型的逻辑。

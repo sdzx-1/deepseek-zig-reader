@@ -863,7 +863,8 @@ fn analyzeBodyInner(
         map.putAssumeCapacity(inst, air_inst);
         i += 1;
     }
-}```
+}
+```
 嗯，我现在要总结一下这段Zig代码的思维模型。首先，这个函数叫做analyzeBodyInner，看起来是语义分析的一部分，处理ZIR（Zig Intermediate Representation）指令。代码里有很多switch语句，根据不同的ZIR指令标签调用不同的处理函数，比如zirAlloc、zirBitwise等等。
 
 首先，函数参数有sema（语义分析器）、block（当前的基本块）、body（ZIR指令的数组）。函数的主要结构是一个无限循环，遍历body中的每个指令，并根据指令类型进行处理。每个指令处理完后，结果会被存入inst_map中。

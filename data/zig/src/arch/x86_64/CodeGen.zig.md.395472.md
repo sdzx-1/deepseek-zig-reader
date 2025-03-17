@@ -332,7 +332,8 @@ fn airSplat(self: *CodeGen, inst: Air.Inst.Index) !void {
         return self.fail("TODO implement airSplat for {}", .{vector_ty.fmt(pt)});
     };
     return self.finishAir(inst, result, .{ ty_op.operand, .none, .none });
-}```
+}
+```
 嗯，我现在要尝试理解这段 Zig 代码中的 `airSplat` 函数。首先，这个函数的名字里有个“splat”，可能和向量操作中的广播（broadcast）有关，也就是将一个标量值复制到向量的所有位置。看起来这是一个代码生成函数，用于将某个操作数扩展成向量形式。
 
 首先看函数签名，`fn airSplat(self: *CodeGen, inst: Air.Inst.Index) !void`。`CodeGen` 应该是一个代码生成器的结构体，`Air.Inst.Index` 可能是指中间表示的指令索引。函数返回一个可能的错误，所以里面有很多 `try` 调用。

@@ -386,7 +386,8 @@ pub fn update(comp: *Compilation, main_progress_node: std.Progress.Node) !void {
             }, .main, main_progress_node);
         },
     }
-}```
+}
+```
 好的，我需要总结这段Zig代码的思维模型。首先，这段代码是`update`函数的一部分，属于某个编译过程。让我先通读一遍代码，理解它的主要功能和结构。
 
 首先，函数开始初始化一些跟踪和内存分配器，用于管理编译期间的内存。然后根据`comp.cache_use`的不同模式（whole或incremental）来处理缓存。在whole模式下，会检查缓存是否命中，如果命中则直接使用缓存结果，否则进行编译并将结果存入缓存。在incremental模式下，则记录日志并继续后续步骤。

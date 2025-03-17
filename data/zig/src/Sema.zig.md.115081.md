@@ -261,7 +261,8 @@ pub fn coerceInMemoryAllowed(
         .actual = dest_ty,
         .wanted = src_ty,
     } };
-}```
+}
+```
 嗯，我现在要理解这段Zig代码，它看起来是一个叫做`coerceInMemoryAllowed`的函数，用于检查两种类型是否可以在内存中进行强制转换。首先，我需要弄清楚每个部分的功能。
 
 函数参数部分有很多参数，包括sema、block、dest_ty、src_ty等。特别是dest_is_mut参数说明如果目标类型是可变的，那么需要双向的强制转换都是有效的。这可能在处理指针时很重要。

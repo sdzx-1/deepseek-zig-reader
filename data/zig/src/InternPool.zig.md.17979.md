@@ -510,7 +510,8 @@ pub fn indexToKey(ip: *const InternPool, index: Index) Key {
             } };
         },
     };
-}```
+}
+```
 嗯，我需要理解这段 Zig 代码中的 `indexToKey` 函数。首先，函数接受一个 `InternPool` 的指针和一个 `Index`，然后返回一个 `Key`。看起来这是一个将某种索引转换为关键数据的函数。让我一步步看看代码的结构。
 
 首先，函数开始有一个断言 `assert(index != .none)`，确保传入的索引不是 `.none`。然后，`unwrapped_index` 通过 `index.unwrap(ip)` 得到，可能是在解包索引以获取更详细的信息。接下来，`item` 是通过 `unwrapped_index.getItem(ip)` 获取的，可能是索引对应的具体项。然后 `data` 是从 `item.data` 中获取的，可能是一些存储的数据。

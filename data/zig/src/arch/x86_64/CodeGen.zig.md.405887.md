@@ -364,7 +364,8 @@ fn resolveCallingConventionValues(
 
     result.stack_byte_count = @intCast(result.stack_align.forward(result.stack_byte_count));
     return result;
-}```
+}
+```
 嗯，我需要总结这段代码的思维模型。首先，我得仔细看一下代码的结构和功能。这段代码是Zig语言写的，函数名是resolveCallingConventionValues，看起来和调用约定（calling convention）有关。调用约定决定了函数参数如何传递、返回值如何处理，以及栈的使用方式。
 
 首先，函数接受CodeGen实例、函数信息、可变参数、栈帧基址等参数，返回CallMCValues结构。CallMCValues似乎包含参数的值、返回值、栈的字节数和对齐等信息。

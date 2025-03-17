@@ -831,7 +831,8 @@ fn zirTypeInfo(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Ai
         .frame => return sema.failWithUseOfAsync(block, src),
         .@"anyframe" => return sema.failWithUseOfAsync(block, src),
     }
-}```
+}
+```
 好的，我现在需要总结这段Zig代码的思维模型。首先，我要理解这段代码的主要功能是什么。看起来这是一个名为`zirTypeInfo`的函数，可能用于处理类型信息，将ZIR指令转换为AIR的引用。
 
 首先，函数接收`sema`（语义分析器）、`block`（代码块）、`inst`（指令索引）作为参数，并返回`Air.Inst.Ref`或者错误。接下来，函数内部定义了一些变量，比如`pt`、`zcu`、`gpa`、`ip`等，这些都是可能用于类型解析和管理的结构体或指针。

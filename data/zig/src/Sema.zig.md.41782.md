@@ -317,7 +317,8 @@ fn zirSwitchBlockErrUnion(sema: *Sema, block: *Block, inst: Zir.Inst.Index) Comp
     sema.air_extra.appendSliceAssumeCapacity(@ptrCast(sub_block.instructions.items));
 
     return sema.resolveAnalyzedBlock(block, main_src, &child_block, merges, false);
-}```
+}
+```
 好的，我现在需要总结这段Zig代码的思维模型。首先，我会尝试理解这段代码的主要功能和结构。看起来这是一个处理带有错误联合类型（error union）的switch块的函数。函数名为zirSwitchBlockErrUnion，属于Sema模块，可能负责语义分析。
 
 首先，代码开头定义了一些变量和跟踪工具，比如tracy用于性能分析。然后通过sema.code获取指令数据，解析switch块的操作数和各个分支的信息。接下来，处理不同的情况，比如标量case（scalar_cases）和多重case（multi_cases），以及错误捕获（err_capture_inst）。

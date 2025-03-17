@@ -247,7 +247,8 @@ fn zirMemcpy(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!void
             .rhs = new_src_ptr,
         } },
     });
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，这个函数是处理`@memcpy`内置函数的语义分析，也就是在编译时检查`@memcpy`调用的合法性。
 
 首先，函数`zirMemcpy`接收一个`Sema`指针，`Block`指针，和`Zir.Inst.Index`。然后从指令中提取源节点和目标节点的信息，解析出源指针和目标指针的类型和长度。

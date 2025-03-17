@@ -792,7 +792,8 @@ pub fn get(ip: *InternPool, gpa: Allocator, tid: Zcu.PerThread.Id, key: Key) All
         },
     }
     return gop.put();
-}```
+}
+```
 嗯，我现在需要理解这段Zig代码。首先，这个函数叫做`get`，属于`InternPool`模块。看起来它的作用是根据给定的`key`返回一个索引，可能用于内部池化（interning）不同类型的值，以减少重复存储。
 
 函数参数有四个：`ip`是`InternPool`的指针，`gpa`是分配器，`tid`是线程ID，`key`是要查找或创建的关键字。返回类型是一个`Index`或者错误。

@@ -218,7 +218,8 @@ fn resolveReferencesInner(zcu: *Zcu) !std.AutoHashMapUnmanaged(AnalUnit, ?Resolv
     }
 
     return result;
-}```
+}
+```
 好的，我现在需要总结这段Zig代码的思维模型。首先，我会通读代码，了解函数的大致结构和功能。函数名是resolveReferencesInner，返回一个AutoHashMapUnmanaged，看起来是用来解析某种引用关系的。
 
 代码开头定义了一些变量，比如result、checked_types、type_queue、unit_queue。这些队列和哈希表可能是用来追踪处理过程中的各种类型和单元。然后看到一些defer语句，用来在函数结束时释放资源，这说明作者在管理内存方面很仔细。

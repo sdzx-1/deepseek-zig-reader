@@ -249,7 +249,8 @@ fn cmpNumeric(
     const casted_rhs = try sema.coerce(block, dest_ty, rhs, rhs_src);
 
     return block.addBinOp(Air.Inst.Tag.fromCmpOp(op, block.float_mode == .optimized), casted_lhs, casted_rhs);
-}```
+}
+```
 嗯，让我仔细看看这段代码。首先，这个函数叫做`cmpNumeric`，看起来是用来处理数值比较的。参数里有很多关于类型和位置的信息，可能是在编译器中进行类型检查和生成中间表示的代码。
 
 首先，函数开始时获取了左右操作数的类型，并断言它们都是数值类型。然后处理了`comptime_float`和普通`float`之间的转换，可能是在编译时需要将`comptime_float`强制转换为固定宽度的浮点数类型。

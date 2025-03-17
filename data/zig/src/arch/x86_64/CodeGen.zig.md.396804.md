@@ -454,7 +454,8 @@ fn airSelect(self: *CodeGen, inst: Air.Inst.Index) !void {
         break :result dst_mcv;
     };
     return self.finishAir(inst, result, .{ pl_op.operand, extra.lhs, extra.rhs });
-}```
+}
+```
 嗯，我现在要总结这段Zig代码的思维模型。首先，我需要理解这段代码在做什么。看起来这是一个名为airSelect的函数，属于某个代码生成器的一部分，可能是编译器后端的一部分，负责处理某种中间表示（Air）的指令。
 
 首先，函数签名是fn airSelect，参数是self指针和一个指令索引inst。返回类型是!void，说明可能抛出错误。函数内部引用了pt、zcu等变量，可能是代码生成器的上下文或状态。

@@ -592,7 +592,8 @@ const SwitchProngAnalysis = struct {
             },
         }
     }
-}```
+}
+```
 好的，我现在要尝试理解这段Zig代码的思维模型。首先，这段代码属于SwitchProngAnalysis结构体，主要用于处理switch语句的不同分支（prong）的分析，包括编译时和运行时的处理，以及如何处理不同类型的捕获（capture）。
 
 首先，我需要理解这个结构体的各个字段的作用：

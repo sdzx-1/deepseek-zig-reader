@@ -305,7 +305,8 @@ fn updateCObject(comp: *Compilation, c_object: *CObject, c_obj_prog_node: std.Pr
     };
 
     comp.queueLinkTasks(&.{.{ .load_object = c_object.status.success.object_path }});
-}```
+}
+```
 嗯，我需要理解这段Zig代码的功能和结构。首先，函数名为`updateCObject`，看起来是用于更新或编译某个C对象。让我仔细看看代码的结构和各个部分的作用。
 
 首先，函数接受三个参数：`comp`（指向Compilation的指针）、`c_object`（指向CObject的指针）和`c_obj_prog_node`（进度节点）。返回类型是`!void`，可能表示可能抛出错误。

@@ -189,7 +189,8 @@ fn airAggregateInit(self: *CodeGen, inst: Air.Inst.Index) !void {
     var bt = self.liveness.iterateBigTomb(inst);
     for (elements) |elem| try self.feed(&bt, elem);
     return self.finishAirResult(inst, result);
-}```
+}
+```
 嗯，我现在需要总结这段Zig代码的思维模型。首先，我得仔细看看代码的结构和逻辑。这个函数叫做airAggregateInit，看起来是处理聚合类型的初始化，比如结构体、数组或者向量。
 
 首先，函数接收一个CodeGen指针和一个指令索引。然后获取一些上下文信息，比如类型信息pt和zcu，结果类型result_ty，以及数组长度len。接下来从指令中提取元素数据，elements数组应该是需要初始化的各个元素的引用。

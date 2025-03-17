@@ -502,7 +502,8 @@ pub const Block = struct {
             }
         }
     }
-}```
+}
+```
 嗯，我现在需要总结这段Zig代码的思维模型。首先，这段代码定义了一个名为Block的结构体，看起来是用于编译器中的语义分析（Sema）阶段，可能涉及中间表示（AIR）的生成。让我仔细看一下每个部分的功能。
 
 首先，Block结构体有很多字段，比如parent指向父块，sema指向语义分析器，namespace是命名空间索引，instructions是AIR指令的数组。还有params，看起来是参数的列表，可能用于函数实例化。label和inlining可能用于控制流，比如循环或内联函数。runtime_index、runtime_cond、runtime_loop这些可能处理运行时的条件或循环。comptime_reason和is_typeof可能用于编译时计算和类型推断。

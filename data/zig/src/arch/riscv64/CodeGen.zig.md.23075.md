@@ -313,7 +313,8 @@ fn genSetReg(func: *Func, ty: Type, reg: Register, src_mcv: MCValue) InnerError!
         .air_ref => |ref| try func.genSetReg(ty, reg, try func.resolveInst(ref)),
         else => return func.fail("TODO: genSetReg {s}", .{@tagName(src_mcv)}),
     }
-}```
+}
+```
 嗯，我需要理解这段Zig代码的作用。看起来这是一个函数genSetReg，负责生成将某个值（src_mcv）设置到寄存器（reg）中的指令。首先，我得理清楚代码的结构和各个部分的功能。
 
 首先，函数参数是func（可能是一个函数上下文），ty（类型），reg（目标寄存器），src_mcv（源值）。接下来，代码获取了abi_size，即类型的ABI大小。然后根据寄存器类型（int、float、vector）确定最大支持的大小，如果abi_size超过这个最大值，就会panic。

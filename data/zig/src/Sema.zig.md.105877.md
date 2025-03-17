@@ -227,7 +227,8 @@ fn fieldPtr(
         else => {},
     }
     return sema.failWithInvalidFieldAccess(block, src, object_ty, field_name);
-}```
+}
+```
 好的，我现在需要总结这段Zig代码的思维模型。首先，我得仔细看看这段代码是做什么的。函数名是fieldPtr，看起来是用来处理结构体或联合体字段的指针。让我先通读一遍代码，了解整体结构。
 
 函数参数包括sema、block、src、object_ptr、field_name等等。看起来这个函数的作用是根据给定的对象指针和字段名，获取该字段的指针。返回值是一个Air.Inst.Ref，可能是指令引用。

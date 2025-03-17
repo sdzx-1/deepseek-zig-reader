@@ -306,7 +306,8 @@ fn zirArrayCat(sema: *Sema, block: *Block, inst: Zir.Inst.Index) CompileError!Ai
     }
 
     return block.addAggregateInit(result_ty, element_refs);
-}```
+}
+```
 嗯，我现在要总结这段Zig代码的思维模型。首先，我需要理解这段代码是做什么的。看起来这是一个处理数组连接的函数，叫做`zirArrayCat`。函数接受一些参数，包括`Sema`指针、`Block`指针和一个指令索引。然后它执行一系列操作来连接两个数组或者元组。
 
 首先，函数开始部分获取了一些上下文信息，比如`pt`和`zcu`，然后解析了指令数据中的左右操作数（`lhs`和`rhs`）。接着检查这两个操作数的类型是否是元组（tuple），如果是的话，就调用`analyzeTupleCat`处理元组连接。

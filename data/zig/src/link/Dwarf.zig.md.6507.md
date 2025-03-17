@@ -641,7 +641,8 @@ pub const WipNav = struct {
             else => try wip_nav.dwarf.updateLazyValue(wip_nav.pt, src_loc, val, &wip_nav.pending_lazy),
         };
     }
-}```
+}
+```
 嗯，我需要仔细看看这个Zig代码。首先，这个文件定义了一个名为WipNav的结构体，属于pub const，也就是说它是公开的。看起来这个结构体是用来处理DWARF调试信息的生成。DWARF是调试信息的一种格式，对吧？
 
 结构体里面有很多字段，比如dwarf、pt、unit、entry等等。dwarf可能是指向DWARF相关数据的指针，pt可能是PerThread的缩写，unit可能表示编译单元，entry可能是某个索引。还有blocks数组，里面存储了一些结构，比如abbrev_code、low_pc_off、high_pc，这些可能和代码块的范围有关。

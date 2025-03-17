@@ -684,7 +684,8 @@ fn airAsm(self: *CodeGen, inst: Air.Inst.Index) !void {
     for (outputs) |output| if (output != .none) try self.feed(&bt, output);
     for (inputs) |input| try self.feed(&bt, input);
     return self.finishAirResult(inst, result);
-}```
+}
+```
 嗯，让我仔细看看这段Zig代码。看起来这是一个处理内联汇编的函数，叫做`airAsm`。首先，我需要理解这段代码的大致结构和功能。
 
 首先，函数接收一个`CodeGen`的指针和一个指令索引`inst`。然后，它从`self.air`中提取一些数据，比如`ty_pl`和`extra`。接着，它处理输出的约束、输入约束，以及可能的clobbers。

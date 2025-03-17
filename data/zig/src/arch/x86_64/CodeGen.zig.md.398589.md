@@ -799,7 +799,8 @@ fn airShuffle(self: *CodeGen, inst: Air.Inst.Index) !void {
         Value.fromInterned(extra.mask).fmtValue(pt),
     });
     return self.finishAir(inst, result, .{ extra.a, extra.b, .none });
-}```
+}
+```
 嗯，这段代码看起来是Zig编程语言中的一个函数，名为`airShuffle`，可能属于某个编译器或代码生成器的部分。让我仔细读一下代码，尝试理解它的功能。
 
 首先，函数接收一个`CodeGen`结构体的指针`self`和一个`Air.Inst.Index`类型的指令索引`inst`。返回类型是`!void`，表示可能返回错误。函数的目标可能是处理某种向量洗牌（shuffle）操作，生成对应的机器码。

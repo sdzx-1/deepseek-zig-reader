@@ -224,7 +224,8 @@ pub fn saveState(comp: *Compilation) !void {
     defer af.deinit();
     try af.file.pwritevAll(bufs.items, 0);
     try af.finish();
-}```
+}
+```
 嗯，我需要理解这段Zig代码的功能和结构。首先，函数名是saveState，看起来是保存编译状态的功能。代码里有很多关于处理不同数据结构和文件操作的部分。让我先分块分析。
 
 首先，函数开始检查是否是增量编译（dev.check(.incremental);）。然后获取bin_file，如果不存在就直接返回。接着初始化了一些动态数组，比如bufs和pt_headers，用于存储数据。

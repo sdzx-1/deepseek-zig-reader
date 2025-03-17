@@ -414,7 +414,8 @@ pub const MCValue = union(enum) {
             .air_ref => |pl| try writer.print("(air:0x{x})", .{@intFromEnum(pl)}),
         }
     }
-}```
+}
+```
 嗯，我需要总结这段Zig代码的思维模型。首先，这段代码定义了一个名为MCValue的联合类型（union），它代表机器码值。联合类型在Zig中需要指定一个标签枚举，这里用的是enum，所以每个变体都有一个明确的标签。
 
 看起来MCValue有很多不同的变体，比如none、unreach、dead、undef等等，每个变体可能对应不同的底层数据。例如，dead有一个u32类型的payload，immediate是u64，register是Register类型，等等。这些变体可能表示不同的值存储方式，比如立即数、寄存器、内存地址等。
