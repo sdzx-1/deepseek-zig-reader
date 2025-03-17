@@ -242,7 +242,8 @@ pub fn getAllErrorsAlloc(comp: *Compilation) !ErrorBundle {
 
     const compile_log_text = if (comp.zcu) |m| m.compile_log_text.items else "";
     return bundle.toOwnedBundle(compile_log_text);
-}```
+}
+```
 嗯，我需要理解这段代码的功能和结构。首先，这个函数名为`getAllErrorsAlloc`，属于Zig语言编写的。看起来它的主要作用是从编译过程中收集所有的错误信息，并生成一个错误包（ErrorBundle）。让我逐步分析。
 
 首先，函数接收一个`Compilation`的指针`comp`，返回一个错误包。它使用了一个`gpa`（通用分配器）来管理内存。接着，初始化了一个错误包的Wip（工作在进行中的结构），并在函数结束时进行清理（defer bundle.deinit()）。
