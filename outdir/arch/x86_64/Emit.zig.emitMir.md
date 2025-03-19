@@ -1,0 +1,35 @@
+flowchart TD
+    A[开始] --> B[初始化变量]
+    B --> C[分配code_offset_mapping]
+    B --> D[初始化relocs和table_relocs列表]
+    C --> E[遍历每个Mir指令]
+    E --> F[记录当前代码偏移到code_offset_mapping]
+    F --> G[Lower指令]
+    G --> H{是调试指令?}
+    H --> |是| I[生成DWARF调试信息]
+    H --> |否| J[编码指令到机器代码]
+    I --> K[继续下一条指令]
+    J --> L[处理重定位信息]
+    L --> M{重定位类型}
+    M --> |inst| N[添加普通重定位]
+    M --> |table| O[添加表重定位]
+    M --> |linker_extern_fn| P[处理ELF/Mach-O/COFF重定位]
+    M --> |linker_reloc| Q[处理动态链接重定位]
+    M --> |其他类型| R[处理特定平台重定位]
+    L --> S[继续下一条指令]
+    E --> T[处理伪指令]
+    T --> U{伪指令类型}
+    U --> |dbg_prologue_end| V[设置prologue结束标记]
+    U --> |dbg_line| W[更新调试行号信息]
+    U --> |dbg_epilogue_begin| X[设置epilogue开始标记]
+    U --> |dbg_enter_block| Y[进入调试块]
+    U --> |dbg_local_var| Z[生成局部变量调试信息]
+    T --> AA[继续下一条指令]
+    E --> AB[所有指令处理完成]
+    AB --> AC[处理所有重定位]
+    AC --> AD[修正代码中的偏移]
+    AD --> AE{存在表重定位?}
+    AE --> |是| AF[生成ELF表项和重定位]
+    AE --> |否| AG[结束]
+    AF --> AG
+    AG --> AH[函数结束]

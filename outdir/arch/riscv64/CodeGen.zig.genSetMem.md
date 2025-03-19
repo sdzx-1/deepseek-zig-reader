@@ -1,0 +1,25 @@
+flowchart TD
+    A[开始genSetMem] --> B[计算abi_size和dst_ptr_mcv]
+    B --> C{检查src_mcv类型}
+    C -->|undef| D[存在sym_index?]
+    D -->|是| E[递归调用genSetMem]
+    D -->|否| F[调用genInlineMemset]
+    C -->|register| G[是向量寄存器?]
+    G -->|是| H[设置VL参数并生成pseudo_store_rm]
+    G -->|否| I[计算mem_size和src_size]
+    I --> J[src_size > mem_size?]
+    J -->|是| K[分配帧索引并存储]
+    J -->|否| L[直接生成pseudo_store_rm]
+    C -->|register_pair| M[循环处理每个src_reg和子类型]
+    M --> N[逐个调用genSetMem]
+    C -->|immediate| O[提升寄存器并递归调用]
+    C -->|air_ref| P[解析指令并递归调用]
+    C -->|其他类型| Q[返回TODO错误]
+    C -->|memory/indirect等| R[根据abi_size处理]
+    R -->|0| S[空操作]
+    R -->|1/2/4/8| T[分配寄存器中转存储]
+    R -->|其他| U[调用genInlineMemcpy]
+    T --> V[生成寄存器存储指令]
+    V --> W[递归调用genSetMem]
+    style A stroke:#333,stroke-width:2px
+    style Q stroke:#f00

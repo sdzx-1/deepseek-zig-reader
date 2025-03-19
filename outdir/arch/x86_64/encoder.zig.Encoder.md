@@ -1,0 +1,36 @@
+flowchart TD
+    A[Encoder结构体] --> B[前缀处理]
+    A --> C[操作码处理]
+    A --> D[ModR/M处理]
+    A --> E[SIB处理]
+    A --> F[立即数/位移处理]
+    
+    B --> B1[legacyPrefixes]
+    B --> B2[prefix16BitMode]
+    B --> B3[rex]
+    B --> B4[vex]
+    
+    C --> C1[opcode_1byte]
+    C --> C2[opcode_2byte]
+    C --> C3[opcode_3byte]
+    C --> C4[opcode_withReg]
+    
+    D --> D1[modRm]
+    D --> D2[modRm_direct]
+    D --> D3[modRm_indirectDisp0]
+    D --> D4[modRm_SIBDisp0]
+    D --> D5[modRm_RIPDisp32]
+    D --> D6[...其他modRm变体]
+    
+    E --> E1[sib]
+    E --> E2[sib_scaleIndexBase]
+    E --> E3[sib_scaleIndexDisp32]
+    E --> E4[sib_base]
+    E --> E5[...其他sib变体]
+    
+    F --> F1[disp8]
+    F --> F2[disp32]
+    F --> F3[imm8]
+    F --> F4[imm16]
+    F --> F5[imm32]
+    F --> F6[imm64]
