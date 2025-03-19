@@ -1,161 +1,140 @@
-嗯，我现在需要为给定的 Zig 函数 `parsePrimaryTypeExpr` 绘制流程图。首先，我得理解这个函数的结构和逻辑。函数里面有一个大的 `switch` 语句，根据当前的 token 类型来决定如何解析。每个 case 处理不同的 token，比如字符字面量、数字字面量、关键字等等，然后生成对应的 AST 节点。
+好的，我需要为给定的Zig函数`parsePrimaryTypeExpr`绘制一个流程图。首先，我需要理解这个函数的结构和逻辑流程。
 
-首先，我应该分析函数的控制流。函数从检查 `p.tokenTag(p.tok_i)` 开始，然后根据不同的 token 进入不同的处理分支。每个分支可能进一步有嵌套的条件判断，比如处理 `.identifier` 时会检查下一个 token 是否是冒号，接着再判断后面的 token 类型。例如，当遇到 `.keyword_inline` 时，会再次检查下一个 token 是否是 `keyword_for` 或 `keyword_while`，否则报错。
+函数开始于一个`switch`语句，根据当前令牌的标签（`p.tokenTag(p.tok_i)`）进行不同的处理。每个`case`分支对应不同的令牌类型，执行相应的解析操作，并返回节点索引或错误。
 
-接下来，我需要确定每个分支的处理步骤，并将这些步骤转化为流程图的节点和判断框。例如，处理 `.char_literal` 的情况很简单，直接返回一个节点。而处理 `.string_literal` 虽然也直接返回节点，但可能有额外的步骤，比如获取 `main_token`。处理 `.builtin` 则调用另一个函数 `parseBuiltinCall()`，这可能是一个子流程。
+首先，我需要列出所有的`case`分支，并理清每个分支的处理逻辑。例如，处理`.char_literal`时，会创建一个字符字面量节点；处理`.number_literal`时，创建数字字面量节点，依此类推。
 
-在处理 `.identifier` 的情况时，有一个嵌套的 switch，需要检查下一个 token 是否是 `colon`，然后进一步处理。这时候可能需要多个判断节点。此外，像处理 `.period` 的情况，又可能根据下一个 token 是 `.identifier` 或 `.l_brace` 进入不同的处理逻辑，甚至还有循环处理多个初始化项的情况。
+接下来，注意到有些分支会调用其他函数，如`parseBuiltinCall()`、`parseFnProto()`等。这些调用应该在流程图中表示为子流程或步骤。同时，部分分支包含嵌套的`switch`语句，例如处理`.identifier`时，会根据下一个令牌的不同进一步分支。
 
-需要注意的是，有些分支可能会递归调用其他解析函数，比如 `parseFnProto()` 或 `parseIf()`，这些在流程图中可能需要表示为子流程或者单独的节点。同时，错误处理部分，如 `p.fail(...)` 或 `p.warn(...)`，也需要在流程图中体现为错误节点。
+对于条件判断，如`.identifier`后的`switch (p.tokenTag(p.tok_i + 1))`，需要将这些条件作为决策节点。例如，如果下一个令牌是`.colon`，则进入另一个判断；否则直接处理为标识符节点。
 
-对于 `multiline_string_literal_line` 的处理，有一个循环来跳过后续的同类型 token，然后创建节点。这部分需要循环结构来表示。而处理 `.keyword_error` 时，根据下一个 token 是否是 `.l_brace` 分两种情况，一种是声明错误集合，另一种是错误值。
+另外，循环结构，如处理多行字符串字面量时的`while`循环，也需要在流程图中表示。循环继续的条件是当前令牌是否为`.multiline_string_literal_line`，直到不再满足为止。
 
-最后，函数以 `else => return null` 结束，表示无法识别当前 token，返回空。这应该作为默认分支。
+还需要注意错误处理和提前返回的情况。例如，某些分支中如果遇到不符合预期的令牌，会调用`p.fail(...)`返回错误，这些需要在流程图中体现为错误出口。
 
-在绘制流程图时，需要将每个主要的 case 分支作为判断框，根据不同的条件进入不同的处理步骤。对于嵌套的 switch 或 if 条件，需要进一步分解为子判断框。处理步骤中的函数调用（如 `parseBuiltinCall()`）可以作为过程节点。循环结构（如处理多行字符串字面量或初始化项）需要用循环框表示。
+最后，将所有分支和子流程连接起来，确保逻辑的正确性和流程的完整性。可能需要使用不同的形状来表示开始、结束、处理步骤、决策节点等。
 
-可能还需要注意代码中的一些细节，比如 `scratch_top` 的处理和 `defer` 语句，这些可能影响流程，但在高层流程图中可以简化为处理列表的步骤。此外，错误处理和恢复（如 `try p.warn(...)`）可能需要作为旁支流程。
+总结步骤：
+1. 确定函数的入口和出口。
+2. 列出所有主要的`case`分支作为决策节点。
+3. 对于每个分支，详细展开其内部逻辑，包括嵌套的条件判断和循环。
+4. 将函数调用（如`parseBuiltinCall()`）作为处理步骤。
+5. 处理错误情况和提前返回。
+6. 使用合适的图形符号（如菱形表示决策，矩形表示处理步骤，椭圆形表示开始/结束）来构建流程图。
 
-总之，流程图的大致结构应该从函数入口开始，根据不同的 token 类型分支，每个分支内部处理对应的逻辑，包括可能的子判断、循环、函数调用，最终返回节点或错误。需要确保所有可能的路径都被覆盖，并用合适的图形元素（如菱形判断框、矩形处理框、箭头流向）表示出来。
+需要确保流程图的准确性和可读性，正确反映函数的控制流。
 ================================================
 ```dot
-digraph flowchart {
-    node [shape=rectangle, fontname="Courier", fontsize="10"];
-    edge [fontname="Courier", fontsize="10"];
+digraph parsePrimaryTypeExpr {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle];
+    edge [fontname="Arial"];
 
-    start [label="开始 parsePrimaryTypeExpr"];
-    end [label="返回节点或null"];
-    start -> switch_token [label="检查当前token类型"];
+    start [label="开始 parsePrimaryTypeExpr", shape=ellipse];
+    end [label="返回节点或错误", shape=ellipse];
+    switch_token [label="switch(p.tokenTag(p.tok_i))", shape=diamond];
 
-    switch_token [shape=diamond, label="switch (p.tokenTag(p.tok_i))"];
     start -> switch_token;
 
     // 基本字面量处理
+    subgraph cluster_literals {
+        label="字面量处理";
+        char_lit [label="处理.char_literal\n创建字符字面量节点"];
+        number_lit [label="处理.number_literal\n创建数字字面量节点"];
+        unreachable_lit [label="处理.keyword_unreachable\n创建unreachable节点"];
+        anyframe_lit [label="处理.keyword_anyframe\n创建anyframe节点"];
+        string_lit [label="处理.string_literal\n创建字符串字面量节点"];
+        multiline_str [label="处理.multiline_string_literal_line\n创建多行字符串节点"];
+    }
+
+    // 复合结构处理
+    subgraph cluster_structures {
+        label="复合结构处理";
+        builtin_call [label="处理.builtin\n调用parseBuiltinCall()"];
+        fn_proto [label="处理.keyword_fn\n调用parseFnProto()"];
+        if_expr [label="处理.keyword_if\n调用parseIf()"];
+        switch_expr [label="处理.keyword_switch\n调用expectSwitchExpr()"];
+        container_decl [label="处理.keyword_extern/packed\n调用parseContainerDeclAuto()"];
+        comptime_expr [label="处理.keyword_comptime\n创建comptime节点"];
+        error_set [label="处理.keyword_error\n创建错误集合声明"];
+        grouped_expr [label="处理.l_paren\n创建分组表达式节点"];
+    }
+
+    // 标识符和特殊语法
+    subgraph cluster_identifiers {
+        label="标识符处理";
+        identifier_colon [label="下一个token是.colon?", shape=diamond];
+        inline_for_while [label="处理.keyword_inline\n调用parseFor/parseWhileTypeExpr"];
+        enum_literal [label="处理.period+identifier\n创建枚举字面量节点"];
+        struct_init [label="处理.period+l_brace\n解析结构初始化"];
+        error_value [label="处理.error+identifier\n创建错误值节点"];
+    }
+
+    // 连接主switch分支
     switch_token -> char_lit [label=".char_literal"];
-    char_lit [label="创建char_literal节点\n并消费token"];
-    char_lit -> end;
-
-    switch_token -> num_lit [label=".number_literal"];
-    num_lit [label="创建number_literal节点\n并消费token"];
-    num_lit -> end;
-
-    switch_token -> unreachable [label=".keyword_unreachable"];
-    unreachable [label="创建unreachable_literal节点\n并消费token"];
-    unreachable -> end;
-
-    switch_token -> anyframe [label=".keyword_anyframe"];
-    anyframe [label="创建anyframe_literal节点\n并消费token"];
-    anyframe -> end;
-
-    // 字符串处理分支
+    switch_token -> number_lit [label=".number_literal"];
+    switch_token -> unreachable_lit [label=".keyword_unreachable"];
+    switch_token -> anyframe_lit [label=".keyword_anyframe"];
     switch_token -> string_lit [label=".string_literal"];
-    string_lit [label="消费token\n创建string_literal节点"];
-    string_lit -> end;
-
+    switch_token -> builtin_call [label=".builtin"];
+    switch_token -> fn_proto [label=".keyword_fn"];
+    switch_token -> if_expr [label=".keyword_if"];
+    switch_token -> switch_expr [label=".keyword_switch"];
+    switch_token -> container_decl [label=".keyword_extern/packed"];
+    switch_token -> container_decl [label=".keyword_struct/opaque/enum/union"];
+    switch_token -> comptime_expr [label=".keyword_comptime"];
     switch_token -> multiline_str [label=".multiline_string_literal_line"];
-    multiline_str [label="循环消费后续的\nmultiline_string_literal_line\ntoken"];
-    multiline_str -> end;
+    switch_token -> identifier_colon [label=".identifier"];
+    switch_token -> inline_for_while [label=".keyword_inline"];
+    switch_token -> enum_literal [label=".period+identifier"];
+    switch_token -> struct_init [label=".period+l_brace"];
+    switch_token -> error_set [label=".keyword_error"];
+    switch_token -> grouped_expr [label=".l_paren"];
+    switch_token -> end [label="其他情况返回null"];
 
-    // 内置函数和复杂结构
-    switch_token -> builtin [label=".builtin"];
-    builtin [label="调用parseBuiltinCall()"];
-    builtin -> end;
+    // 处理标识符分支
+    identifier_colon -> subgraph_id_colon [label="是"];
+    identifier_colon -> simple_identifier [label="否"];
 
-    switch_token -> keyword_fn [label=".keyword_fn"];
-    keyword_fn [label="调用parseFnProto()"];
-    keyword_fn -> end;
+    subgraph cluster_id_colon {
+        label="处理identifier+:";
+        subgraph_id_colon [label="检查+2位置token", shape=diamond];
+        inline_for [label="处理inline for"];
+        inline_while [label="处理inline while"];
+        switch_block [label="处理switch表达式"];
+        parse_block [label="解析代码块"];
+        default_id [label="创建普通identifier节点"];
+    }
 
-    // 控制流结构
-    switch_token -> keyword_if [label=".keyword_if"];
-    keyword_if [label="调用parseIf(expectTypeExpr)"];
-    keyword_if -> end;
+    subgraph_id_colon -> inline_for [label=".keyword_inline"];
+    subgraph_id_colon -> inline_while [label=".keyword_while"];
+    subgraph_id_colon -> switch_block [label=".keyword_switch"];
+    subgraph_id_colon -> parse_block [label=".l_brace"];
+    subgraph_id_colon -> default_id [label="其他"];
 
-    switch_token -> keyword_switch [label=".keyword_switch"];
-    keyword_switch [label="调用expectSwitchExpr(false)"];
-    keyword_switch -> end;
-
-    // 容器声明
-    switch_token -> container_decl [label=".keyword_extern/.keyword_packed"];
-    container_decl [label="消费token\n调用parseContainerDeclAuto()"];
-    container_decl -> end;
-
-    switch_token -> other_containers [label=".keyword_struct/.opaque/.enum/.union"];
-    other_containers [label="调用parseContainerDeclAuto()"];
-    other_containers -> end;
-
-    // 复杂表达式
-    switch_token -> comptime [label=".keyword_comptime"];
-    comptime [label="创建comptime节点\n并解析子表达式"];
-    comptime -> end;
-
-    // 标识符处理
-    switch_token -> identifier [label=".identifier"];
-    identifier [shape=diamond, label="检查下一个token"];
-    identifier -> colon_case [label="下一个是 .colon"];
-    colon_case [shape=diamond, label="检查+2位置的token"];
-    colon_case -> inline_for [label=".keyword_inline"];
-    inline_for [label="消费3个token\n调用parseFor()"];
-    inline_for -> end;
-
-    colon_case -> direct_for [label=".keyword_for"];
-    direct_for [label="消费2个token\n调用parseFor()"];
-    direct_for -> end;
-
-    colon_case -> while_expr [label=".keyword_while"];
-    while_expr [label="调用parseWhileTypeExpr()"];
-    while_expr -> end;
-
-    colon_case -> switch_expr [label=".keyword_switch"];
-    switch_expr [label="调用expectSwitchExpr(true)"];
+    // 连接所有终节点到结束
+    char_lit -> end;
+    number_lit -> end;
+    unreachable_lit -> end;
+    anyframe_lit -> end;
+    string_lit -> end;
+    builtin_call -> end;
+    fn_proto -> end;
+    if_expr -> end;
     switch_expr -> end;
-
-    colon_case -> block [label=".l_brace"];
-    block [label="调用parseBlock()"];
-    block -> end;
-
-    colon_case -> simple_id [label="其他情况"];
-    simple_id [label="创建identifier节点"];
-    simple_id -> end;
-
-    identifier -> default_id [label="其他情况"];
-    default_id [label="创建identifier节点"];
-    default_id -> end;
-
-    // 其他关键字
-    switch_token -> inline_kw [label=".keyword_inline"];
-    inline_kw [shape=diamond, label="检查下一个token"];
-    inline_kw -> inline_for2 [label=".keyword_for"];
-    inline_for2 [label="调用parseFor()"];
-    inline_for2 -> end;
-
-    inline_kw -> inline_while [label=".keyword_while"];
-    inline_while [label="调用parseWhileTypeExpr()"];
+    container_decl -> end;
+    comptime_expr -> end;
+    multiline_str -> end;
+    simple_identifier -> end;
+    inline_for -> end;
     inline_while -> end;
-
-    inline_kw -> fail_inline [label="其他"];
-    fail_inline [label="报错expected_inlinable"];
-    fail_inline -> end;
-
-    // 错误处理分支
-    switch_token -> error_kw [label=".keyword_error"];
-    error_kw [shape=diamond, label="检查下一个token"];
-    error_kw -> error_set [label=".l_brace"];
-    error_set [label="解析错误集合声明"];
+    switch_block -> end;
+    parse_block -> end;
+    default_id -> end;
+    enum_literal -> end;
+    struct_init -> end;
     error_set -> end;
-
-    error_kw -> error_val [label="其他"];
-    error_val [label="解析.error_value节点"];
-    error_val -> end;
-
-    // 默认分支
-    switch_token -> default [label="其他情况"];
-    default [label="return null"];
-    default -> end;
-
-    // 边缘情况处理
-    edge [style=dashed, color=grey];
-    builtin -> end [label="可能递归调用"];
-    keyword_fn -> end [label="可能递归调用"];
-    block -> end [label="可能递归调用"];
+    grouped_expr -> end;
+    error_value -> end;
 }
 ```

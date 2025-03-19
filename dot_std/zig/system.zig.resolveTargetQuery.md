@@ -1,107 +1,99 @@
-嗯，用户让我用Graphviz来画一个Zig函数的流程图。首先，我需要仔细看看这个函数的结构。这个函数叫做resolveTargetQuery，看起来是用来确定目标平台的配置，比如操作系统版本、CPU架构等等。
+嗯，我需要用Graphviz来画这个Zig函数`resolveTargetQuery`的流程图。首先，我需要理解这个函数的结构和逻辑流程。
 
-首先，我需要理清函数的主要步骤。函数开始处理Target.Query，然后根据不同的操作系统进行版本检测。比如，对于Linux，它会解析uname的输出来获取版本号；对于Windows，调用特定的检测函数；macOS则调用Darwin相关的检测方法。然后还有处理FreeBSD、NetBSD等其他系统的部分。
+函数开头定义了几个变量：`query_cpu_arch`、`query_os_tag`和`query_abi`，它们分别从传入的查询参数或内置参数中获取值。接下来，根据操作系统类型（如Linux、Windows、macOS等），函数会进行不同的版本检测和处理。例如，对于Linux系统，它会通过`uname`获取内核版本，并尝试解析为语义化版本号。对于FreeBSD、NetBSD等，则通过系统调用来获取版本信息。
 
-接下来，函数处理查询中的版本范围和ABI设置，调整CPU特性，比如x86的16位或32位模式，ARM的Thumb模式等。之后，检测ABI和动态链接器，并进行一些特定的CPU特性调整，比如Hexagon架构的小数据区问题，或者ARM的软浮点处理。
+然后，函数处理操作系统版本的最小和最大限制，以及Glibc版本和Android API级别。接着是关于CPU架构的检测和特性设置，特别是针对x86、ARM等不同架构的特殊处理。之后，调用`detectAbiAndDynamicLinker`来检测ABI和动态链接器，并进行一些后续的CPU特性调整。
 
-最后，确保ABI和操作系统版本的兼容性，如果检测到的ABI与查询的不一致，会根据需要调整操作系统版本范围。
+最后，函数确保检测到的ABI与查询的ABI一致，并根据需要调整操作系统版本范围。
 
-现在要画流程图的话，需要把这些步骤分解成不同的节点，并用箭头表示流程走向。可能的结构是：
+在绘制流程图时，需要将这些步骤分解为节点，并用箭头表示流程的顺序。每个条件判断（如不同的操作系统分支）会形成分支结构。可能需要注意循环或递归结构，但在这个函数中主要是顺序和条件分支。
 
-1. 开始节点：函数入口。
-2. 处理操作系统版本检测，根据不同OS分支。
-3. 处理查询中的版本范围和ABI设置。
-4. CPU特性调整。
-5. 检测ABI和动态链接器。
-6. 特定CPU特性后处理。
-7. 确保ABI和OS版本兼容性。
-8. 返回结果。
+需要注意的是，Graphviz使用DOT语言，节点用方框表示，条件判断用菱形，流程步骤用矩形。每个条件分支需要明确标注条件，例如“OS是Linux？”、“是FreeBSD？”等。
 
-不过，具体的流程可能更复杂，因为有多个条件分支，比如不同的操作系统类型，不同的CPU架构处理。可能需要为每个主要条件分支创建子图，比如Linux处理、Windows处理等。
+可能需要将复杂的条件分支拆分为多个子图，以保持图表清晰。例如，处理不同操作系统的部分可以作为一个大的分支结构，每个操作系统对应一个子流程。
 
-另外，函数中有很多错误处理，比如解析版本号失败时的处理，这些也需要在流程图中体现出来，比如用条件判断节点，不同的错误路径。
+另外，函数中有多处错误处理（如`catch`），这些也需要在流程图中体现，可能作为不同的出口或处理节点。
 
-可能需要使用不同的形状来表示不同的节点类型，比如菱形表示判断，矩形表示操作，椭圆形表示开始和结束。
-
-不过，Graphviz的语法相对灵活，可以通过节点和边的定义来组织。需要注意的是，保持流程图的清晰，避免交叉太多，可能需要使用子图来分组不同的处理部分。
-
-总之，我需要将函数的主要步骤和分支结构转化为Graphviz的节点和边，确保逻辑正确且易于理解。
+最后，确保整个流程图的结构与代码逻辑一致，没有遗漏关键步骤，并且节点之间的连接正确。
 ================================================
 ```dot
 digraph resolveTargetQuery {
     node [shape=rectangle, style=rounded];
-    edge [arrowhead=vee];
 
-    start [label="开始 resolveTargetQuery(query)", shape=ellipse];
-    end [label="返回 result", shape=ellipse];
+    start [label="开始", shape=ellipse];
+    end [label="返回result", shape=ellipse];
 
-    // 基本参数提取
-    extract_params [label="提取 query_cpu_arch, query_os_tag, query_abi"];
-    start -> extract_params;
+    // 基本参数初始化
+    init_params [label="初始化参数:\l- query_cpu_arch\l- query_os_tag\l- query_abi\l"];
+    os_default_version [label="设置OS默认版本范围"];
+    check_os_tag_null [label="query.os_tag == null?", shape=diamond];
 
-    // 操作系统版本检测分支
-    detect_os_version [label="根据 query_os_tag 检测 OS 版本"];
-    extract_params -> detect_os_version;
+    // OS检测分支
+    detect_os [label="根据builtin.target.os.tag检测OS版本"];
+    switch_os [label="switch (builtin.target.os.tag)", shape=diamond];
+    
+    // 各OS处理子模块
+    linux_block [label="Linux处理:\l- 调用uname()\l- 解析内核版本\l"];
+    solaris_block [label="Solaris/Illumos处理:\l- 解析release版本\l"];
+    windows_block [label="Windows处理:\l- 检测运行时版本\l"];
+    macos_block [label="macOS处理:\l- 调用Darwin检测\l"];
+    bsd_block [label="FreeBSD/NetBSD/DragonFly处理:\l- 系统调用获取版本\l"];
+    openbsd_block [label="OpenBSD处理:\l- 系统调用并格式转换\l"];
+    other_os [label="其他OS:\l- 使用默认版本范围\l"];
 
-    // OS 检测子流程
-    subgraph cluster_os_detection {
-        label="操作系统版本检测";
-        linux [label="Linux: 解析 uname.release\n尝试转换为 SemanticVersion"];
-        windows [label="Windows: 调用 detectRuntimeVersion"];
-        macos [label="macOS: 调用 darwin.macos.detect"];
-        freebsd [label="FreeBSD: 解析 sysctl kern.osreldate"];
-        netbsd [label="NetBSD: 解析 sysctl kern.osrevision"];
-        openbsd [label="OpenBSD: sysctl KERN_OSRELEASE\n附加 .0 补全语义版本"];
-        other_os [label="其他 OS: 使用默认版本范围"];
-        
-        detect_os_version -> linux [label=".linux"];
-        detect_os_version -> windows [label=".windows"];
-        detect_os_version -> macos [label=".macos"];
-        detect_os_version -> freebsd [label=".freebsd"];
-        detect_os_version -> netbsd [label=".netbsd/.dragonfly"];
-        detect_os_version -> openbsd [label=".openbsd"];
-        detect_os_version -> other_os [label="其他"];
-    }
+    // 版本范围更新
+    handle_os_version_min [label="处理OS最小版本限制"];
+    handle_os_version_max [label="处理OS最大版本限制"];
+    handle_glibc [label="设置Glibc版本"];
+    handle_android [label="设置Android API级别"];
 
-    // 处理版本范围覆盖
-    handle_os_version_override [label="应用 query.os_version_min/max\n和 glibc/android_api 设置"];
-    detect_os_version -> handle_os_version_override;
+    // CPU处理
+    cpu_detection [label="检测CPU模型和特性"];
+    x86_special [label="x86特殊处理:\l- 设置16/32位模式\l"];
+    arm_special [label="ARM特殊处理:\l- 添加Thumb模式\l"];
+    update_features [label="更新CPU特性集"];
 
-    // CPU 特性处理
-    detect_cpu [label="确定 CPU 模型和特性\n（native/baseline/explicit）"];
-    handle_os_version_override -> detect_cpu;
+    // ABI检测
+    detect_abi [label="检测ABI和动态链接器"];
+    post_abi_hacks [label="ABI后处理:\l- Hexagon修复\l- ARM VFP修复\l"];
+    adjust_os_version [label="根据ABI调整OS版本范围"];
 
-    // 架构特定逻辑
-    subgraph cluster_cpu_hacks {
-        label="架构特性补丁";
-        x86_mode [label="x86: 根据 ABI 设置 16/32bit_mode"];
-        arm_thumb [label="ARM/Thumb: 添加 thumb_mode 特性"];
-        hexagon_fix [label="Hexagon: 移除 small_data 特性"];
-        arm_softfloat [label="ARM soft-float: 移除 vfp2 特性"];
-        
-        detect_cpu -> x86_mode [label="x86"];
-        detect_cpu -> arm_thumb [label="arm/thumb"];
-        x86_mode -> hexagon_fix;
-        arm_thumb -> hexagon_fix;
-        hexagon_fix -> arm_softfloat;
-    }
+    // 连接节点
+    start -> init_params -> os_default_version -> check_os_tag_null;
+    
+    check_os_tag_null -> detect_os [label="是"];
+    check_os_tag_null -> handle_os_version_min [label="否"];
+    
+    detect_os -> switch_os;
+    switch_os -> linux_block [label=".linux"];
+    switch_os -> solaris_block [label=".solaris/.illumos"];
+    switch_os -> windows_block [label=".windows"];
+    switch_os -> macos_block [label=".macos"];
+    switch_os -> bsd_block [label=".freebsd/.netbsd/.dragonfly"];
+    switch_os -> openbsd_block [label=".openbsd"];
+    switch_os -> other_os [label="其他"];
+    
+    // 合并OS处理分支
+    linux_block -> handle_os_version_min;
+    solaris_block -> handle_os_version_min;
+    windows_block -> handle_os_version_min;
+    macos_block -> handle_os_version_min;
+    bsd_block -> handle_os_version_min;
+    openbsd_block -> handle_os_version_min;
+    other_os -> handle_os_version_min;
 
-    // ABI 和动态链接器检测
-    detect_abi [label="检测 ABI 和动态链接器"];
-    arm_softfloat -> detect_abi;
+    // 版本范围处理流程
+    handle_os_version_min -> handle_os_version_max -> handle_glibc -> handle_android -> cpu_detection;
 
-    // 版本兼容性修正
-    check_abi_os_compat [label="调整 OS 版本以匹配 ABI 要求"];
-    detect_abi -> check_abi_os_compat;
+    // CPU处理流程
+    cpu_detection -> x86_special [label="x86架构"];
+    cpu_detection -> arm_special [label="ARM架构"];
+    x86_special -> update_features;
+    arm_special -> update_features;
+    cpu_detection -> update_features [label="其他架构"];
+    update_features -> detect_abi;
 
-    // 结束
-    check_abi_os_compat -> end;
-
-    // 错误处理（简化）
-    error_handling [label="错误处理分支\n（如 OSVersionDetectionFail）", shape=diamond];
-    linux -> error_handling [label="版本解析失败"];
-    windows -> error_handling [label="detectRuntimeVersion 失败"];
-    openbsd -> error_handling [label="版本解析失败"];
-    error_handling -> end [label="返回错误"];
+    // 最终处理
+    detect_abi -> post_abi_hacks -> adjust_os_version -> end;
 }
 ```

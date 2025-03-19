@@ -1,85 +1,85 @@
 好的，我需要为给定的Zig函数`unwindFrameMachO`绘制一个流程图。首先，我需要理解这个函数的结构和逻辑流程。
 
-函数开始于参数声明，然后处理unwind信息头，接着进行二分查找来定位正确的索引。根据找到的索引，处理不同的二级页面类型（REGULAR和COMPRESSED），解码编码信息，然后根据不同的CPU架构（如x86_64、aarch64）处理不同的展开模式（如RBP_FRAME、STACK_IMMD等）。最后，更新上下文中的寄存器值并返回新的指令指针。
+函数的主要目的是处理Mach-O格式的栈展开信息。它接收多个参数，包括分配器、基地址、上下文、内存访问器等，并返回一个地址。函数内部首先解析头部信息，然后进行二进制搜索找到对应的二级索引。接着处理不同的编码模式（REGULAR和COMPRESSED），根据不同的架构（x86_64、aarch64等）执行不同的展开逻辑，最后更新上下文中的寄存器值和程序计数器。
 
-接下来，我需要将这一过程分解为流程图的主要步骤：
+接下来，我需要将这个过程分解成流程图的基本步骤。流程图的开始是函数入口，然后依次处理各个步骤，包括解析头部、搜索索引、处理二级页面、解码编码、处理不同架构的逻辑，最后返回结果。需要注意条件分支，例如不同的编码模式（REGULAR vs COMPRESSED）、不同的CPU架构（x86_64 vs aarch64）以及不同的展开模式（如FRAMELESS、DWARF等）。
 
-1. **函数入口**：处理参数和头信息。
-2. **二分查找索引**：定位正确的second_level_index。
-3. **处理二级页面类型**：分为REGULAR和COMPRESSED两种情况。
-4. **解码编码信息**：根据不同的编码模式进行处理。
-5. **架构特定处理**：x86_64和ARM的不同展开逻辑。
-6. **更新上下文和返回**：设置新的寄存器值并返回new_ip。
+在绘制流程图时，需要确保每个判断节点（如switch语句）都有明确的分支，并且每个处理步骤清晰。可能还需要处理错误情况，如返回error.MissingUnwindInfo等。
 
-需要注意的是，流程中存在多个错误检查（如返回error.MissingUnwindInfo），以及条件分支（如switch语句）。这些都需要在流程图中体现出来。
+需要注意的是，函数中有多个嵌套的switch和if条件，需要正确表示这些逻辑分支。同时，某些部分涉及循环（如二进制搜索），这些循环在流程图中应表示为条件判断和循环结构。
 
-可能遇到的挑战是处理复杂的条件分支和嵌套的switch结构。需要确保每个条件分支都有清晰的路径，并且不同架构的处理逻辑分开表示。
-
-最后，使用Graphviz的DOT语言将这些步骤和分支可视化，使用不同的节点和箭头表示流程走向，同时用菱形节点表示条件判断。
+最后，确保流程图的结构层次分明，每个步骤之间的连接正确，没有遗漏重要的逻辑路径。
 ================================================
-```dot
-digraph flowchart {
-    node [shape=rectangle, style="rounded", fontname="Arial"];
-    edge [fontname="Arial"];
+```graphviz
+digraph unwindFrameMachO {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.5];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial", arrowsize=0.8];
 
-    start [label="开始 unwindFrameMachO"];
-    parse_header [label="解析 unwind_info 头"];
-    binary_search_index [label="二分查找 indices 定位 second_level_index"];
-    check_second_level [label="检查 second_level_index 有效性"];
-    handle_regular [label="处理 REGULAR 二级页面"];
-    handle_compressed [label="处理 COMPRESSED 二级页面"];
-    decode_encoding [label="解码 CompactUnwindEncoding"];
-    x86_mode [label="x86_64 模式处理"];
-    arm_mode [label="aarch64 模式处理"];
-    update_context [label="更新寄存器上下文"];
-    return_ip [label="返回 new_ip"];
-    error_nodes [label="错误处理节点群", shape=diamond];
+    start [label="开始 unwindFrameMachO", shape=ellipse, fillcolor="#b3e2cd"];
+    parse_header [label="解析头部信息"];
+    check_indices [label="检查indices长度\n若为0返回MissingUnwindInfo"];
+    binary_search_first_level [label="一级索引二分查找\n确定second_level_index"];
+    check_second_level_offset [label="检查secondLevelPagesSectionOffset\n若为0返回MissingUnwindInfo"];
+    get_common_encodings [label="获取公共编码表"];
+    check_second_level_kind [label="检查二级页面类型\n(kind.*)"];
 
-    // 主流程
+    handle_regular [label="处理REGULAR模式\n解析条目并二分查找"];
+    handle_compressed [label="处理COMPRESSED模式\n解析条目并处理编码索引"];
+    invalid_kind [label="返回InvalidUnwindInfo", shape=diamond];
+
+    check_raw_encoding [label="检查raw_encoding\n若为0返回NoUnwindInfo"];
+    setup_reg_context [label="设置寄存器上下文"];
+
+    arch_decision [label="根据CPU架构选择分支", shape=diamond];
+    x86_64_modes [label="x86_64模式处理\n(RBP_FRAME/STACK_IMMD/STACK_IND/DWARF)"];
+    aarch64_modes [label="aarch64模式处理\n(FRAMELESS/DWARF/FRAME)"];
+    unimplemented_arch [label="返回UnimplementedArch", shape=diamond];
+
+    update_context [label="更新context.pc\n返回new_ip"];
+    end [label="结束", shape=ellipse, fillcolor="#b3e2cd"];
+
+    subgraph cluster_error_handling {
+        label="错误处理";
+        error_missing [label="MissingUnwindInfo"];
+        error_invalid [label="InvalidUnwindInfo"];
+        error_unimplemented [label="UnimplementedUnwindEncoding"];
+        error_missing_eh [label="MissingEhFrame"];
+        error_no_unwind [label="NoUnwindInfo"];
+    }
+
     start -> parse_header;
-    parse_header -> binary_search_index;
-    binary_search_index -> check_second_level;
-    check_second_level -> handle_regular [label="kind=REGULAR"];
-    check_second_level -> handle_compressed [label="kind=COMPRESSED"];
-    
-    // 二级页面处理
-    handle_regular -> decode_encoding;
-    handle_compressed -> decode_encoding;
-    
-    // 编码解码与架构分支
-    decode_encoding -> x86_mode [label="builtin.cpu.arch=x86_64"];
-    decode_encoding -> arm_mode [label="builtin.cpu.arch=aarch64"];
-    
-    // x86 子分支
-    x86_mode -> x86_rbp_frame [label="RBP_FRAME"];
-    x86_mode -> x86_stack [label="STACK_IMMD/IND"];
-    x86_mode -> x86_dwarf [label="DWARF"];
-    
-    // ARM 子分支
-    arm_mode -> arm_frameless [label="FRAMELESS"];
-    arm_mode -> arm_frame [label="FRAME"];
-    arm_mode -> arm_dwarf [label="DWARF"];
-    
-    // 公共路径
-    x86_rbp_frame -> update_context;
-    x86_stack -> update_context;
-    arm_frameless -> update_context;
-    arm_frame -> update_context;
-    
-    // 上下文更新和返回
-    update_context -> return_ip;
-    
-    // 错误处理（简化为聚合节点）
-    check_second_level -> error_nodes [label="无效索引"];
-    handle_regular -> error_nodes [label="entries.len=0"];
-    handle_compressed -> error_nodes [label="entries.len=0"];
-    decode_encoding -> error_nodes [label="encoding=0"];
-    x86_mode -> error_nodes [label="不支持的模式"];
-    arm_mode -> error_nodes [label="不支持的模式"];
-    
-    // 样式调整
-    error_nodes [color=red, fontcolor=red];
-    {rank=same; x86_mode arm_mode}
-    {rank=same; handle_regular handle_compressed}
+    parse_header -> check_indices;
+    check_indices -> binary_search_first_level [label="indices.len > 0"];
+    check_indices -> error_missing [label="indices.len == 0"];
+
+    binary_search_first_level -> check_second_level_offset;
+    check_second_level_offset -> get_common_encodings [label="有效偏移"];
+    check_second_level_offset -> error_missing [label="无效偏移"];
+
+    get_common_encodings -> check_second_level_kind;
+    check_second_level_kind -> handle_regular [label="REGULAR"];
+    check_second_level_kind -> handle_compressed [label="COMPRESSED"];
+    check_second_level_kind -> invalid_kind [label="其他"];
+    invalid_kind -> error_invalid;
+
+    handle_regular -> check_raw_encoding;
+    handle_compressed -> check_raw_encoding;
+
+    check_raw_encoding -> setup_reg_context [label="raw_encoding != 0"];
+    check_raw_encoding -> error_no_unwind [label="raw_encoding == 0"];
+
+    setup_reg_context -> arch_decision;
+    arch_decision -> x86_64_modes [label="x86_64"];
+    arch_decision -> aarch64_modes [label="aarch64"];
+    arch_decision -> unimplemented_arch [label="其他架构"];
+
+    x86_64_modes -> update_context [label="成功处理"];
+    aarch64_modes -> update_context [label="成功处理"];
+    x86_64_modes -> error_unimplemented [label="OLD模式"];
+    x86_64_modes -> error_missing_eh [label="DWARF无eh_frame"];
+    aarch64_modes -> error_missing_eh [label="DWARF无eh_frame"];
+
+    update_context -> end;
 }
 ```

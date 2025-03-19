@@ -1,92 +1,83 @@
-嗯，我需要为这个Zig函数`prepareCiphertextRecord`画一个流程图。首先，我得理解这个函数的结构和逻辑。这个函数处理TLS客户端加密记录的准备工作，根据TLS版本（1.3或1.2）有不同的处理分支。看起来函数主要分为两个大块：处理TLS 1.3和处理TLS 1.2的情况。
+嗯，我需要为这个Zig函数prepareCiphertextRecord绘制流程图。首先，我得仔细看看这个函数的结构。函数处理TLS记录的加密，根据不同的TLS版本（1.3和1.2）有不同的处理逻辑。
 
-首先，函数开始时会根据`c.application_cipher`和`c.tls_version`进行分支判断。这里用了`inline else`和`switch`，可能是在匹配不同的加密套件和TLS版本。然后针对每个TLS版本，有不同的加密流程。比如TLS 1.3使用了AEAD加密，而TLS 1.2可能涉及MAC和显式IV。
+函数开始部分定义了一些变量，如cleartext_buf、ciphertext_end、iovec_end和bytes_i。然后有一个switch语句，根据c.application_cipher和c.tls_version进入不同的分支。对于TLS 1.3和1.2，处理方式不同，比如加密方式、头部结构、nonce生成等。
 
-接下来，我需要理清每个分支中的循环逻辑。两个版本都有一个`while (true)`循环，用于处理分块加密数据。循环内部会计算加密内容的长度，复制明文到缓冲区，生成加密所需的附加数据（AD）、nonce，执行加密操作，并更新缓冲区指针和计数器。
+首先，我需要理清整个函数的控制流。主switch分为TLS 1.3和1.2两个大分支，每个分支内都有一个无限循环，处理数据的分块加密，直到数据全部处理完毕。每个循环中计算加密内容长度，拷贝数据到cleartext_buf，生成AD（Additional Data），构造nonce，执行加密，更新指针和序列号，最后将加密后的记录添加到iovecs中。
 
-需要注意的是，每个循环中都有对`bytes`的分块处理，以及生成对应的密文记录。此外，还有对`write_seq`的递增和可能的溢出处理（比如发送key_update）。
+需要注意的是循环中的退出条件：当encrypted_content_len或message_len为0时返回结果。这发生在数据已经处理完或者缓冲区空间不足时。
 
-可能的流程步骤大致如下：
-1. 检查TLS版本，进入对应的处理分支。
-2. 计算每个记录的开销（overhead_len）。
-3. 进入循环，处理数据直到所有字节处理完毕。
-4. 在每次循环中，确定当前块的长度。
-5. 复制明文到缓冲区，并添加内容类型字节（TLS 1.3的情况）。
-6. 生成记录头（AD）、nonce，执行加密。
-7. 更新缓冲区和计数器。
-8. 将生成的记录添加到iovecs中。
-9. 循环直到数据全部处理完毕，返回结果。
+接下来，流程图的节点应该包括函数入口、变量初始化、switch分支判断、循环处理、加密操作、指针更新、记录添加到iovecs，以及循环结束条件判断和返回结果。
 
-在画流程图时，应该将这些步骤用不同的节点表示，并用条件判断来区分TLS版本和循环中的终止条件。另外，注意错误处理和可能的溢出检查（比如`write_seq`递增后的处理）。
+可能的分支和循环结构需要正确表示，特别是TLS版本的不同处理路径。同时，要注意每个分支内部的步骤，如生成nonce、加密、更新write_seq等。
 
-可能遇到的困难是处理循环中的条件判断，比如如何判断数据是否处理完毕，以及如何正确连接各个步骤。需要确保每个分支的流程清晰，特别是TLS 1.3和1.2之间的差异部分。
+需要确保流程图中的每个步骤都有对应的节点，并且箭头正确连接，尤其是循环部分。可能使用菱形节点表示条件判断，矩形节点表示处理步骤，箭头表示流程方向。
 
-最后，用Graphviz的DOT语言将这些步骤和判断绘制成流程图，使用菱形表示条件判断，矩形表示处理步骤，箭头连接流程。
+另外，要注意处理TLS 1.3和1.2的不同之处，比如AD的构造方式、nonce的生成方法、加密参数的不同（如AEAD的tag_length、record_iv_length等）。这些差异需要在流程图中明确区分。
+
+最后，生成Graphviz的DOT代码，使用正确的语法结构，如子图（subgraph）来区分不同TLS版本的流程，确保结构清晰。
 ================================================
 ```dot
-digraph flowchart {
-    node [shape=rectangle, fontname="Courier", fontsize=10];
-    edge [fontname="Courier", fontsize=10];
+digraph prepareCiphertextRecord {
+    node [shape=rectangle];
+    start [label="开始 prepareCiphertextRecord"];
+    init_vars [label="初始化变量：cleartext_buf, ciphertext_end, iovec_end, bytes_i"];
+    switch_cipher [label="根据 application_cipher 和 tls_version 选择分支"];
+    tls13 [label="TLS 1.3 处理分支"];
+    tls12 [label="TLS 1.2 处理分支"];
+    loop_start [label="进入循环处理数据块"];
+    calc_length [label="计算加密内容长度（encrypted_content_len/message_len）"];
+    check_zero [label="长度是否为0？", shape=diamond];
+    return [label="返回结果：iovec_end, ciphertext_end, overhead_len"];
+    copy_data [label="拷贝数据到 cleartext_buf"];
+    add_inner_type [label="TLS 1.3：追加 inner_content_type 字节"];
+    build_header [label="构造记录头（AD）"];
+    generate_nonce [label="生成 Nonce"];
+    encrypt_data [label="执行 AEAD 加密"];
+    update_seq [label="递增 write_seq"];
+    update_buffers [label="更新 ciphertext_end 和 iovec_end"];
+    add_to_iovec [label="将加密记录添加到 iovecs"];
+    loop_cond [label="继续循环", shape=diamond];
 
-    start [label="Start prepareCiphertextRecord"];
-    check_version [label="Check TLS version (1.3 or 1.2)", shape=diamond];
-    tls13_branch [label="TLS 1.3 Processing"];
-    tls12_branch [label="TLS 1.2 Processing"];
-    calc_overhead [label="Calculate overhead_len\n(record header + AEAD tag + 1)"];
-    calc_overhead_tls12 [label="Calculate overhead_len\n(record header + IV + MAC)"];
-    loop_start [label="While (true) loop"];
-    check_encrypted_len [label="Calculate encrypted_content_len\nCheck if 0", shape=diamond];
-    copy_cleartext [label="Copy bytes to cleartext_buf\nAppend inner_content_type (TLS 1.3)"];
-    generate_ad [label="Generate Additional Data (AD)"];
-    generate_nonce [label="Generate Nonce"];
-    encrypt_data [label="Encrypt data with AEAD"];
-    update_counters [label="Update ciphertext_end, iovec_end\nIncrement write_seq"];
-    add_to_iovec [label="Add record to iovecs"];
-    loop_end [label="Return iovec_end, ciphertext_end, overhead_len"];
-    end [label="End"];
+    start -> init_vars;
+    init_vars -> switch_cipher;
+    switch_cipher -> tls13 [label="tls_1_3"];
+    switch_cipher -> tls12 [label="tls_1_2"];
 
-    start -> check_version;
-    check_version -> tls13_branch [label="TLS 1.3"];
-    check_version -> tls12_branch [label="TLS 1.2"];
-    
-    tls13_branch -> calc_overhead;
-    calc_overhead -> loop_start;
-    
-    tls12_branch -> calc_overhead_tls12;
-    calc_overhead_tls12 -> loop_start;
-    
-    loop_start -> check_encrypted_len;
-    check_encrypted_len -> loop_end [label="encrypted_content_len == 0"];
-    check_encrypted_len -> copy_cleartext [label="encrypted_content_len > 0"];
-    
-    copy_cleartext -> generate_ad;
-    generate_ad -> generate_nonce;
-    generate_nonce -> encrypt_data;
-    encrypt_data -> update_counters;
-    update_counters -> add_to_iovec;
-    add_to_iovec -> loop_start [label="Loop"];
-    
-    loop_end -> end;
+    subgraph cluster_tls13 {
+        label="TLS 1.3 流程";
+        tls13 -> loop_start;
+        loop_start -> calc_length;
+        calc_length -> check_zero;
+        check_zero -> return [label="是"];
+        check_zero -> copy_data [label="否"];
+        copy_data -> add_inner_type;
+        add_inner_type -> build_header;
+        build_header -> generate_nonce;
+        generate_nonce -> encrypt_data;
+        encrypt_data -> update_seq;
+        update_seq -> update_buffers;
+        update_buffers -> add_to_iovec;
+        add_to_iovec -> loop_cond;
+        loop_cond -> loop_start [label="继续"];
+    }
+
+    subgraph cluster_tls12 {
+        label="TLS 1.2 流程";
+        tls12 -> loop_start;
+        loop_start -> calc_length;
+        calc_length -> check_zero;
+        check_zero -> return [label="是"];
+        check_zero -> copy_data [label="否"];
+        copy_data -> build_header;
+        build_header -> generate_nonce;
+        generate_nonce -> encrypt_data;
+        encrypt_data -> update_seq;
+        update_seq -> update_buffers;
+        update_buffers -> add_to_iovec;
+        add_to_iovec -> loop_cond;
+        loop_cond -> loop_start [label="继续"];
+    }
+
+    return [shape=oval];
 }
-``` 
-
-该流程图展示了以下逻辑：
-1. 函数入口根据TLS版本选择分支
-2. 分别处理TLS 1.3和1.2的开销计算
-3. 进入循环处理数据分块
-4. 每次循环：
-   - 计算可加密数据长度
-   - 数据长度为0时退出循环
-   - 复制明文并处理内容类型（TLS 1.3特有）
-   - 生成附加认证数据（AD）
-   - 生成Nonce
-   - 执行加密操作
-   - 更新缓冲区和序列号
-   - 将加密记录加入发送队列
-5. 循环结束后返回结果参数
-
-对于TLS 1.2分支，流程类似但有以下差异：
-- 开销计算包含显式IV和MAC
-- 不需要追加内容类型字节
-- Nonce生成方式不同
-- 显式处理记录IV
+```
