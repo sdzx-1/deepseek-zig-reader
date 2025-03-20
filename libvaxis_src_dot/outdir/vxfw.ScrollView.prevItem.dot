@@ -1,0 +1,42 @@
+
+digraph prevItemFlowchart {
+    node [shape=rectangle, style=rounded];
+    start [label="开始 prevItem"];
+    check_cursor0 [label="self.cursor == 0?" shape=diamond];
+    consumeEvent [label="ctx.consumeEvent()"];
+    check_item_count [label="self.item_count 存在?" shape=diamond];
+    handle_count [label="self.cursor = @min(cursor-1, count-1)"];
+    check_children [label="switch(self.children)"];
+    slice_case [label="处理 .slice\n设置item_count为切片长度\n调整cursor"];
+    builder_case [label="处理 .builder\n保存当前cursor\n递减cursor\n循环检查itemAtIdx"];
+    check_builder_loop [label="itemAtIdx存在?" shape=diamond];
+    decrement_cursor [label="self.cursor -|= 1"];
+    check_cursor_changed [label="cursor == prev?" shape=diamond];
+    ensure_scroll [label="self.ensureScroll()"];
+    consumeAndRedraw [label="ctx.consumeAndRedraw()"];
+
+    start -> check_cursor0;
+    check_cursor0 -> consumeEvent [label="是"];
+    check_cursor0 -> check_item_count [label="否"];
+    consumeEvent -> end;
+
+    check_item_count -> handle_count [label="是"];
+    check_item_count -> check_children [label="否"];
+    handle_count -> ensure_scroll;
+
+    check_children -> slice_case [label=".slice"];
+    check_children -> builder_case [label=".builder"];
+    slice_case -> ensure_scroll;
+
+    builder_case -> check_builder_loop;
+    check_builder_loop -> decrement_cursor [label="否"];
+    decrement_cursor -> check_builder_loop;
+    check_builder_loop -> check_cursor_changed [label="是"];
+    check_cursor_changed -> consumeEvent [label="是"];
+    check_cursor_changed -> ensure_scroll [label="否"];
+
+    ensure_scroll -> consumeAndRedraw;
+    consumeAndRedraw -> end;
+
+    end [label="返回", shape=ellipse];
+}

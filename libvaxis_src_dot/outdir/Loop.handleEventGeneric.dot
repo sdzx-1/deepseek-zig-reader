@@ -1,0 +1,83 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="handleEventGeneric() 入口"];
+    os_check [label="检查操作系统类型 builtin.os.tag"];
+    windows_branch [label="Windows 分支"];
+    other_os_branch [label="其他操作系统分支"];
+    event_switch_win [label="switch(event)"];
+    event_switch_other [label="switch(event)"];
+    end [label="流程结束"];
+    
+    start -> os_check;
+    os_check -> windows_branch [label=".windows"];
+    os_check -> other_os_branch [label="其他"];
+    
+    // Windows分支
+    subgraph cluster_windows {
+        label="Windows 事件处理";
+        style=filled;
+        color=lightgrey;
+        
+        windows_branch -> event_switch_win;
+        
+        // Windows事件类型
+        event_switch_win -> winsize_win [label=".winsize"];
+        winsize_win [label="检查 Event 是否有 winsize 字段\n如果有则转发事件"];
+        
+        event_switch_win -> key_press_win [label=".key_press"];
+        key_press_win [label="检查 F3+Shift 组合键\n如果符合条件设置能力标志\n否则缓存文本并转发事件"];
+        
+        event_switch_win -> key_release_win [label=".key_release"];
+        key_release_win [label="缓存文本并转发事件"];
+        
+        event_switch_win -> cap_da1_win [label=".cap_da1"];
+        cap_da1_win [label="唤醒查询线程\n标记查询完成"];
+        
+        event_switch_win -> mouse_win [label=".mouse"];
+        mouse_win [label="转换鼠标坐标并转发事件"];
+        
+        event_switch_win -> focus_in_win [label=".focus_in"];
+        focus_in_win [label="转发 focus_in 事件"];
+        
+        event_switch_win -> focus_out_win [label=".focus_out"];
+        focus_out_win [label="转发 focus_out 事件"];
+    }
+    
+    // 其他操作系统分支
+    subgraph cluster_other_os {
+        label="其他操作系统事件处理";
+        style=filled;
+        color=lightgrey;
+        
+        other_os_branch -> event_switch_other;
+        
+        // 其他OS事件类型
+        event_switch_other -> key_press_other [label=".key_press"];
+        key_press_other [label="同Windows的key_press处理逻辑"];
+        
+        event_switch_other -> key_release_other [label=".key_release"];
+        key_release_other [label="同Windows的key_release处理逻辑"];
+        
+        event_switch_other -> mouse_other [label=".mouse"];
+        mouse_other [label="同Windows的mouse处理逻辑"];
+        
+        event_switch_other -> paste_events [label="粘贴相关事件"];
+        paste_events [label="处理粘贴开始/结束/内容\n根据allocator释放内存"];
+        
+        event_switch_other -> color_events [label="颜色报告/主题事件"];
+        color_events [label="转发颜色报告和主题事件"];
+        
+        event_switch_other -> capability_events [label="能力检测事件"];
+        capability_events [label="设置kitty键盘/图形\nRGB/Unicode等能力标志"];
+        
+        event_switch_other -> winsize_other [label=".winsize"];
+        winsize_other [label="标记带内调整大小\n重置信号处理器并转发事件"];
+    }
+    
+    // 公共连接
+    {winsize_win key_press_win key_release_win cap_da1_win mouse_win focus_in_win focus_out_win} -> end;
+    {key_press_other key_release_other mouse_other paste_events color_events capability_events winsize_other} -> end;
+}

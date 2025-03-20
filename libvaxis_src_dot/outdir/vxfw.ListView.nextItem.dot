@@ -1,0 +1,40 @@
+
+digraph nextItemFlowchart {
+    graph [fontname="Arial", bgcolor="#f0f0f0"];
+    node [shape=rectangle, style="rounded,filled", fillcolor="#e0e0e0", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 nextItem", shape=ellipse, fillcolor="#c0ffc0"];
+    check_item_count [label="self.item_count 存在?", shape=diamond];
+    handle_count [label="检查光标是否在末尾\n是 -> 消耗事件\n否 -> 光标加1"];
+    check_children_type [label="检查 self.children 类型", shape=diamond];
+    handle_slice [label="设置item_count为slice长度\n检查光标是否在末尾\n是 -> 消耗事件\n否 -> 光标加1"];
+    handle_builder [label="保存当前光标\n光标加1\n循环检查item存在性\n直到找到有效项或回退"];
+    check_cursor_change [label="光标是否变化?", shape=diamond];
+    no_change [label="消耗事件"];
+    reset_scroll [label="重置滚动"];
+    consume_redraw [label="消耗事件并重绘"];
+    end [label="结束", shape=ellipse, fillcolor="#ffc0c0"];
+
+    start -> check_item_count;
+    
+    check_item_count -> handle_count [label="是"];
+    check_item_count -> check_children_type [label="否"];
+    
+    handle_count -> reset_scroll [label="光标未在末尾"];
+    handle_count -> end [label="光标在末尾"];
+    
+    check_children_type -> handle_slice [label=".slice"];
+    check_children_type -> handle_builder [label=".builder"];
+    
+    handle_slice -> reset_scroll [label="光标未在末尾"];
+    handle_slice -> end [label="光标在末尾"];
+    
+    handle_builder -> check_cursor_change;
+    check_cursor_change -> no_change [label="是"];
+    check_cursor_change -> reset_scroll [label="否"];
+    
+    no_change -> end;
+    reset_scroll -> consume_redraw;
+    consume_redraw -> end;
+}

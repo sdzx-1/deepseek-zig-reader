@@ -1,0 +1,64 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="spawn() 入口"];
+    init_arena [label="初始化 arena_allocator\n(带 defer 释放)"];
+    alloc_argv_buf [label="分配 argv_buf\narena.allocSentinel(...)"];
+    fill_argv [label="循环填充 argv_buf\n(处理每个参数)"];
+    create_envp [label="创建环境变量 envp\ncreateEnvironFromMap()"];
+    fork [label="调用 posix.fork()"];
+    check_pid [label="pid == 0?", shape=diamond];
+
+    // 子进程分支
+    child_start [label="子进程开始"];
+    setsid [label="调用 setsid()"];
+    ioctl_terminal [label="设置控制终端\nioctl(T.IOCSCTTY)"];
+    dup2_io [label="重定向 stdin/stdout/stderr\n三次 dup2 调用"];
+    close_fds [label="关闭 pty.tty 和 pty.pty"];
+    chdir [label="切换工作目录\n(如果 working_directory 存在)"];
+    exec [label="执行 execvpeZ()"];
+    child_end [label="子进程结束"];
+
+    // 父进程分支
+    parent_start [label="父进程开始"];
+    save_pid [label="保存 pid\nself.pid = pid"];
+    check_sigchild [label="!global_sigchild_installed?", shape=diamond];
+    install_sigaction [label="安装 SIGCHLD 处理函数\nsigaction()"];
+    return [label="返回"];
+
+    // 错误处理节点
+    error_ioctl [label="返回 error.IoctlError", shape=ellipse];
+    error_exec [label="execvpeZ 错误时终止", shape=ellipse];
+
+    // 连接节点
+    start -> init_arena;
+    init_arena -> alloc_argv_buf;
+    alloc_argv_buf -> fill_argv;
+    fill_argv -> create_envp;
+    create_envp -> fork;
+    fork -> check_pid;
+
+    check_pid -> child_start [label="是"];
+    child_start -> setsid;
+    setsid -> ioctl_terminal;
+    ioctl_terminal -> error_ioctl [label="失败"];
+    ioctl_terminal -> dup2_io [label="成功"];
+    dup2_io -> close_fds;
+    close_fds -> chdir;
+    chdir -> exec;
+    exec -> error_exec [label="失败"];
+    exec -> child_end [label="成功"];
+
+    check_pid -> parent_start [label="否"];
+    parent_start -> save_pid;
+    save_pid -> check_sigchild;
+    check_sigchild -> install_sigaction [label="是"];
+    check_sigchild -> return [label="否"];
+    install_sigaction -> return;
+
+    // 隐式连接
+    error_ioctl -> child_end [style=invis];
+    error_exec -> child_end [style=invis];
+}

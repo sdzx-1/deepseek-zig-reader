@@ -1,0 +1,99 @@
+
+digraph TextInput_update {
+    node [shape=rectangle fontname="Arial" style=filled fillcolor=lightgray];
+    edge [fontname="Arial"];
+
+    start [label="开始 update(self, event)" shape=ellipse];
+    end [label="结束" shape=ellipse];
+    event_switch [label="switch(event)" shape=diamond];
+    key_press_case [label="case .key_press → |key|"];
+    check_backspace [label="backspace?" shape=diamond];
+    check_delete [label="delete 或 ctrl+d?" shape=diamond];
+    check_left [label="← 或 ctrl+b?" shape=diamond];
+    check_right [label="→ 或 ctrl+f?" shape=diamond];
+    check_home [label="ctrl+a 或 home?" shape=diamond];
+    check_end [label="ctrl+e 或 end?" shape=diamond];
+    check_k [label="ctrl+k?" shape=diamond];
+    check_u [label="ctrl+u?" shape=diamond];
+    check_alt_b [label="alt+b 或 alt+←?" shape=diamond];
+    check_alt_f [label="alt+f 或 alt+→?" shape=diamond];
+    check_w [label="ctrl+w 或 alt+backspace?" shape=diamond];
+    check_alt_d [label="alt+d?" shape=diamond];
+    check_text [label="key.text 存在?" shape=diamond];
+
+    start -> event_switch;
+    event_switch -> key_press_case [label="是"];
+    key_press_case -> check_backspace;
+
+    check_backspace -> deleteBeforeCursor [label="是"];
+    check_backspace -> check_delete [label="否"];
+
+    check_delete -> deleteAfterCursor [label="是"];
+    check_delete -> check_left [label="否"];
+
+    check_left -> cursorLeft [label="是"];
+    check_left -> check_right [label="否"];
+
+    check_right -> cursorRight [label="是"];
+    check_right -> check_home [label="否"];
+
+    check_home -> moveGapLeft [label="是"];
+    check_home -> check_end [label="否"];
+
+    check_end -> moveGapRight [label="是"];
+    check_end -> check_k [label="否"];
+
+    check_k -> deleteToEnd [label="是"];
+    check_k -> check_u [label="否"];
+
+    check_u -> deleteToStart [label="是"];
+    check_u -> check_alt_b [label="否"];
+
+    check_alt_b -> moveBackwardWordwise [label="是"];
+    check_alt_b -> check_alt_f [label="否"];
+
+    check_alt_f -> moveForwardWordwise [label="是"];
+    check_alt_f -> check_w [label="否"];
+
+    check_w -> deleteWordBefore [label="是"];
+    check_w -> check_alt_d [label="否"];
+
+    check_alt_d -> deleteWordAfter [label="是"];
+    check_alt_d -> check_text [label="否"];
+
+    check_text -> insertSliceAtCursor [label="是"];
+    check_text -> end [label="否"];
+
+    // 操作节点
+    deleteBeforeCursor [label="self.deleteBeforeCursor()"];
+    deleteAfterCursor [label="self.deleteAfterCursor()"];
+    cursorLeft [label="self.cursorLeft()"];
+    cursorRight [label="self.cursorRight()"];
+    moveGapLeft [label="self.buf.moveGapLeft(...)"];
+    moveGapRight [label="self.buf.moveGapRight(...)"];
+    deleteToEnd [label="self.deleteToEnd()"];
+    deleteToStart [label="self.deleteToStart()"];
+    moveBackwardWordwise [label="self.moveBackwardWordwise()"];
+    moveForwardWordwise [label="self.moveForwardWordwise()"];
+    deleteWordBefore [label="self.deleteWordBefore()"];
+    deleteWordAfter [label="self.deleteWordAfter()"];
+    insertSliceAtCursor [label="self.insertSliceAtCursor(text)"];
+
+    // 连接操作节点到结束
+    deleteBeforeCursor -> end;
+    deleteAfterCursor -> end;
+    cursorLeft -> end;
+    cursorRight -> end;
+    moveGapLeft -> end;
+    moveGapRight -> end;
+    deleteToEnd -> end;
+    deleteToStart -> end;
+    moveBackwardWordwise -> end;
+    moveForwardWordwise -> end;
+    deleteWordBefore -> end;
+    deleteWordAfter -> end;
+    insertSliceAtCursor -> end;
+
+    // 默认事件分支
+    event_switch -> end [label="其他事件"];
+}

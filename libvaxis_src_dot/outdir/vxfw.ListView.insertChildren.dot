@@ -1,0 +1,48 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier New"];
+    start [label="开始"];
+    assert [label="断言: self.scroll.top > 0"];
+    init1 [label="self.scroll.top -= 1\nupheight = add_height"];
+    loop_cond [label="循环条件: self.scroll.top >= 0?", shape=diamond];
+    get_child [label="child = builder.itemAtIdx(...)\n如果不存在则break"];
+    calc_offset [label="child_offset = (draw_cursor ? 2 : 0)\nmax_size = ctx.max.size()"];
+    set_constraint [label="创建子约束: width = max_size.width - child_offset"];
+    draw_child [label="绘制子元素 surf = child.draw(child_ctx)"];
+    update_height [label="upheight -= surf.size.height"];
+    insert_child [label="插入子元素到child_list头部"];
+    check_break1 [label="upheight <=0 或 top==0?", shape=diamond];
+    break_loop [label="跳出循环"];
+    dec_top [label="self.scroll.top -= 1"];
+    set_offset [label="self.scroll.offset = upheight"];
+    check_reset [label="self.scroll.top ==0 且 upheight >0?", shape=diamond];
+    reset_offset [label="self.scroll.offset = 0\n遍历child_list调整origin.row"];
+    end [label="结束"];
+
+    start -> assert;
+    assert -> init1;
+    init1 -> loop_cond;
+
+    loop_cond -> get_child [label="是"];
+    loop_cond -> set_offset [label="否"];
+
+    get_child -> calc_offset [label="child存在"];
+    get_child -> break_loop [label="child不存在"];
+
+    calc_offset -> set_constraint;
+    set_constraint -> draw_child;
+    draw_child -> update_height;
+    update_height -> insert_child;
+    insert_child -> check_break1;
+
+    check_break1 -> break_loop [label="是"];
+    check_break1 -> dec_top [label="否"];
+    dec_top -> loop_cond;
+
+    break_loop -> set_offset;
+    set_offset -> check_reset;
+
+    check_reset -> reset_offset [label="是"];
+    check_reset -> end [label="否"];
+    reset_offset -> end;
+}

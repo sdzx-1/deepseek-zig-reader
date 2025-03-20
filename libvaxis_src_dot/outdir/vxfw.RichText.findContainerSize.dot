@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#D3D3D3"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse, fillcolor="#FFA07A"];
+    init [label="初始化\nrow = 0\nmax_width = iter.ctx.min.width"];
+    check_softwrap [label="self.softwrap 为真？", shape=diamond];
+    softwrap_loop [label="循环处理软换行\nwhile (iter.next()) |line|"];
+    check_soft_height [label="iter.ctx.max.outsideHeight(row)\n超出最大高度？", shape=diamond];
+    update_soft_max [label="更新max_width\nmax_width = @max(max_width, line.width)"];
+    inc_row_soft [label="row += 1"];
+    hardwrap_loop [label="循环处理硬换行\nwhile (iter.nextHardBreak()) |line|"];
+    check_hard_height [label="iter.ctx.max.outsideHeight(row)\n超出最大高度？", shape=diamond];
+    calc_hard_width [label="计算行宽\nw = 0\nfor (line) |cell|\n  w +|= cell.char.width"];
+    update_hard_max [label="更新max_width\nmax_width = @max(max_width, w)"];
+    inc_row_hard [label="row += 1"];
+    width_basis [label="计算 result_width\nswitch (self.width_basis)"];
+    longest_line [label="取较小值\nresult_width = @min(max, max_width)\n（若iter.ctx.max.width存在）"];
+    parent_case [label="result_width = iter.ctx.max.width\n（断言非空）"];
+    final_height [label="确定最终高度\nheight = @max(row, iter.ctx.min.height)"];
+    return [label="返回 Size\n{ width, height }", shape=ellipse, fillcolor="#98FB98"];
+
+    start -> init;
+    init -> check_softwrap;
+
+    check_softwrap -> softwrap_loop [label="是"];
+    check_softwrap -> hardwrap_loop [label="否"];
+
+    softwrap_loop -> check_soft_height;
+    check_soft_height -> update_soft_max [label="否"];
+    check_soft_height -> width_basis [label="是"];
+    update_soft_max -> inc_row_soft;
+    inc_row_soft -> softwrap_loop [style=dashed];
+
+    hardwrap_loop -> check_hard_height;
+    check_hard_height -> calc_hard_width [label="否"];
+    check_hard_height -> width_basis [label="是"];
+    calc_hard_width -> update_hard_max;
+    update_hard_max -> inc_row_hard;
+    inc_row_hard -> hardwrap_loop [style=dashed];
+
+    width_basis -> longest_line [label=".longest_line"];
+    width_basis -> parent_case [label=".parent"];
+    longest_line -> final_height;
+    parent_case -> final_height;
+
+    final_height -> return;
+}

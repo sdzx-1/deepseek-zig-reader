@@ -1,0 +1,51 @@
+
+digraph flowchart {
+    node [fontname="Arial", shape=box, style=rounded];
+    edge [fontname="Arial"];
+
+    start [label="开始绘制图像", shape=ellipse];
+    switch_scale [label="检查 opts.scale", shape=diamond];
+    case_none [label="case .none\n不处理缩放"];
+    case_fill [label="case .fill\n设置 p_opts.size 为窗口尺寸"];
+    case_fit_contain [label="case .fit/.contain\n计算像素和行列关系", shape=rectangle];
+    check_contain_fit [label="是否满足 .contain 且无需缩放？", shape=diamond];
+    check_fit_x_fit_y [label="检查 fit_x 和 fitit_y", shape=diamond];
+    scale_vertical [label="垂直缩放\n设置 p_opts.rows = win.height"];
+    scale_horizontal [label="水平缩放\n设置 p_opts.cols = win.width"];
+    check_both_unfit [label="两个方向都不适配？", shape=diamond];
+    compare_diff [label="比较 diff_x 和 diff_y", shape=diamond];
+    check_fit_both [label="是否同时适配？", shape=diamond];
+    compare_fit_diff [label="比较适配差值", shape=diamond];
+    create_placement [label="创建 Placement 结构体\n并写入窗口"];
+    end [label="结束", shape=ellipse];
+
+    start -> switch_scale;
+    
+    switch_scale -> case_none [label=".none"];
+    switch_scale -> case_fill [label=".fill"];
+    switch_scale -> case_fit_contain [label=".fit/.contain"];
+    
+    case_none -> create_placement;
+    case_fill -> create_placement;
+
+    case_fit_contain -> check_contain_fit;
+    check_contain_fit -> check_fit_x_fit_y [label="否"];
+    check_contain_fit -> create_placement [label="是（break :contain）"];
+
+    check_fit_x_fit_y -> scale_vertical [label="fit_x=true\nfit_y=false"];
+    check_fit_x_fit_y -> scale_horizontal [label="fit_x=false\nfit_y=true"];
+    check_fit_x_fit_y -> check_both_unfit [label="fit_x=false\nfit_y=false"];
+    check_fit_x_fit_y -> check_fit_both [label="fit_x=true\nfit_y=true"];
+
+    check_both_unfit -> compare_diff;
+    compare_diff -> scale_horizontal [label="diff_x > diff_y"];
+    compare_diff -> scale_vertical [label="diff_x <= diff_y"];
+
+    check_fit_both -> compare_fit_diff;
+    compare_fit_diff -> scale_horizontal [label="diff_x < diff_y"];
+    compare_fit_diff -> scale_vertical [label="diff_x >= diff_y"];
+
+    scale_vertical -> create_placement;
+    scale_horizontal -> create_placement;
+    create_placement -> end;
+}

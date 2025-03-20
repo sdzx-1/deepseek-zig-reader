@@ -1,0 +1,54 @@
+
+digraph nextItemFlow {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="Start", shape=ellipse];
+    check_item_count [label="self.item_count exists?", shape=diamond];
+    handle_item_count_true [label="Check cursor >= count - 1", shape=diamond];
+    consume_event_1 [label="ctx.consumeEvent()"];
+    increment_cursor_1 [label="self.cursor += 1"];
+    check_children_type [label="Check self.children type", shape=diamond];
+    handle_slice [label="Set item_count = slice.len\nCheck cursor == slice.len - 1", shape=diamond];
+    consume_event_2 [label="ctx.consumeEvent()"];
+    increment_cursor_2 [label="self.cursor += 1"];
+    handle_builder [label="prev = self.cursor\nself.cursor += 1"];
+    check_item_exists [label="builder.itemAtIdx(cursor) == null?", shape=diamond];
+    decrement_cursor [label="self.cursor -|= 1"];
+    check_cursor_prev [label="self.cursor == prev?", shape=diamond];
+    consume_event_3 [label="ctx.consumeEvent()"];
+    ensure_scroll [label="self.ensureScroll()"];
+    consume_redraw [label="ctx.consumeAndRedraw()"];
+    end [label="End", shape=ellipse];
+
+    start -> check_item_count;
+
+    check_item_count -> handle_item_count_true [label="Yes"];
+    check_item_count -> check_children_type [label="No"];
+
+    handle_item_count_true -> consume_event_1 [label="Yes"];
+    handle_item_count_true -> increment_cursor_1 [label="No"];
+    consume_event_1 -> end;
+    increment_cursor_1 -> ensure_scroll;
+
+    check_children_type -> handle_slice [label=".slice"];
+    check_children_type -> handle_builder [label=".builder"];
+
+    handle_slice -> check_item_count_set [label="Set item_count"];
+    check_item_count_set [label="Check cursor == slice.len - 1", shape=diamond];
+    check_item_count_set -> consume_event_2 [label="Yes"];
+    check_item_count_set -> increment_cursor_2 [label="No"];
+    consume_event_2 -> end;
+    increment_cursor_2 -> ensure_scroll;
+
+    handle_builder -> check_item_exists;
+    check_item_exists -> decrement_cursor [label="Yes"];
+    decrement_cursor -> check_item_exists;
+    check_item_exists -> check_cursor_prev [label="No"];
+    check_cursor_prev -> consume_event_3 [label="Yes"];
+    check_cursor_prev -> ensure_scroll [label="No"];
+    consume_event_3 -> end;
+
+    ensure_scroll -> consume_redraw;
+    consume_redraw -> end;
+}

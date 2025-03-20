@@ -1,0 +1,78 @@
+
+digraph {
+    node [fontname="Arial"];
+    edge [fontname="Arial"];
+    graph [bgcolor=transparent];
+
+    start [shape=ellipse, label="Start handleEvent"];
+    end [shape=ellipse, label="End"];
+
+    subgraph cluster_event_switch {
+        label="Event Type";
+        event_switch [shape=diamond, label="event type?"];
+        
+        // Mouse Event分支
+        event_switch -> mouse [label="mouse"];
+        mouse [shape=diamond, label="mouse.button"];
+        mouse -> wheel_up [label="wheel_up"];
+        wheel_up [shape=diamond, label="scroll.linesUp(wheel_scroll)?"];
+        wheel_up -> consume_redraw [label="Yes"];
+        wheel_up -> wheel_down [label="No"];
+        
+        wheel_down [shape=diamond, label="wheel_down"];
+        wheel_down -> wheel_down_check [label="scroll.linesDown(...)?"];
+        wheel_down_check -> consume_redraw [label="Yes"];
+        wheel_down_check -> wheel_left [label="No"];
+
+        wheel_left [shape=diamond, label="wheel_left"];
+        wheel_left -> wheel_left_check [label="scroll.colsRight(...)?"];
+        wheel_left_check -> consume_redraw [label="Yes"];
+        wheel_left_check -> wheel_right [label="No"];
+
+        wheel_right [shape=diamond, label="wheel_right"];
+        wheel_right -> wheel_right_check [label="scroll.colsLeft(...)?"];
+        wheel_right_check -> consume_redraw [label="Yes"];
+        wheel_right_check -> mouse_end [label="No"];
+        mouse_end [shape=point];
+    }
+
+    subgraph cluster_key_press {
+        label="Key Press Handling";
+        event_switch -> key_press [label="key_press"];
+        key_press -> key_down [label="匹配下/方向键"];
+        
+        key_down [shape=diamond, label="draw_cursor?"];
+        key_down -> next_item [label="Yes"];
+        next_item [shape=rect, label="self.nextItem(ctx)"];
+        key_down -> scroll_down [label="No"];
+        scroll_down [shape=diamond, label="scroll.linesDown(1)?"];
+        scroll_down -> consume_redraw [label="Yes"];
+        scroll_down -> key_up [label="No"];
+
+        key_up [shape=diamond, label="匹配上/方向键"];
+        key_up -> prev_item [label="Yes + draw_cursor"];
+        prev_item [shape=rect, label="self.prevItem(ctx)"];
+        key_up -> scroll_up [label="No"];
+        scroll_up [shape=diamond, label="scroll.linesUp(1)?"];
+        scroll_up -> consume_redraw [label="Yes"];
+        scroll_up -> key_right [label="No"];
+
+        // 省略其他按键处理分支...
+        key_escape [shape=diamond, label="匹配ESC键"];
+        key_escape -> ensure_scroll [label="Yes"];
+        ensure_scroll [shape=rect, label="self.ensureScroll()"];
+        ensure_scroll -> consume_redraw;
+    }
+
+    consume_redraw [shape=rect, label="ctx.consumeAndRedraw()"];
+    consume_redraw -> end;
+
+    // 默认分支
+    event_switch -> end [label="else"];
+
+    // 连接所有终止点到end
+    mouse_end -> end [style=invis]; // 仅用于布局
+    next_item -> end;
+    prev_item -> end;
+    ensure_scroll -> end [xlabel="via consume_redraw"];
+}

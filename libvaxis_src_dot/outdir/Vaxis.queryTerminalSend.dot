@@ -1,0 +1,35 @@
+
+digraph G {
+    rankdir=TB;
+    node [shape=box];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    set_queries_done [label="设置 queries_done 为 false"];
+    todo_colorterm [label="TODO: 处理 COLORTERM (已注释)", style=dashed, color=grey];
+    send_ctlseqs [label="发送控制序列:\n- decrqm_sgr_pixels\n- decrqm_unicode\n- decrqm_color_scheme\n- in_band_resize_set"];
+    send_home [label="发送光标归位指令 (home)"];
+    send_width_query [label="发送 explicit_width_query"];
+    cursor_pos_request [label="请求光标位置 (cursor_position_request)"];
+    xtversion_query [label="查询终端版本 (xtversion)"];
+    csi_u_query [label="CSI u 查询"];
+    kitty_graphics_query [label="Kitty 图形支持查询"];
+    primary_device_attrs [label="主设备属性查询"];
+    todo_xtgetcap [label="TODO: XTGETTCAP 查询 (未实现)", style=dashed, color=grey];
+
+    start -> set_queries_done;
+    set_queries_done -> todo_colorterm [style=dashed, color=grey];
+    set_queries_done -> send_ctlseqs;
+    send_ctlseqs -> send_home;
+    send_home -> send_width_query;
+    send_width_query -> cursor_pos_request;
+    cursor_pos_request -> xtversion_query;
+    xtversion_query -> csi_u_query;
+    csi_u_query -> kitty_graphics_query;
+    kitty_graphics_query -> primary_device_attrs;
+    primary_device_attrs -> end;
+
+    // 添加未实现的 TODO 节点
+    send_ctlseqs -> todo_xtgetcap [style=dashed, color=grey];
+    cursor_pos_request -> todo_xtgetcap [style=dashed, color=grey];
+}

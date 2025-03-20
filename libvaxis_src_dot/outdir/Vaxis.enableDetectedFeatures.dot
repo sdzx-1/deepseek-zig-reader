@@ -1,0 +1,70 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect];
+    edge [fontname="Helvetica"];
+    graph [bgcolor=transparent];
+
+    start [label="开始 enableDetectedFeatures", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    win_os [label="操作系统是 Windows?", shape=diamond];
+    set_win_sgr [label="设置 self.sgr = .legacy"];
+    check_termux [label="环境变量 TERMUX_VERSION 存在?", shape=diamond];
+    set_termux_sgr [label="设置 self.sgr = .legacy"];
+    check_vhs [label="环境变量 VHS_RECORD 存在?", shape=diamond];
+    set_vhs_caps [label="设置 self.caps.unicode = .wcwidth\n设置 self.caps.kitty_keyboard = false\n设置 self.sgr = .legacy"];
+    check_term_program [label="环境变量 TERM_PROGRAM == 'vscode'?", shape=diamond];
+    set_term_program_sgr [label="设置 self.sgr = .legacy"];
+    check_force_legacy [label="环境变量 VAXIS_FORCE_LEGACY_SGR 存在?", shape=diamond];
+    set_force_legacy_sgr [label="设置 self.sgr = .legacy"];
+    check_force_wcwidth [label="环境变量 VAXIS_FORCE_WCWIDTH 存在?", shape=diamond];
+    set_force_wcwidth [label="设置 self.caps.unicode = .wcwidth"];
+    check_force_unicode [label="环境变量 VAXIS_FORCE_UNICODE 存在?", shape=diamond];
+    set_force_unicode [label="设置 self.caps.unicode = .unicode"];
+    check_kitty_keyboard [label="self.caps.kitty_keyboard 为真?", shape=diamond];
+    enable_kitty [label="调用 enableKittyKeyboard(tty)"];
+    check_unicode_mode [label="self.caps.unicode == .unicode\n且 !self.caps.explicit_width?", shape=diamond];
+    write_unicode_seq [label="tty.writeAll(ctlseqs.unicode_set)"];
+
+    start -> win_os;
+    
+    // Windows 分支
+    win_os -> set_win_sgr [label="是"];
+    set_win_sgr -> end;
+
+    // 非 Windows 分支
+    win_os -> check_termux [label="否"];
+    
+    // 环境变量检查链
+    check_termux -> set_termux_sgr [label="是"];
+    check_termux -> check_vhs [label="否"];
+    set_termux_sgr -> check_vhs;
+    
+    check_vhs -> set_vhs_caps [label="是"];
+    check_vhs -> check_term_program [label="否"];
+    set_vhs_caps -> check_term_program;
+    
+    check_term_program -> set_term_program_sgr [label="是"];
+    check_term_program -> check_force_legacy [label="否"];
+    set_term_program_sgr -> check_force_legacy;
+    
+    check_force_legacy -> set_force_legacy_sgr [label="是"];
+    check_force_legacy -> check_force_wcwidth [label="否"];
+    set_force_legacy_sgr -> check_force_wcwidth;
+    
+    check_force_wcwidth -> set_force_wcwidth [label="是"];
+    check_force_wcwidth -> check_force_unicode [label="否"];
+    set_force_wcwidth -> check_force_unicode;
+    
+    check_force_unicode -> set_force_unicode [label="是"];
+    check_force_unicode -> check_kitty_keyboard [label="否"];
+    set_force_unicode -> check_kitty_keyboard;
+
+    // 功能启用阶段
+    check_kitty_keyboard -> enable_kitty [label="是"];
+    check_kitty_keyboard -> check_unicode_mode [label="否"];
+    enable_kitty -> check_unicode_mode;
+
+    check_unicode_mode -> write_unicode_seq [label="是"];
+    check_unicode_mode -> end [label="否"];
+    write_unicode_seq -> end;
+}

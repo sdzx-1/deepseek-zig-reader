@@ -1,0 +1,48 @@
+
+digraph handleEvent {
+    start [label="开始处理事件" shape=ellipse];
+    event_switch [label="事件类型判断" shape=diamond];
+    mouse_event [label="鼠标事件" shape=diamond];
+    wheel_up [label="滚轮向上？" shape=diamond];
+    linesUp [label="self.scroll.linesUp()\n触发重绘" shape=rect];
+    wheel_down [label="滚轮向下？" shape=diamond];
+    linesDown [label="self.scroll.linesDown()\n触发重绘" shape=rect];
+    key_press [label="按键事件" shape=diamond];
+    key_j_n_down [label="'j' / Ctrl+'n' / 下箭头？" shape=diamond];
+    nextItem [label="调用 nextItem()" shape=rect];
+    key_k_p_up [label="'k' / Ctrl+'p' / 上箭头？" shape=diamond];
+    prevItem [label="调用 prevItem()" shape=rect];
+    key_esc [label="ESC 键？" shape=diamond];
+    ensureScroll [label="确保滚动位置\n触发重绘" shape=rect];
+    other_event [label="其他事件\n忽略" shape=rect];
+    end [label="结束" shape=ellipse];
+
+    start -> event_switch;
+    event_switch -> mouse_event [label=".mouse"];
+    event_switch -> key_press [label=".key_press"];
+    event_switch -> other_event [label="其他"];
+
+    // 鼠标事件分支
+    mouse_event -> wheel_up [label="mouse.button"];
+    wheel_up -> linesUp [label="是"];
+    wheel_up -> wheel_down [label="否"];
+    wheel_down -> linesDown [label="是"];
+    wheel_down -> end [label="否"];
+    linesUp -> end;
+    linesDown -> end;
+
+    // 按键事件分支
+    key_press -> key_j_n_down;
+    key_j_n_down -> nextItem [label="是"];
+    key_j_n_down -> key_k_p_up [label="否"];
+    key_k_p_up -> prevItem [label="是"];
+    key_k_p_up -> key_esc [label="否"];
+    key_esc -> ensureScroll [label="是"];
+    key_esc -> end [label="否"];
+    nextItem -> end;
+    prevItem -> end;
+    ensureScroll -> end;
+
+    // 其他事件分支
+    other_event -> end;
+}

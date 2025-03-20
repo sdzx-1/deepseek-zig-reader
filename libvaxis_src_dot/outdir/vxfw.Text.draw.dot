@@ -1,0 +1,75 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始绘制文本"];
+    check_width_zero [label="ctx.max.width == 0?", shape=diamond];
+    return_empty [label="返回空Surface"];
+    get_container_size [label="计算容器尺寸\ncontainer_size = self.findContainerSize(ctx)"];
+    init_surface [label="初始化Surface\ntry vxfw.Surface.init()"];
+    set_base_style [label="设置基础样式\n@memset(surface.buffer, base)"];
+    check_softwrap [label="self.softwrap?", shape=diamond];
+    softwrap_block [label="软换行处理\n使用SoftwrapIterator迭代行"];
+    non_softwrap_block [label="非软换行处理\n使用LineIterator迭代行"];
+    trim_surface [label="调整Surface高度\nreturn surface.trimHeight()"];
+    end [label="结束"];
+
+    // 主流程连接
+    start -> check_width_zero;
+    check_width_zero -> return_empty [label="是"];
+    check_width_zero -> get_container_size [label="否"];
+    get_container_size -> init_surface;
+    init_surface -> set_base_style;
+    set_base_style -> check_softwrap;
+
+    // 软换行分支
+    check_softwrap -> softwrap_block [label="是"];
+    softwrap_block -> trim_surface [label="完成所有行处理"];
+    
+    // 非软换行分支
+    check_softwrap -> non_softwrap_block [label="否"];
+    non_softwrap_block -> trim_surface [label="完成所有行处理"];
+
+    // 公共结束路径
+    return_empty -> end;
+    trim_surface -> end;
+
+    // 软换行子流程
+    subgraph cluster_softwrap {
+        label="软换行处理流程";
+        sw_start [label="逐行迭代"];
+        handle_alignment_sw [label="根据text_align\n计算列起始位置"];
+        tab_processing [label="处理制表符\n替换为8个空格"];
+        write_grapheme_sw [label="写入字形到Surface"];
+        sw_end [label="行处理完成"];
+
+        sw_start -> handle_alignment_sw;
+        handle_alignment_sw -> tab_processing [label="遇到\\t"];
+        tab_processing -> write_grapheme_sw;
+        handle_alignment_sw -> write_grapheme_sw [label="普通字符"];
+        write_grapheme_sw -> sw_end;
+    }
+    softwrap_block -> sw_start [style=dashed, dir=none];
+
+    // 非软换行子流程
+    subgraph cluster_non_softwrap {
+        label="非软换行处理流程";
+        nsw_start [label="逐行迭代"];
+        calc_line_width [label="计算行宽\n包含制表符扩展"];
+        handle_alignment_nsw [label="根据text_align\n计算列起始位置"];
+        overflow_check [label="是否溢出？", shape=diamond];
+        write_ellipsis [label="写入省略号"];
+        write_grapheme_nsw [label="写入字形到Surface"];
+        nsw_end [label="行处理完成"];
+
+        nsw_start -> calc_line_width;
+        calc_line_width -> handle_alignment_nsw;
+        handle_alignment_nsw -> overflow_check;
+        overflow_check -> write_ellipsis [label="是"];
+        overflow_check -> write_grapheme_nsw [label="否"];
+        write_ellipsis -> nsw_end;
+        write_grapheme_nsw -> nsw_end;
+    }
+    non_softwrap_block -> nsw_start [style=dashed, dir=none];
+}

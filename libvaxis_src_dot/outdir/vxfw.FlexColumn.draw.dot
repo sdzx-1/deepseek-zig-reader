@@ -1,0 +1,70 @@
+
+digraph Flowchart {
+    node [shape=rectangle, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="开始"];
+    assert1 [label="断言 ctx.max.height 不为空"];
+    assert2 [label="断言 ctx.max.width 不为空"];
+    check_children [label="self.children.len == 0?" shape=diamond];
+    return_empty [label="返回空 Surface"];
+    alloc_size_list [label="分配 size_list (存储子组件固有大小)"];
+    init_layout_arena [label="初始化 layout_arena"];
+    define_layout_ctx [label="定义 layout_ctx\n调整约束条件"];
+    first_loop_start [label="遍历所有子组件 (第一遍测量)"];
+    get_surf [label="调用 child.widget.draw(layout_ctx)"];
+    update_first_pass [label="累加 first_pass_height\n记录 size_list[i]\n累加 total_flex"];
+    deinit_arena [label="释放 layout_arena"];
+    init_children_list [label="初始化 children 列表"];
+    calc_remaining_space [label="计算 remaining_space = ctx.max.height - first_pass_height"];
+    second_loop_start [label="遍历所有子组件 (第二遍绘制)"];
+    check_flex [label="child.flex == 0?" shape=diamond];
+    check_last_child [label="是否是最后一个子组件?" shape=diamond];
+    set_child_height [label="child_height = 剩余空间分配"];
+    set_inherent_height [label="child_height = 固有高度"];
+    last_child_height [label="child_height = 剩余全部空间"];
+    create_child_ctx [label="创建 child_ctx\n调整高度约束"];
+    draw_child [label="调用 child.widget.draw(child_ctx)"];
+    append_child [label="将 surf 添加到 children 列表"];
+    update_max_width [label="更新 max_width"];
+    update_second_pass [label="累加 second_pass_height"];
+    combine_results [label="组合最终 size\n返回 Surface"];
+
+    start -> assert1;
+    assert1 -> assert2;
+    assert2 -> check_children;
+    check_children -> return_empty [label="是"];
+    check_children -> alloc_size_list [label="否"];
+    alloc_size_list -> init_layout_arena;
+    init_layout_arena -> define_layout_ctx;
+    define_layout_ctx -> first_loop_start;
+
+    first_loop_start -> get_surf;
+    get_surf -> update_first_pass;
+    update_first_pass -> first_loop_start [label="继续循环"];
+    first_loop_start -> deinit_arena [label="循环结束"];
+
+    deinit_arena -> init_children_list;
+    init_children_list -> calc_remaining_space;
+    calc_remaining_space -> second_loop_start;
+
+    second_loop_start -> check_flex;
+    check_flex -> set_inherent_height [label="是"];
+    check_flex -> check_last_child [label="否"];
+    check_last_child -> last_child_height [label="是"];
+    check_last_child -> set_child_height [label="否"];
+    set_child_height -> create_child_ctx;
+    set_inherent_height -> create_child_ctx;
+    last_child_height -> create_child_ctx;
+
+    create_child_ctx -> draw_child;
+    draw_child -> append_child;
+    append_child -> update_max_width;
+    update_max_width -> update_second_pass;
+    update_second_pass -> second_loop_start [label="继续循环"];
+    second_loop_start -> combine_results [label="循环结束"];
+
+    return_empty -> combine_results [style=invis]; // 保持结构连贯
+    combine_results -> end [label="返回结果"];
+    end [shape=oval, label="结束"];
+}

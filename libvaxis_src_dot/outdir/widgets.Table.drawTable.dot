@@ -1,0 +1,74 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始drawTable函数"];
+    process_params [label="处理参数: alloc, win, data_list, table_ctx"];
+    check_datalist_type [label="检查data_list类型", shape=diamond];
+    handle_pointer [label="处理指针类型(Slice)"];
+    handle_struct [label="处理结构体类型", shape=diamond];
+    check_arraylist [label="是否为ArrayList?", shape=diamond];
+    get_arraylist_items [label="获取ArrayList.items"];
+    check_multiarryalist [label="是否为MultiArrayList?", shape=diamond];
+    require_alloc [label="需要allocator转换数据", shape=diamond];
+    convert_mal [label="转换为普通slice"];
+    error_unsupported [label="返回错误: UnsupportedTableDataType"];
+    defer_free [label="defer释放内存(如果是MultiArrayList)"];
+    prepare_headers [label="准备表头数据"];
+    create_table_win [label="创建表格窗口"];
+    draw_headers [label="绘制表头"];
+    handle_colors [label="计算表头颜色和样式"];
+    print_headers [label="渲染表头文本"];
+    calculate_rows [label="计算显示行范围和分页逻辑"];
+    process_rows [label="逐行处理数据"];
+    row_colors [label="确定行颜色和样式"];
+    handle_active_row [label="处理活动行扩展内容"];
+    process_cells [label="处理单元格数据"];
+    handle_item_type [label="根据数据类型处理内容"];
+    align_cell [label="对齐单元格内容"];
+    print_cell [label="渲染单元格文本"];
+    end [label="结束"];
+
+    start -> process_params;
+    process_params -> check_datalist_type;
+
+    check_datalist_type -> handle_pointer [label="指针类型"];
+    check_datalist_type -> handle_struct [label="结构体类型"];
+    check_datalist_type -> error_unsupported [label="其他类型"];
+
+    handle_pointer -> prepare_headers;
+
+    handle_struct -> check_arraylist;
+    check_arraylist -> get_arraylist_items [label="是ArrayList"];
+    check_arraylist -> check_multiarryalist [label="不是ArrayList"];
+
+    check_multiarryalist -> require_alloc [label="是MultiArrayList"];
+    check_multiarryalist -> error_unsupported [label="其他结构体"];
+
+    require_alloc -> convert_mal [label="alloc存在"];
+    require_alloc -> error_unsupported [label="alloc不存在"];
+
+    convert_mal -> defer_free;
+    get_arraylist_items -> defer_free;
+    
+    defer_free -> prepare_headers;
+
+    prepare_headers -> create_table_win;
+    create_table_win -> draw_headers;
+    draw_headers -> handle_colors;
+    handle_colors -> print_headers;
+    print_headers -> calculate_rows;
+
+    calculate_rows -> process_rows;
+    process_rows -> row_colors;
+    row_colors -> handle_active_row;
+    handle_active_row -> process_cells;
+
+    process_cells -> handle_item_type;
+    handle_item_type -> align_cell;
+    align_cell -> print_cell;
+    print_cell -> end [label="完成所有行"];
+
+    error_unsupported -> end;
+}

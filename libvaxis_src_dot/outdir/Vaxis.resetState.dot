@@ -1,0 +1,83 @@
+
+digraph resetState {
+    rankdir=TB;
+    node [shape=ellipse]; start end;
+    node [shape=diamond]; condition_cursor_shape condition_kitty condition_mouse condition_paste condition_alt condition_color condition_resize condition_fg condition_bg condition_cursor_color;
+    node [shape=rectangle];
+
+    start -> write_show_cursor;
+    write_show_cursor -> write_sgr_reset;
+
+    write_sgr_reset -> condition_cursor_shape;
+    condition_cursor_shape [label="self.screen.cursor_shape != .default?"];
+    condition_cursor_shape -> write_cursor_shape [label="Yes"];
+    condition_cursor_shape -> condition_kitty [label="No"];
+    write_cursor_shape -> condition_kitty;
+
+    condition_kitty [label="self.state.kitty_keyboard?"];
+    condition_kitty -> write_csi_u_pop [label="Yes"];
+    condition_kitty -> condition_mouse [label="No"];
+    write_csi_u_pop -> set_kitty_false -> condition_mouse;
+
+    condition_mouse [label="self.state.mouse?"];
+    condition_mouse -> set_mouse_false [label="Yes"];
+    condition_mouse -> condition_paste [label="No"];
+    set_mouse_false -> condition_paste;
+
+    condition_paste [label="self.state.bracketed_paste?"];
+    condition_paste -> set_paste_false [label="Yes"];
+    condition_paste -> condition_alt [label="No"];
+    set_paste_false -> condition_alt;
+
+    condition_alt [label="self.state.alt_screen?"];
+    condition_alt -> alt_screen_ops [label="Yes"];
+    alt_screen_ops -> write_home -> write_erase_alt -> exit_alt -> condition_color;
+    condition_alt -> else_alt [label="No"];
+    else_alt -> write_cr -> loop_ri_start;
+    loop_ri_start [label="i = 0"];
+    loop_ri_start -> loop_condition;
+    loop_condition [label="i < self.state.cursor.row?" shape=diamond];
+    loop_condition -> write_ri [label="Yes"];
+    write_ri -> increment_i -> loop_condition;
+    increment_i [label="i += 1"];
+    loop_condition -> write_erase_else [label="No"];
+    write_erase_else -> condition_color;
+
+    condition_color [label="self.state.color_scheme_updates?"];
+    condition_color -> write_color_reset [label="Yes"];
+    condition_color -> condition_resize [label="No"];
+    write_color_reset -> set_color_false -> condition_resize;
+
+    condition_resize [label="self.state.in_band_resize?"];
+    condition_resize -> write_resize_reset [label="Yes"];
+    condition_resize -> condition_fg [label="No"];
+    write_resize_reset -> set_resize_false -> condition_fg;
+
+    condition_fg [label="self.state.changed_default_fg?"];
+    condition_fg -> write_osc10_reset [label="Yes"];
+    condition_fg -> condition_bg [label="No"];
+    write_osc10_reset -> set_fg_false -> condition_bg;
+
+    condition_bg [label="self.state.changed_default_bg?"];
+    condition_bg -> write_osc11_reset [label="Yes"];
+    condition_bg -> condition_cursor_color [label="No"];
+    write_osc11_reset -> set_bg_false -> condition_cursor_color;
+
+    condition_cursor_color [label="self.state.changed_cursor_color?"];
+    condition_cursor_color -> write_osc12_reset [label="Yes"];
+    condition_cursor_color -> end [label="No"];
+    write_osc12_reset -> set_cursor_color_false -> end;
+
+    // Edge connections for all false paths
+    { edge [style=invis]; 
+      condition_cursor_shape -> condition_kitty;
+      condition_kitty -> condition_mouse;
+      condition_mouse -> condition_paste;
+      condition_paste -> condition_alt;
+      condition_alt -> condition_color;
+      condition_color -> condition_resize;
+      condition_resize -> condition_fg;
+      condition_fg -> condition_bg;
+      condition_bg -> condition_cursor_color;
+    }
+}

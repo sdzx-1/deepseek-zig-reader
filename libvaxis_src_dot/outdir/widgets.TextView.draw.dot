@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="开始"];
+    call_draw [label="调用 scroll_view.draw()"];
+    init_vars [label="初始化 pos 和 byte_index"];
+    get_bounds [label="获取 scroll_view.bounds()"];
+    loop_start [label="遍历 buffer.grapheme.items", shape=ellipse];
+    check_above [label="bounds.above(pos.y)?", shape=diamond];
+    break_loop [label="退出循环"];
+    process_cluster [label="处理 cluster\n更新 byte_index"];
+    check_newline [label="cluster == \"\\n\"?", shape=diamond];
+    check_last [label="index == 最后元素?", shape=diamond];
+    update_pos_newline [label="pos.y += 1\npos.x = 0"];
+    check_below [label="bounds.below(pos.y)?", shape=diamond];
+    calc_width [label="计算宽度\n更新 pos.x"];
+    check_col_inside [label="bounds.colInside(pos.x)?", shape=diamond];
+    get_style [label="获取 style"];
+    write_cell [label="调用 writeCell()"];
+    continue_loop [label="继续循环", shape=ellipse];
+    end [label="结束"];
+
+    start -> call_draw;
+    call_draw -> init_vars;
+    init_vars -> get_bounds;
+    get_bounds -> loop_start;
+    
+    loop_start -> check_above;
+    check_above -> break_loop [label="是"];
+    check_above -> process_cluster [label="否"];
+    
+    process_cluster -> check_newline;
+    check_newline -> check_last [label="是"];
+    check_newline -> check_below [label="否"];
+    
+    check_last -> break_loop [label="是"];
+    check_last -> update_pos_newline [label="否"];
+    update_pos_newline -> continue_loop;
+    
+    check_below -> continue_loop [label="是"];
+    check_below -> calc_width [label="否"];
+    
+    calc_width -> check_col_inside;
+    check_col_inside -> get_style [label="是"];
+    check_col_inside -> continue_loop [label="否"];
+    
+    get_style -> write_cell;
+    write_cell -> continue_loop;
+    
+    continue_loop -> loop_start [xlabel="下一个迭代"];
+    break_loop -> end;
+}

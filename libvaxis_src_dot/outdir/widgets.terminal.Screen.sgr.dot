@@ -1,0 +1,66 @@
+
+digraph SGR_Flowchart {
+    node [shape=rectangle, fontname="Arial"];
+    start [label="开始处理SGR参数", shape=ellipse];
+    check_params [label="seq.params是否为空?"];
+    reset_style [label="重置光标样式为默认\nself.cursor.style = .{}"];
+    loop_start [label="创建参数迭代器\nvar iter = seq.iterator(u8)"];
+    next_param [label="获取下一个参数\niter.next()", shape=diamond];
+    process_param [label="处理参数ps\nswitch(ps)"];
+    end [label="结束", shape=ellipse];
+    subgraph cluster_switch {
+        label="处理参数分支";
+        style=filled;
+        color=lightgrey;
+        node [shape=diamond];
+        case_0 [label="ps == 0"];
+        case_1 [label="ps == 1"];
+        case_4 [label="ps == 4"];
+        case_38 [label="ps == 38"];
+        case_48 [label="ps == 48"];
+        // 其他case类似处理...
+    }
+
+    start -> check_params;
+    check_params -> reset_style [label="是"];
+    check_params -> loop_start [label="否"];
+    reset_style -> end;
+
+    loop_start -> next_param;
+    next_param -> process_param [label="有参数"];
+    next_param -> end [label="无参数"];
+
+    process_param -> case_0;
+    case_0 -> reset_style -> next_param;
+
+    process_param -> case_1 [label="ps=1"];
+    case_1 -> set_bold [label="设置bold=true"] -> next_param;
+
+    process_param -> case_4 [label="ps=4"];
+    case_4 -> check_subparam [label="检查是否有子参数"];
+    check_subparam -> get_underline_style [label="存在"];
+    check_subparam -> next_param [label="不存在（返回）"];
+    get_underline_style -> set_ul_style [label="读取子参数并设置下划线类型"] -> next_param;
+
+    process_param -> case_38 [label="ps=38"];
+    case_38 -> read_kind [label="读取kind参数"];
+    read_kind -> check_kind_38 [shape=diamond, label="kind值"];
+    check_kind_38 -> handle_rgb_38 [label="kind=2"];
+    check_kind_38 -> handle_index_38 [label="kind=5"];
+    check_kind_38 -> next_param [label="其他（返回）"];
+    handle_rgb_38 -> read_rgb_38 [label="读取r,g,b"] -> set_fg_rgb -> next_param;
+    handle_index_38 -> read_idx_38 [label="读取索引"] -> set_fg_index -> next_param;
+
+    process_param -> case_48 [label="ps=48"];
+    case_48 -> read_kind48 [label="读取kind参数"];
+    read_kind48 -> check_kind48 [shape=diamond, label="kind值"];
+    check_kind48 -> handle_rgb48 [label="kind=2"];
+    check_kind48 -> handle_index48 [label="kind=5"];
+    check_kind48 -> next_param [label="其他（返回）"];
+    handle_rgb48 -> read_rgb48 [label="读取r,g,b"] -> set_bg_rgb -> next_param;
+    handle_index48 -> read_idx48 [label="读取索引"] -> set_bg_index -> next_param;
+
+    // 简化的其他case连接
+    process_param -> other_cases [label="其他参数处理（如30-37等）"];
+    other_cases -> apply_style -> next_param;
+}

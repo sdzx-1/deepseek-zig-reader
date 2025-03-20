@@ -1,0 +1,57 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始", shape=ellipse];
+    check_asserts [label="断言检查\nstd.debug.assert(ctx.max.height != null)\nstd.debug.assert(ctx.max.width != null)"];
+    check_children [label="检查子元素数量\nif (self.children.len == 0)", shape=diamond];
+    return_empty [label="返回空Surface\nreturn vxfw.Surface.init(...)"];
+    alloc_size_list [label="分配size_list\nconst size_list = try ctx.arena.alloc(...)"];
+    init_layout_arena [label="初始化layout_arena和layout_ctx"];
+    first_loop [label="第一次遍历子元素\n计算总宽度和flex", shape=box3d];
+    deinit_arena [label="释放layout_arena\nlayout_arena.deinit()"];
+    init_children_list [label="初始化children列表"];
+    second_loop [label="第二次遍历子元素\n分配宽度并绘制", shape=box3d];
+    calculate_remaining_space [label="计算剩余空间\nconst remaining_space = ..."];
+    check_flex [label="child.flex == 0?", shape=diamond];
+    check_last_child [label="是否是最后一个子元素?", shape=diamond];
+    set_child_width [label="设置child_width"];
+    create_child_ctx [label="创建子上下文\nconst child_ctx = ..."];
+    draw_child [label="绘制子Surface\nconst surf = try child.widget.draw(...)"];
+    update_position [label="更新位置和高度\nappend到children列表"];
+    finalize [label="组合结果并返回\nconst size = ...\nreturn Surface"];
+    
+    start -> check_asserts;
+    check_asserts -> check_children;
+    
+    check_children -> return_empty [label="是"];
+    check_children -> alloc_size_list [label="否"];
+    
+    alloc_size_list -> init_layout_arena;
+    init_layout_arena -> first_loop;
+    
+    first_loop -> deinit_arena [label="循环结束"];
+    deinit_arena -> init_children_list;
+    init_children_list -> calculate_remaining_space;
+    calculate_remaining_space -> second_loop;
+    
+    second_loop -> check_flex [label="遍历每个子元素"];
+    check_flex -> check_last_child [label="否"];
+    check_flex -> set_child_width [label="是"];
+    check_last_child -> set_child_width [label="是"];
+    check_last_child -> set_child_width [label="否\n计算flex比例"];
+    
+    set_child_width -> create_child_ctx;
+    create_child_ctx -> draw_child;
+    draw_child -> update_position;
+    update_position -> second_loop [label="继续循环"];
+    
+    second_loop -> finalize [label="循环结束"];
+    return_empty -> finalize [style=invis];
+    finalize -> end [label="返回结果", shape=ellipse];
+    
+    // 隐含的流程连接
+    edge [style=invis];
+    return_empty -> init_layout_arena;
+}

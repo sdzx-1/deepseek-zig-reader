@@ -1,0 +1,79 @@
+
+digraph G {
+    node [shape=rectangle, fontname="Arial"];
+    start [label="开始child函数"];
+    init_child [label="初始化子窗口result"];
+    get_glyphs [label="根据opts.border.glyphs获取边框字符"];
+    determine_loc [label="确定边框位置(loc)\n根据opts.border.where"];
+    draw_top [label="绘制顶部边框\n循环写入horizontal字符"];
+    draw_bottom [label="绘制底部边框\n循环写入horizontal字符"];
+    draw_left [label="绘制左边框\n循环写入vertical字符"];
+    draw_right [label="绘制右边框\n循环写入vertical字符"];
+    corners [label="绘制四个角落字符"];
+    adjust_offset [label="计算偏移量\nx_off/y_off/h_delt/w_delt"];
+    final_child [label="调整子窗口尺寸\ninitChild(x_off,y_off,w_ch,h_ch)"];
+    end [label="返回result"];
+
+    start -> init_child;
+    init_child -> get_glyphs;
+    get_glyphs -> determine_loc;
+    
+    determine_loc -> draw_top [label="loc.top=true"];
+    determine_loc -> draw_bottom [label="loc.bottom=true"];
+    determine_loc -> draw_left [label="loc.left=true"];
+    determine_loc -> draw_right [label="loc.right=true"];
+    
+    {draw_top draw_bottom draw_left draw_right} -> corners;
+    
+    corners -> adjust_offset;
+    adjust_offset -> final_child;
+    final_child -> end;
+
+    // 条件判断结构
+    node [shape=diamond];
+    check_top [label="loc.top?"];
+    check_bottom [label="loc.bottom?"];
+    check_left [label="loc.left?"];
+    check_right [label="loc.right?"];
+    check_top_left [label="loc.top && loc.left?"];
+    check_top_right [label="loc.top && loc.right?"];
+    check_bottom_left [label="loc.bottom && loc.left?"];
+    check_bottom_right [label="loc.bottom && loc.right?"];
+
+    draw_top -> check_top;
+    check_top -> corners [label="否"];
+    check_top -> corners [label="是"];
+
+    draw_bottom -> check_bottom;
+    check_bottom -> corners [label="否"];
+    check_bottom -> corners [label="是"];
+
+    draw_left -> check_left;
+    check_left -> corners [label="否"];
+    check_left -> corners [label="是"];
+
+    draw_right -> check_right;
+    check_right -> corners [label="否"];
+    check_right -> corners [label="是"];
+
+    corners -> check_top_left;
+    check_top_left -> write_tl [label="是"];
+    check_top_left -> check_top_right [label="否"];
+
+    check_top_right -> write_tr [label="是"];
+    check_top_right -> check_bottom_left [label="否"];
+
+    check_bottom_left -> write_bl [label="是"];
+    check_bottom_left -> check_bottom_right [label="否"];
+
+    check_bottom_right -> write_br [label="是"];
+    check_bottom_right -> adjust_offset [label="否"];
+
+    node [shape=rectangle];
+    write_tl [label="写入左上角字符"];
+    write_tr [label="写入右上角字符"];
+    write_bl [label="写入左下角字符"];
+    write_br [label="写入右下角字符"];
+
+    {write_tl write_tr write_bl write_br} -> adjust_offset;
+}

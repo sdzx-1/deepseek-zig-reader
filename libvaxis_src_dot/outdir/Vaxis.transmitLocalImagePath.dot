@@ -1,0 +1,40 @@
+
+digraph transmitLocalImagePath {
+    node [shape=rectangle, style=rounded];
+    start [label="开始"];
+    check_caps [label="检查 self.caps.kitty_graphics"];
+    error_caps [label="返回 error.NoGraphicsCapability", shape=ellipse, color=red];
+    calc_size [label="计算 base64 编码后的尺寸 (size)"];
+    check_size [label="size >= 4096?"];
+    error_size [label="返回 error.PathTooLong", shape=ellipse, color=red];
+    alloc_buf [label="分配缓冲区 buf"];
+    encode_payload [label="Base64 编码 payload"];
+    free_buf [label="释放缓冲区 buf (defer)", style=dashed];
+    determine_medium [label="确定 medium_char (f/t/s)"];
+    check_format [label="根据 format 分支"];
+    print_rgb [label="打印 RGB 控制序列"];
+    print_rgba [label="打印 RGBA 控制序列"];
+    print_png [label="打印 PNG 控制序列"];
+    return_image [label="返回 Image 结构体", shape=ellipse, color=green];
+
+    start -> check_caps;
+    check_caps -> error_caps [label="否"];
+    check_caps -> calc_size [label="是"];
+    calc_size -> check_size;
+    check_size -> error_size [label="是"];
+    check_size -> alloc_buf [label="否"];
+    alloc_buf -> encode_payload;
+    encode_payload -> free_buf [style=dashed];
+    free_buf -> determine_medium;
+    determine_medium -> check_format;
+    check_format -> print_rgb [label=".rgb"];
+    check_format -> print_rgba [label=".rgba"];
+    check_format -> print_png [label=".png"];
+    print_rgb -> return_image;
+    print_rgba -> return_image;
+    print_png -> return_image;
+
+    // 隐式操作：defer next_img_id 递增
+    check_caps -> return_image [style=invis];
+    {rank=same; check_caps; return_image}
+}

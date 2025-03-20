@@ -1,0 +1,32 @@
+
+digraph transmitImage_flow {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    check_caps [label="检查self.caps.kitty_graphics"];
+    error [label="返回错误: NoGraphicsCapability"];
+    init_arena [label="初始化arena分配器"];
+    format_switch [label="根据format选择处理方式"];
+    png_case [label="分配内存并写入PNG格式数据"];
+    rgb_case [label="转换为RGB24格式并获取原始字节"];
+    rgba_case [label="转换为RGBA32格式并获取原始字节"];
+    base64_encode [label="分配Base64缓冲区并进行编码"];
+    transmit [label="调用transmitPreEncodedImage"];
+    end [label="返回结果"];
+
+    start -> check_caps;
+    check_caps -> error [label="否"];
+    check_caps -> init_arena [label="是"];
+    init_arena -> format_switch;
+
+    format_switch -> png_case [label=".png"];
+    format_switch -> rgb_case [label=".rgb"];
+    format_switch -> rgba_case [label=".rgba"];
+
+    png_case -> base64_encode;
+    rgb_case -> base64_encode;
+    rgba_case -> base64_encode;
+
+    base64_encode -> transmit;
+    transmit -> end;
+}

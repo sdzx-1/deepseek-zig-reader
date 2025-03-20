@@ -1,0 +1,91 @@
+
+digraph draw_flowchart {
+    node [shape=rectangle, style=rounded];
+    start [label="开始 (draw函数入口)"];
+    check_max_width [label="检查ctx.max.width不为null"];
+    init_vars [label="初始化prev_width, draw_offset, prev_cursor_col"];
+    create_surface [label="创建Surface对象\n设置宽度=max_width, 高度=max(1, ctx.min.height)"];
+    init_buffer [label="用base样式初始化surface.buffer"];
+    handle_cursor_idx [label="计算cursor_idx = graphemesBeforeCursor()"];
+    adjust_draw_offset [label="如果cursor_idx < draw_offset\n调整draw_offset = cursor_idx"];
+    check_max_width_zero [label="检查max_width == 0?" shape=diamond];
+    return_early [label="直接返回surface"];
+    enter_loop [label="进入宽度调整循环"];
+    check_width [label="计算widthToCursor(ctx)\n检查width >= max_width?" shape=diamond];
+    increase_offset [label="draw_offset += width - max_width + 1"];
+    process_first_half [label="处理buf.firstHalf()的文本"];
+    process_second_half [label="处理buf.secondHalf()的文本"];
+    check_leading_ellipsis [label="检查draw_offset > 0?" shape=diamond];
+    add_leading_ellipsis [label="在位置0显示省略号"];
+    set_cursor_position [label="设置surface.cursor的列和行"];
+    return_surface [label="返回surface"];
+
+    // 前半部分迭代逻辑
+    first_half_loop [label="遍历first_half的grapheme"];
+    check_i_offset [label="i < draw_offset?" shape=diamond];
+    skip_grapheme [label="i += 1\n跳过当前字形"];
+    calculate_width [label="计算字形宽度w"];
+    check_col_overflow [label="col + w >= max_width?" shape=diamond];
+    write_ellipsis [label="在max_width-1位置写省略号"];
+    write_grapheme [label="在col位置写入字形\ncol += w, i += 1"];
+    update_cursor_col [label="如果i == cursor_idx\n更新prev_cursor_col = col"];
+
+    // 后半部分迭代逻辑（与前半类似）
+    second_half_loop [label="遍历second_half的grapheme"];
+    check_i_offset2 [label="i < draw_offset?" shape=diamond];
+    skip_grapheme2 [label="i += 1\n跳过当前字形"];
+    calculate_width2 [label="计算字形宽度w"];
+    check_col_overflow2 [label="col + w > max_width?" shape=diamond];
+    write_ellipsis2 [label="在max_width-1位置写省略号"];
+    write_grapheme2 [label="在col位置写入字形\ncol += w, i += 1"];
+    update_cursor_col2 [label="如果i == cursor_idx\n更新prev_cursor_col = col"];
+
+    // 主流程连接
+    start -> check_max_width;
+    check_max_width -> init_vars;
+    init_vars -> create_surface;
+    create_surface -> init_buffer;
+    init_buffer -> handle_cursor_idx;
+    handle_cursor_idx -> adjust_draw_offset;
+    adjust_draw_offset -> check_max_width_zero;
+
+    check_max_width_zero -> return_early [label="是"];
+    check_max_width_zero -> enter_loop [label="否"];
+    enter_loop -> check_width;
+    check_width -> increase_offset [label="是"];
+    increase_offset -> check_width;
+    check_width -> process_first_half [label="否"];
+
+    // 处理前半部分
+    process_first_half -> first_half_loop;
+    first_half_loop -> check_i_offset;
+    check_i_offset -> skip_grapheme [label="是"];
+    skip_grapheme -> first_half_loop;
+    check_i_offset -> calculate_width [label="否"];
+    calculate_width -> check_col_overflow;
+    check_col_overflow -> write_ellipsis [label="是"];
+    write_ellipsis -> process_second_half;
+    check_col_overflow -> write_grapheme [label="否"];
+    write_grapheme -> update_cursor_col;
+    update_cursor_col -> first_half_loop;
+
+    // 处理后半部分
+    process_second_half -> second_half_loop;
+    second_half_loop -> check_i_offset2;
+    check_i_offset2 -> skip_grapheme2 [label="是"];
+    skip_grapheme2 -> second_half_loop;
+    check_i_offset2 -> calculate_width2 [label="否"];
+    calculate_width2 -> check_col_overflow2;
+    check_col_overflow2 -> write_ellipsis2 [label="是"];
+    write_ellipsis2 -> check_leading_ellipsis;
+    check_col_overflow2 -> write_grapheme2 [label="否"];
+    write_grapheme2 -> update_cursor_col2;
+    update_cursor_col2 -> second_half_loop;
+
+    // 收尾流程
+    check_leading_ellipsis -> add_leading_ellipsis [label="是"];
+    check_leading_ellipsis -> set_cursor_position [label="否"];
+    add_leading_ellipsis -> set_cursor_position;
+    set_cursor_position -> return_surface;
+    return_early -> return_surface;
+}

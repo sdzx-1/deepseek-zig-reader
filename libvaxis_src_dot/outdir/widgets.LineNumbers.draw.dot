@@ -1,0 +1,32 @@
+
+digraph G {
+    node [shape=rectangle];
+    start [label="开始绘制行号"];
+    end [label="结束绘制"];
+    loop_line_start [label="循环line从 (1 + y_scroll) 到 self.num_lines"];
+    check_line_overflow [label="line - 1 >= y_scroll + win.height?", shape=diamond];
+    set_highlighted [label="设置 highlighted = (line == 高亮行)"];
+    compute_digits [label="计算 num_digits = 行号位数"];
+    loop_digits [label="循环i从0到num_digits-1"];
+    write_digit [label="在窗口位置写入数字"];
+    check_highlighted [label="highlighted?", shape=diamond];
+    loop_fill [label="循环i从(num_digits+1)到win.width-1"];
+    fill_space [label="填充高亮样式到剩余位置"];
+    next_line [label="继续下一个line"];
+
+    start -> loop_line_start;
+    loop_line_start -> check_line_overflow;
+    check_line_overflow -> end [label="是"];
+    check_line_overflow -> set_highlighted [label="否"];
+    set_highlighted -> compute_digits;
+    compute_digits -> loop_digits;
+    loop_digits -> write_digit;
+    write_digit -> loop_digits [label="下一个i"];
+    loop_digits -> check_highlighted [label="循环结束"];
+    check_highlighted -> loop_fill [label="是"];
+    check_highlighted -> next_line [label="否"];
+    loop_fill -> fill_space;
+    fill_space -> loop_fill [label="下一个i"];
+    loop_fill -> next_line [label="循环结束"];
+    next_line -> loop_line_start [label="继续循环"];
+}

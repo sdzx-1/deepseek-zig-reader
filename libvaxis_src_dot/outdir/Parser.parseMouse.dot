@@ -1,0 +1,39 @@
+
+digraph parseMouseFlow {
+    node [shape=rectangle, fontname="Arial"];
+    start [shape=ellipse, label="开始"];
+    check_input_len [label="检查 input.len >= 4"];
+    check_input_2 [label="input[2] == '<'?"];
+    find_delim1 [label="查找第一个';'(位置 >3)"];
+    parse_button_mask [label="解析 button_mask"];
+    find_delim2 [label="查找第二个';'(位置 >delim1+1)"];
+    parse_px_py [label="解析 px 和 py"];
+    decode_mask [label="解码 button_mask\n(按钮、motion、修饰键)"];
+    determine_type [label="确定事件类型"];
+    build_mouse [label="构造 Mouse 结构体"];
+    return_success [shape=ellipse, label="返回成功事件"];
+    return_null [shape=ellipse, label="返回 null_event"];
+
+    start -> check_input_len;
+    check_input_len -> check_input_2;
+    
+    check_input_2 -> return_null [label="否"];
+    check_input_2 -> find_delim1 [label="是"];
+    
+    find_delim1 -> return_null [label="未找到"];
+    find_delim1 -> parse_button_mask [label="找到 delim1"];
+    
+    parse_button_mask -> find_delim2;
+    find_delim2 -> return_null [label="未找到"];
+    find_delim2 -> parse_px_py [label="找到 delim2"];
+    
+    parse_px_py -> decode_mask;
+    decode_mask -> determine_type;
+    
+    determine_type -> build_mouse [label="判断:\n- drag\n- motion\n- release\n- press"];
+    build_mouse -> return_success;
+    
+    // 错误路径统一指向return_null
+    parse_button_mask -> return_null [label="解析失败"];
+    parse_px_py -> return_null [label="解析失败"];
+}

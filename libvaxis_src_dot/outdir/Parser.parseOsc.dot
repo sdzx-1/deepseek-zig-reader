@@ -1,0 +1,39 @@
+
+digraph parseOsc {
+    node [shape=rectangle, fontname="Courier"];
+    start [label="开始"];
+    check_input_len [label="input.len < 3?" shape=diamond];
+    return_early [label="返回 {event: null, n: 0}"];
+    find_end_block [label="计算 end (ST/BEL 终止符)"];
+    check_semicolon [label="查找分号 ';'"];
+    return_null_event [label="返回 null_event"];
+    parse_ps [label="解析 ps (参数值)"];
+    switch_ps [label="根据 ps 值分支" shape=diamond];
+    ps4_case [label="ps=4"];
+    ps10_11_12_case [label="ps=10/11/12"];
+    ps52_case [label="ps=52"];
+    default_case [label="其他值"];
+    handle_ps4 [label="解析颜色索引和颜色值"];
+    handle_ps10_11_12 [label="根据 ps 设置颜色类型"];
+    handle_ps52 [label="处理 Base64 粘贴数据"];
+    return_color_report [label="返回 color_report 事件"];
+    return_paste [label="返回 paste 事件"];
+    final_return [label="返回对应事件和长度"];
+
+    start -> check_input_len;
+    check_input_len -> return_early [label="是"];
+    check_input_len -> find_end_block [label="否"];
+    find_end_block -> check_semicolon;
+    check_semicolon -> return_null_event [label="无分号"];
+    check_semicolon -> parse_ps [label="找到分号"];
+    parse_ps -> switch_ps;
+    switch_ps -> ps4_case [label="4"];
+    switch_ps -> ps10_11_12_case [label="10/11/12"];
+    switch_ps -> ps52_case [label="52"];
+    switch_ps -> default_case [label="其他"];
+    ps4_case -> handle_ps4 -> return_color_report -> final_return;
+    ps10_11_12_case -> handle_ps10_11_12 -> return_color_report -> final_return;
+    ps52_case -> handle_ps52 -> return_paste -> final_return;
+    default_case -> return_null_event;
+    return_null_event -> final_return;
+}

@@ -1,0 +1,42 @@
+
+digraph toWin_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    calc_xy [label="计算初始x和y\nx = min(屏幕宽-1, config.x)\ny = min(屏幕高-1, config.y)"];
+    width_switch [label="计算width:\nswitch(config.width)"];
+    width_fit [label="fit: width = win.width"];
+    width_max [label="max: width = min(win.width, w)"];
+    limit_width_screen [label="限制width到屏幕宽度"];
+    limit_width_x [label="调整width避免溢出右侧\nwidth = min(width, 屏幕宽-1 - x + win.width)"];
+    height_switch [label="计算height:\nswitch(config.height)"];
+    height_fit [label="fit: height = win.height"];
+    height_max [label="max: height = min(win.height, h)"];
+    limit_height_screen [label="限制height到屏幕高度"];
+    limit_height_y [label="调整height避免溢出底部\nheight = min(height, 屏幕高-1 - y + win.height)"];
+    adjust_xy [label="调整x和y到有效范围\nx = min(x, 屏幕宽 - width)\ny = min(y, 屏幕高 - height)"];
+    create_child [label="创建子窗口child\n设置width和height"];
+    draw [label="调用self.draw(child, 偏移x,y)"];
+    return_xy [label="返回 (x, y)"];
+
+    start -> calc_xy;
+    calc_xy -> width_switch;
+    
+    width_switch -> width_fit [label=".fit"];
+    width_switch -> width_max [label=".max"];
+    width_fit -> limit_width_screen;
+    width_max -> limit_width_screen;
+    limit_width_screen -> limit_width_x;
+    limit_width_x -> height_switch;
+    
+    height_switch -> height_fit [label=".fit"];
+    height_switch -> height_max [label=".max"];
+    height_fit -> limit_height_screen;
+    height_max -> limit_height_screen;
+    limit_height_screen -> limit_height_y;
+    limit_height_y -> adjust_xy;
+    
+    adjust_xy -> create_child;
+    create_child -> draw;
+    draw -> return_xy;
+}

@@ -1,0 +1,32 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="fill 函数入口"];
+    check_bounds [label="检查边界条件:\nself.x_off + width < 0\n|| self.y_off + height < 0\n|| screen.width < x_off\n|| screen.height < y_off"];
+    return_early [label="直接返回"];
+    calc_first_row [label="计算 first_row = max(self.y_off, 0)"];
+    check_contiguous [label="是否全宽窗口？\n(x_off == 0 && width == screen.width)"];
+    contiguous_case [label="连续内存处理:\n计算 start/end\n@memset 填充"];
+    non_contiguous_case [label="非连续内存处理:\n计算 first_col, last_row\n进入逐行循环"];
+    loop_start [label="循环开始:\nrow = first_row"];
+    loop_condition [label="row < last_row ?"];
+    calc_row [label="计算当前行:\nstart = first_col + row * screen.width\nend = min(...)\n@memset 填充"];
+    increment_row [label="row += 1"];
+    end [label="函数结束"];
+
+    start -> check_bounds;
+    check_bounds -> return_early [label="任一条件成立"];
+    check_bounds -> calc_first_row [label="所有条件不成立"];
+    calc_first_row -> check_contiguous;
+    check_contiguous -> contiguous_case [label="是"];
+    check_contiguous -> non_contiguous_case [label="否"];
+    contiguous_case -> end;
+    non_contiguous_case -> loop_start;
+    loop_start -> loop_condition;
+    loop_condition -> calc_row [label="是"];
+    loop_condition -> end [label="否"];
+    calc_row -> increment_row;
+    increment_row -> loop_condition;
+}

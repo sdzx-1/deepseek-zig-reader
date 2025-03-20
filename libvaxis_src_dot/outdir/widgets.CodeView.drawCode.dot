@@ -1,0 +1,68 @@
+
+digraph drawCode {
+    node [shape=rectangle, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    init_vars [label="初始化变量:\npos = {0,0}, byte_index=0\nis_indentation=true, 获取边界bounds"];
+    loop_start [label="遍历buffer.grapheme的每个项"];
+    check_above [label="当前行在视图上方？", shape=diamond];
+    break_loop [label="跳出循环"];
+    handle_newline [label="遇到换行符？", shape=diamond];
+    update_newline [label="pos.y += 1\npos.x=0\nis_indentation=true"];
+    check_below [label="当前行在视图下方？", shape=diamond];
+    skip_below [label="跳过处理"];
+    check_highlight [label="是否是高亮行？"];
+    apply_style [label="应用高亮样式"];
+    check_style_map [label="存在样式映射？", shape=diamond];
+    merge_styles [label="合并样式并保留背景色"];
+    calc_width [label="计算字符宽度"];
+    check_col_inside [label="当前列在视图内？", shape=diamond];
+    check_indent [label="处于缩进状态且非空格字符？", shape=diamond];
+    update_indent_flag [label="is_indentation=false"];
+    check_indent_cond [label="需要绘制缩进单元格？", shape=diamond];
+    draw_indent [label="绘制缩进单元格"];
+    draw_char [label="绘制字符"];
+    fill_highlight [label="填充高亮行剩余部分"];
+    loop_end [label="继续下一个字符"];
+    end [label="结束"];
+
+    start -> init_vars;
+    init_vars -> loop_start;
+    loop_start -> check_above;
+    check_above -> break_loop [label="是"];
+    check_above -> handle_newline [label="否"];
+    
+    handle_newline -> update_newline [label="是"];
+    handle_newline -> check_below [label="否"];
+    update_newline -> loop_end;
+    
+    check_below -> skip_below [label="是"];
+    check_below -> check_highlight [label="否"];
+    skip_below -> loop_end;
+    
+    check_highlight -> apply_style [label="是"];
+    check_highlight -> check_style_map [label="否"];
+    apply_style -> check_style_map;
+    
+    check_style_map -> merge_styles [label="是"];
+    check_style_map -> calc_width [label="否"];
+    merge_styles -> calc_width;
+    
+    calc_width -> check_col_inside;
+    check_col_inside -> check_indent [label="是"];
+    check_col_inside -> loop_end [label="否"];
+    
+    check_indent -> update_indent_flag [label="是"];
+    check_indent -> check_indent_cond [label="否"];
+    update_indent_flag -> check_indent_cond;
+    
+    check_indent_cond -> draw_indent [label="是"];
+    check_indent_cond -> draw_char [label="否"];
+    draw_indent -> fill_highlight;
+    draw_char -> fill_highlight;
+    
+    fill_highlight -> loop_end;
+    loop_end -> loop_start [label="继续循环"];
+    break_loop -> end;
+}

@@ -1,0 +1,44 @@
+
+digraph G {
+    rankdir=TB;
+    node [shape=rectangle];
+
+    start [label="开始调用gwidth函数"];
+    switch_method [label="判断method类型", shape=diamond];
+    unicode_case [label="调用DisplayWidth.strWidth(str)\n返回结果转换为u16"];
+    wcwidth_case [label="初始化total=0\n创建代码点迭代器"];
+    loop [label="遍历下一个代码点", shape=diamond];
+    check_cp [label="代码点是否在0x1f3fb-0x1f3ff范围？", shape=diamond];
+    add_2 [label="w=2"];
+    add_data [label="w=data.codePointWidth(cp.code)\n取最大值与0"];
+    accumulate [label="total += w"];
+    return_wcwidth [label="返回total"];
+    no_zwj_case [label="按ZWJ分割字符串\n初始化result=0"];
+    loop_split [label="处理下一个子串", shape=diamond];
+    recursive_call [label="递归调用gwidth(s, .unicode, data)\nresult += 结果"];
+    return_no_zwj [label="返回result"];
+    end [label="返回结果"];
+
+    start -> switch_method;
+    switch_method -> unicode_case [label=".unicode"];
+    switch_method -> wcwidth_case [label=".wcwidth"];
+    switch_method -> no_zwj_case [label=".no_zwj"];
+
+    unicode_case -> end;
+
+    wcwidth_case -> loop;
+    loop -> check_cp [label="有下一个代码点"];
+    check_cp -> add_2 [label="是"];
+    check_cp -> add_data [label="否"];
+    add_2 -> accumulate;
+    add_data -> accumulate;
+    accumulate -> loop;
+    loop -> return_wcwidth [label="无下一个代码点"];
+    return_wcwidth -> end;
+
+    no_zwj_case -> loop_split;
+    loop_split -> recursive_call [label="有子串"];
+    recursive_call -> loop_split;
+    loop_split -> return_no_zwj [label="无子串"];
+    return_no_zwj -> end;
+}

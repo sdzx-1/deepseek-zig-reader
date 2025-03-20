@@ -1,0 +1,96 @@
+
+digraph parseCsi {
+    node [shape=rectangle, fontname="Courier"];
+    edge [fontname="Courier"];
+    
+    start [label="开始解析CSI序列"];
+    check_input_len [label="输入长度 < 3?"];
+    return_short_input [label="返回: {.event=null, .n=0}"];
+    find_sequence [label="遍历input[2..]寻找终止符"];
+    sequence_found [label="成功截取序列"];
+    no_sequence [label="返回: {.event=null, .n=0}"];
+    get_final_char [label="获取序列最后一个字符(final)"];
+    
+    subgraph cluster_main {
+        label="根据final字符分派处理";
+        
+        final_A_S [label="final in [A,B,C,D,E,F,H,P,Q,R,S]"];
+        final_tilde [label="final == ~"];
+        final_I_O [label="final in [I,O]"];
+        final_M_m [label="final in [M,m]"];
+        final_c [label="final == c"];
+        final_n [label="final == n"];
+        final_t [label="final == t"];
+        final_u [label="final == u"];
+        final_y [label="final == y"];
+        default_case [label="其他字符"];
+    }
+    
+    process_legacy_keys [label="处理传统功能键\n(分割字段/解析修饰符/生成事件)"];
+    process_tilde [label="处理特殊键(如Insert/Delete)\n(解析数值/生成事件)"];
+    process_focus [label="返回焦点事件(focus_in/focus_out)"];
+    process_mouse [label="调用parseMouse处理鼠标事件"];
+    process_c [label="处理DA1能力报告"];
+    process_n [label="处理状态报告\n(如颜色方案更新)"];
+    process_t_winops [label="处理窗口尺寸调整"];
+    process_kitty_keyboard [label="处理Kitty键盘协议"];
+    process_y_decrpm [label="处理DECRPM扩展"];
+    return_null [label="返回空事件"];
+    
+    start -> check_input_len;
+    check_input_len -> return_short_input [label="是"];
+    check_input_len -> find_sequence [label="否"];
+    
+    find_sequence -> sequence_found [label="找到终止符"];
+    find_sequence -> no_sequence [label="未找到"];
+    sequence_found -> get_final_char;
+    
+    get_final_char -> final_A_S;
+    get_final_char -> final_tilde;
+    get_final_char -> final_I_O;
+    get_final_char -> final_M_m;
+    get_final_char -> final_c;
+    get_final_char -> final_n;
+    get_final_char -> final_t;
+    get_final_char -> final_u;
+    get_final_char -> final_y;
+    get_final_char -> default_case;
+    
+    final_A_S -> process_legacy_keys;
+    process_legacy_keys -> return_event;
+    
+    final_tilde -> process_tilde;
+    process_tilde -> return_event;
+    
+    final_I_O -> process_focus;
+    process_focus -> return_event;
+    
+    final_M_m -> process_mouse;
+    process_mouse -> return_event;
+    
+    final_c -> process_c;
+    process_c -> return_event;
+    
+    final_n -> process_n;
+    process_n -> return_event [label="有效参数"];
+    process_n -> return_null [label="无效参数"];
+    
+    final_t -> process_t_winops;
+    process_t_winops -> return_event [label="48字段有效"];
+    process_t_winops -> return_null [label="无效字段"];
+    
+    final_u -> process_kitty_keyboard;
+    process_kitty_keyboard -> return_event;
+    
+    final_y -> process_y_decrpm;
+    process_y_decrpm -> return_event [label="匹配已知参数"];
+    process_y_decrpm -> return_null [label="未知参数"];
+    
+    default_case -> return_null;
+    
+    return_event [label="构造对应事件并返回"];
+    return_null -> end;
+    return_event -> end;
+    
+    end [label="结束"];
+}

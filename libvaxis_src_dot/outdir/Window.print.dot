@@ -1,0 +1,107 @@
+
+digraph Window_print {
+    rankdir=TB;
+    node [shape=rectangle, fontname="Courier"];
+    edge [fontname="Courier"];
+
+    start [label="开始 print()", shape=ellipse];
+    end [label="返回 PrintResult", shape=ellipse];
+
+    start -> check_wrap;
+
+    check_wrap [label="检查 opts.wrap", shape=diamond];
+    check_wrap -> grapheme [label=".grapheme"];
+    check_wrap -> word [label=".word"];
+    check_wrap -> none [label=".none"];
+
+    // Grapheme 分支
+    subgraph cluster_grapheme {
+        label=".grapheme 模式";
+        grapheme_init [label="初始化 row = opts.row_offset\ncol = opts.col_offset"];
+        grapheme_segment_loop [label="遍历 segments", shape=hexagon];
+        grapheme_grapheme_loop [label="遍历 graphemes", shape=hexagon];
+        check_col_overflow [label="col >= self.width?", shape=diamond];
+        check_row_overflow [label="row >= self.height?", shape=diamond];
+        handle_newline [label="处理换行符\nrow += 1\ncol = 0"];
+        write_cell [label="写入单元格 (如果 commit)"];
+        update_col [label="col += grapheme 宽度"];
+        final_col_check [label="col >= self.width?\nrow += 1\ncol = 0", shape=diamond];
+        
+        grapheme -> grapheme_init;
+        grapheme_init -> grapheme_segment_loop;
+        grapheme_segment_loop -> grapheme_grapheme_loop [label="当前 segment"];
+        grapheme_grapheme_loop -> check_col_overflow [label="下一个 grapheme"];
+        check_col_overflow -> check_row_overflow [label="是"];
+        check_col_overflow -> check_row_overflow [label="否"];
+        check_row_overflow -> handle_newline [label="是\n标记 overflow"];
+        check_row_overflow -> check_newline [label="否"];
+        check_newline [label="是换行符？", shape=diamond];
+        check_newline -> handle_newline [label="是"];
+        check_newline -> calc_width [label="否"];
+        calc_width [label="计算 grapheme 宽度 (w)"];
+        calc_width -> write_decision [label="w > 0"];
+        write_decision [label="是否 commit?", shape=diamond];
+        write_decision -> write_cell [label="是"];
+        write_decision -> update_col [label="否"];
+        write_cell -> update_col;
+        update_col -> grapheme_grapheme_loop;
+        handle_newline -> grapheme_grapheme_loop [label="继续"];
+        grapheme_grapheme_loop -> grapheme_segment_loop [label="完成当前 segment"];
+        grapheme_segment_loop -> final_col_check [label="所有 segments 完成"];
+        final_col_check -> end_grapheme [label="构造返回值"];
+    }
+
+    // Word 分支
+    subgraph cluster_word {
+        label=".word 模式";
+        word_init [label="初始化 row = opts.row_offset\ncol = opts.col_offset"];
+        word_segment_loop [label="遍历 segments", shape=hexagon];
+        line_iterator [label="分割文本行", shape=hexagon];
+        handle_line_break [label="处理换行\nrow += 1\ncol = 0"];
+        whitespace_loop [label="处理空格/单词", shape=hexagon];
+        check_soft_wrap [label="需要软换行？", shape=diamond];
+        word_write_cell [label="写入单元格 (如果 commit)"];
+        word_end [label="构造返回值"];
+        
+        word -> word_init;
+        word_init -> word_segment_loop;
+        word_segment_loop -> line_iterator [label="当前 segment"];
+        line_iterator -> whitespace_loop [label="处理行"];
+        whitespace_loop -> check_soft_wrap [label="处理 token"];
+        check_soft_wrap -> word_write_cell [label="否"];
+        check_soft_wrap -> handle_line_break [label="是"];
+        handle_line_break -> whitespace_loop;
+        word_write_cell -> whitespace_loop;
+        whitespace_loop -> line_iterator [label="完成行"];
+        line_iterator -> word_segment_loop [label="完成当前 segment"];
+        word_segment_loop -> word_end [label="所有 segments 完成"];
+    }
+
+    // None 分支
+    subgraph cluster_none {
+        label=".none 模式";
+        none_init [label="初始化 row = opts.row_offset\ncol = opts.col_offset"];
+        none_segment_loop [label="遍历 segments", shape=hexagon];
+        none_grapheme_loop [label="遍历 graphemes", shape=hexagon];
+        none_check_col [label="col >= self.width?", shape=diamond];
+        none_check_newline [label="是换行符？", shape=diamond];
+        none_write_cell [label="写入单元格 (如果 commit)"];
+        none_end [label="构造返回值"];
+        
+        none -> none_init;
+        none_init -> none_segment_loop;
+        none_segment_loop -> none_grapheme_loop [label="当前 segment"];
+        none_grapheme_loop -> none_check_col [label="下一个 grapheme"];
+        none_check_col -> none_end [label="是\n标记 overflow"];
+        none_check_col -> none_check_newline [label="否"];
+        none_check_newline -> none_end [label="是\n标记 overflow"];
+        none_check_newline -> none_write_cell [label="否"];
+        none_write_cell -> none_grapheme_loop;
+        none_grapheme_loop -> none_segment_loop [label="完成当前 segment"];
+        none_segment_loop -> none_end [label="所有 segments 完成"];
+    }
+
+    end_grapheme -> end;
+    word_end -> end;
+    none_end -> end;
+}

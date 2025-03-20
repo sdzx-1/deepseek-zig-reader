@@ -1,0 +1,39 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start sleepyPop(q)", shape=ellipse];
+    check_full1 [label="while (!q.isFull())"];
+    yield1 [label="Thread.yield()"];
+    do_signals [label="q.not_full.signal();\nq.not_empty.signal();"];
+    yield2 [label="Thread.yield()"];
+    sleep1 [label="std.time.sleep(1秒)"];
+    pop1 [label="expectEqual(1, q.pop())"];
+    check_full2 [label="while (!q.isFull())"];
+    sleep2 [label="std.time.sleep(0.5秒)"];
+    do_signals2 [label="q.not_full.signal();\nq.not_empty.signal();"];
+    yield3 [label="Thread.yield()"];
+    sleep3 [label="std.time.sleep(0.5秒)"];
+    pop2 [label="expectEqual(2, q.pop())"];
+    end [label="End", shape=ellipse];
+
+    start -> check_full1;
+
+    check_full1 -> yield1 [label="True"];
+    yield1 -> check_full1;
+
+    check_full1 -> do_signals [label="False"];
+    do_signals -> yield2;
+    yield2 -> sleep1;
+    sleep1 -> pop1;
+    pop1 -> check_full2;
+
+    check_full2 -> yield1 [label="True"];
+    check_full2 -> sleep2 [label="False"];
+    sleep2 -> do_signals2;
+    do_signals2 -> yield3;
+    yield3 -> sleep3;
+    sleep3 -> pop2;
+    pop2 -> end;
+}

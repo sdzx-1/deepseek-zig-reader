@@ -1,0 +1,74 @@
+
+digraph G {
+    node [shape=rectangle, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="开始 draw()", shape=ellipse];
+    check_ctx_width [label="检查 ctx.max.width 是否为 0"];
+    return_empty_surface [label="返回空 Surface"];
+    init_softwrap_iter [label="初始化 SoftwrapIterator"];
+    find_container_size [label="计算容器大小 (findContainerSize)"];
+    create_surface [label="创建 Surface"];
+    fill_buffer [label="用 base_style 填充缓冲区"];
+    check_softwrap [label="self.softwrap 是否为真？", shape=diamond];
+    process_softwrap [label="处理软换行"];
+    process_hardbreak [label="处理硬换行"];
+    trim_surface [label="修剪 Surface 高度并返回", shape=ellipse];
+
+    // Softwrap处理分支
+    softwrap_loop [label="循环每一行 (iter.next())"];
+    check_max_height_soft [label="是否超出最大高度？", shape=diamond];
+    align_text_soft [label="根据对齐方式设置列位置"];
+    write_cells_soft [label="写入单元格到 Surface"];
+    increment_row_soft [label="row += 1"];
+
+    // Hardbreak处理分支
+    hardbreak_loop [label="循环每一行 (iter.nextHardBreak())"];
+    check_max_height_hard [label="是否超出最大高度？", shape=diamond];
+    calculate_line_width [label="计算行宽度"];
+    align_text_hard [label="根据对齐方式设置列位置"];
+    check_overflow [label="是否溢出且需要省略号？", shape=diamond];
+    write_ellipsis [label="写入省略号"];
+    write_cell_hard [label="写入单元格"];
+    increment_row_hard [label="row += 1"];
+
+    // 主流程连接
+    start -> check_ctx_width;
+    check_ctx_width -> return_empty_surface [label="是"];
+    check_ctx_width -> init_softwrap_iter [label="否"];
+    init_softwrap_iter -> find_container_size;
+    find_container_size -> create_surface;
+    create_surface -> fill_buffer;
+    fill_buffer -> check_softwrap;
+
+    // Softwrap分支
+    check_softwrap -> process_softwrap [label="是"];
+    process_softwrap -> softwrap_loop;
+    softwrap_loop -> check_max_height_soft;
+    check_max_height_soft -> trim_surface [label="是"];
+    check_max_height_soft -> align_text_soft [label="否"];
+    align_text_soft -> write_cells_soft;
+    write_cells_soft -> increment_row_soft;
+    increment_row_soft -> softwrap_loop [label="继续循环"];
+
+    // Hardbreak分支
+    check_softwrap -> process_hardbreak [label="否"];
+    process_hardbreak -> hardbreak_loop;
+    hardbreak_loop -> check_max_height_hard;
+    check_max_height_hard -> trim_surface [label="是"];
+    check_max_height_hard -> calculate_line_width [label="否"];
+    calculate_line_width -> align_text_hard;
+    align_text_hard -> check_overflow;
+    check_overflow -> write_ellipsis [label="是"];
+    check_overflow -> write_cell_hard [label="否"];
+    write_ellipsis -> increment_row_hard;
+    write_cell_hard -> increment_row_hard;
+    increment_row_hard -> hardbreak_loop [label="继续循环"];
+
+    // 公共结束
+    return_empty_surface -> trim_surface [style=invis];
+    process_softwrap -> trim_surface [style=invis];
+    process_hardbreak -> trim_surface [style=invis];
+    trim_surface -> end [label="返回 surface", style=dashed];
+    end [shape=ellipse, label="结束"];
+}

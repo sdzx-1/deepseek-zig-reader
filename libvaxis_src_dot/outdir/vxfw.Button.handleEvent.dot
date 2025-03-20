@@ -1,0 +1,60 @@
+
+digraph handleEvent {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle];
+    edge [fontname="Arial"];
+
+    start [label="handleEvent 入口", shape=ellipse];
+    end [label="流程结束", shape=ellipse];
+
+    start -> event_switch;
+    event_switch [label="switch(event)"];
+
+    // Key press 分支
+    event_switch -> key_press [label="key_press"];
+    key_press [label="匹配回车或Ctrl+J?"];
+    key_press -> doClick_1 [label="是"];
+    key_press -> end [label="否"];
+    doClick_1 [label="调用 self.doClick(ctx)", shape=box];
+    doClick_1 -> end;
+
+    // Mouse 分支
+    event_switch -> mouse [label="mouse"];
+    mouse [label="mouse.type 判断"];
+    mouse -> mouse_release [label="release && mouse_down=true"];
+    mouse -> mouse_press [label="press && button=left"];
+    mouse -> consumeEvent [label="其他情况"];
+
+    mouse_release [label="设置 mouse_down=false\n调用 self.doClick(ctx)", shape=box];
+    mouse_release -> end;
+
+    mouse_press [label="设置 mouse_down=true\n调用 ctx.consumeAndRedraw()", shape=box];
+    mouse_press -> end;
+
+    consumeEvent [label="调用 ctx.consumeEvent()", shape=box];
+    consumeEvent -> end;
+
+    // Mouse enter 分支
+    event_switch -> mouse_enter [label="mouse_enter"];
+    mouse_enter [label="设置 has_mouse=true\n设置鼠标指针形状\n调用 ctx.consumeAndRedraw()", shape=box];
+    mouse_enter -> end;
+
+    // Mouse leave 分支
+    event_switch -> mouse_leave [label="mouse_leave"];
+    mouse_leave [label="设置 has_mouse=false\nmouse_down=false\n设置默认鼠标形状", shape=box];
+    mouse_leave -> end;
+
+    // Focus in/out 分支
+    event_switch -> focus_in [label="focus_in"];
+    focus_in [label="设置 focused=true\n标记需要重绘", shape=box];
+    focus_in -> end;
+
+    event_switch -> focus_out [label="focus_out"];
+    focus_out [label="设置 focused=false\n标记需要重绘", shape=box];
+    focus_out -> end;
+
+    // Default 分支
+    event_switch -> default [label="其他事件"];
+    default [label="空操作"];
+    default -> end;
+}

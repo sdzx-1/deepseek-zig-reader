@@ -1,0 +1,65 @@
+
+digraph render_flow {
+    graph [rankdir=TB];
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始render函数"];
+    assert_check [label="检查缓冲区长度和一致性"];
+    sync_setup [label="设置同步控制序列"];
+    hide_cursor [label="隐藏光标"];
+    cursor_home [label="移动光标到起始位置"];
+    init_vars [label="初始化变量(reposition, row, col等)"];
+    clear_images [label="清除图像（如果支持）"];
+    loop_start [label="开始循环遍历屏幕缓冲区"];
+    calc_width [label="计算字符宽度w"];
+    handle_position [label="处理列和行的位置\n检查是否需要换行"];
+    check_cell_changes [label="检查单元格是否变化\n或需要刷新"];
+    update_last_cell [label="更新last_buf中的单元格"];
+    reposition_cursor [label="重新定位光标（如果需要）"];
+    handle_image [label="处理图像输出"];
+    update_styles [label="更新样式（前景、背景、下划线等）"];
+    handle_link [label="处理超链接"];
+    write_char [label="写入字符（考虑宽度）"];
+    loop_end [label="循环结束"];
+    show_cursor [label="显示光标并更新状态"];
+    update_shapes [label="更新鼠标和光标形状"];
+    end [label="结束"];
+
+    start -> assert_check;
+    assert_check -> sync_setup;
+    sync_setup -> hide_cursor;
+    hide_cursor -> cursor_home [label="alt_screen为真"];
+    hide_cursor -> write_ri [label="alt_screen为假"];
+    write_ri -> cursor_home_alt [shape=point];
+    cursor_home_alt -> init_vars [label="回车和RI处理"];
+    cursor_home -> init_vars;
+    init_vars -> clear_images [label="支持kitty图形时"];
+    clear_images -> loop_start;
+    loop_start -> calc_width;
+    calc_width -> handle_position;
+    handle_position -> check_cell_changes;
+    check_cell_changes -> skip_cell [label="无变化且不需要刷新"];
+    skip_cell -> loop_end_step [label="继续下一个单元格"];
+    check_cell_changes -> update_last_cell [label="需要更新"];
+    update_last_cell -> reposition_cursor [label="需要重新定位"];
+    reposition_cursor -> handle_image;
+    update_last_cell -> handle_image [label="不需要重新定位"];
+    handle_image -> update_styles;
+    update_styles -> handle_link;
+    handle_link -> write_char;
+    write_char -> loop_end_step;
+    loop_end_step -> loop_start [label="i递增，继续循环"];
+    loop_start -> loop_end [label="所有单元格处理完毕"];
+    loop_end -> show_cursor;
+    show_cursor -> update_shapes;
+    update_shapes -> end;
+
+    // Hidden edges for control flow
+    write_ri [shape=point, width=0, height=0, label=""];
+    cursor_home_alt [shape=point, width=0, height=0, label=""];
+    loop_end_step [shape=point, width=0, height=0, label=""];
+    skip_cell [shape=diamond, label="跳过单元格"];
+    skip_cell -> reposition_cursor_skip [label="关闭超链接"];
+    reposition_cursor_skip [shape=point, width=0, height=0, label=""];
+    reposition_cursor_skip -> loop_end_step;
+}

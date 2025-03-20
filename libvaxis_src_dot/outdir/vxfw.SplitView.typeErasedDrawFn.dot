@@ -1,0 +1,53 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial"];
+    start [label="开始"];
+    convert [label="类型转换: 将ptr转换为SplitView指针"];
+    set_width [label="设置self.width和last_max_width"];
+    calc_sizes [label="计算constrained_min/max和unconstrained_min/max"];
+    init_children [label="初始化children数组"];
+    check_constrain [label="检查self.constrain", shape=diamond];
+    lhs_branch [label="处理.lhs分支"];
+    rhs_branch [label="处理.rhs分支"];
+    lhs_constrained [label="检查constrained区域尺寸有效", shape=diamond];
+    lhs_draw_constrained [label="调用lhs.draw生成surface并添加到children"];
+    lhs_unconstrained [label="检查unconstrained区域尺寸有效", shape=diamond];
+    lhs_draw_unconstrained [label="调用rhs.draw生成surface并添加到children"];
+    rhs_unconstrained [label="检查unconstrained区域尺寸有效", shape=diamond];
+    rhs_draw_unconstrained [label="调用lhs.draw生成surface并添加到children"];
+    rhs_constrained [label="检查constrained区域尺寸有效", shape=diamond];
+    rhs_draw_constrained [label="调用rhs.draw生成surface并添加到children"];
+    create_surface [label="创建主surface"];
+    draw_separator [label="循环绘制分隔线'│'"];
+    return_surface [label="返回surface"];
+    end [label="结束"];
+
+    start -> convert;
+    convert -> set_width;
+    set_width -> calc_sizes;
+    calc_sizes -> init_children;
+    init_children -> check_constrain;
+
+    check_constrain -> lhs_branch [label=".lhs"];
+    check_constrain -> rhs_branch [label=".rhs"];
+
+    lhs_branch -> lhs_constrained;
+    lhs_constrained -> lhs_draw_constrained [label="有效"];
+    lhs_constrained -> lhs_unconstrained [label="无效"];
+    lhs_draw_constrained -> lhs_unconstrained;
+    lhs_unconstrained -> lhs_draw_unconstrained [label="有效"];
+    lhs_unconstrained -> create_surface [label="无效"];
+    lhs_draw_unconstrained -> create_surface;
+
+    rhs_branch -> rhs_unconstrained;
+    rhs_unconstrained -> rhs_draw_unconstrained [label="有效"];
+    rhs_unconstrained -> rhs_constrained [label="无效"];
+    rhs_draw_unconstrained -> rhs_constrained;
+    rhs_constrained -> rhs_draw_constrained [label="有效"];
+    rhs_constrained -> create_surface [label="无效"];
+    rhs_draw_constrained -> create_surface;
+
+    create_surface -> draw_separator;
+    draw_separator -> return_surface;
+    return_surface -> end;
+}

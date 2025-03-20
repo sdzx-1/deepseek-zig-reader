@@ -1,0 +1,57 @@
+
+digraph handleCommand {
+    node [shape=rectangle, style=rounded];
+    start [label="开始处理命令"];
+    defer_clear [label="defer cmds.clearRetainingCapacity()"];
+    loop_start [label="遍历 cmds.items"];
+    check_cmd [label="检查命令类型"];
+    tick [label="执行 addTick(tick)"];
+    set_mouse [label="设置鼠标形状 vx.setMouseShape(shape)"];
+    request_focus [label="设置焦点 wants_focus = widget"];
+    copy_clipboard [label="复制到剪贴板 vx.copyToSystemClipboard(...)"];
+    copy_oom [label="返回 OutOfMemory 错误"];
+    copy_other_error [label="记录错误日志"];
+    set_title [label="设置标题 vx.setTitle(...)"];
+    title_error [label="记录错误日志"];
+    queue_refresh [label="触发刷新 vx.queueRefresh()"];
+    notify [label="发送通知 vx.notify(...)"];
+    notify_error [label="记录错误日志"];
+    free_notify [label="释放通知标题和内容内存"];
+    query_color [label="查询颜色 vx.queryColor(...)"];
+    color_error [label="记录错误日志"];
+    end [label="结束处理"];
+
+    start -> defer_clear;
+    defer_clear -> loop_start;
+    loop_start -> check_cmd [label="对每个命令"];
+    check_cmd -> tick [label=".tick"];
+    check_cmd -> set_mouse [label=".set_mouse_shape"];
+    check_cmd -> request_focus [label=".request_focus"];
+    check_cmd -> copy_clipboard [label=".copy_to_clipboard"];
+    check_cmd -> set_title [label=".set_title"];
+    check_cmd -> queue_refresh [label=".queue_refresh"];
+    check_cmd -> notify [label=".notify"];
+    check_cmd -> query_color [label=".query_color"];
+
+    copy_clipboard -> copy_oom [label="错误: OutOfMemory"];
+    copy_clipboard -> copy_other_error [label="其他错误"];
+    copy_oom -> end;
+    copy_other_error -> end [style=dashed];
+
+    set_title -> title_error [label="错误"];
+    title_error -> end [style=dashed];
+
+    notify -> notify_error [label="错误"];
+    notify_error -> free_notify;
+    free_notify -> end [style=dashed];
+
+    query_color -> color_error [label="错误"];
+    color_error -> end [style=dashed];
+
+    tick -> end [style=dashed];
+    set_mouse -> end [style=dashed];
+    request_focus -> end [style=dashed];
+    queue_refresh -> end [style=dashed];
+
+    loop_start -> end [label="所有命令处理完成"];
+}

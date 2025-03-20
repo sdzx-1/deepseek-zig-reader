@@ -1,0 +1,35 @@
+
+digraph transmitPreEncodedImage {
+    graph [fontname="Arial", nodesep=0.5];
+    node [fontname="Arial", shape=box];
+    edge [fontname="Arial"];
+
+    start [label="开始 transmitPreEncodedImage"];
+    check_caps [label="检查 self.caps.kitty_graphics", shape=diamond];
+    error [label="返回 error.NoGraphicsCapability"];
+    increment_id [label="defer self.next_img_id += 1\n获取 id = self.next_img_id"];
+    determine_fmt [label="根据 format 确定 fmt 值\n(rgb→24, rgba→32, png→100)"];
+    check_bytes_len [label="检查 bytes.len < 4096", shape=diamond];
+    small_data [label="发送单帧数据:\ntty.print(...;{s}\\x1b\\\")"];
+    large_data [label="初始化 n=4096\n发送首帧数据 (m=1)"];
+    loop_start [label="循环: n += 4096"];
+    check_end [label="end = min(n+4096, bytes.len)\nm = (end==bytes.len)?0:1", shape=diamond];
+    send_chunk [label="发送分块数据:\ntty.print(...m={d};...\\x1b\\\")"];
+    return_img [label="返回 Image 结构体\n{id, width, height}"];
+
+    start -> check_caps;
+    check_caps -> error [label="否"];
+    check_caps -> increment_id [label="是"];
+    increment_id -> determine_fmt;
+    determine_fmt -> check_bytes_len;
+    check_bytes_len -> small_data [label="是"];
+    check_bytes_len -> large_data [label="否"];
+
+    small_data -> return_img;
+    
+    large_data -> loop_start;
+    loop_start -> check_end;
+    check_end -> send_chunk [label="n < bytes.len"];
+    send_chunk -> loop_start [label="继续循环"];
+    check_end -> return_img [label="n >= bytes.len"];
+}

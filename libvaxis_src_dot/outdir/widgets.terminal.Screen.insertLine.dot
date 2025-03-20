@@ -1,0 +1,24 @@
+
+digraph {
+    node [shape=rectangle, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    check_n [label="n 是否为 0？", shape=diamond];
+    set_pending_wrap [label="self.cursor.pending_wrap = false"];
+    check_scroll_region [label="是否在滚动区域内？", shape=diamond];
+    compute_adjusted_n [label="计算 adjusted_n = min(滚动区域底部 - 当前行, n)\n计算 stride = 宽度 * adjusted_n"];
+    move_lines [label="移动行内容:\n从滚动区域底部向上循环\n逐列复制内容到新位置"];
+    clear_lines [label="清除新行:\n从滚动区域顶部循环\n逐列用背景色擦除"];
+    end [label="结束", shape=ellipse];
+
+    start -> check_n;
+    check_n -> set_pending_wrap [label="否"];
+    check_n -> end [label="是"];
+    set_pending_wrap -> check_scroll_region;
+    check_scroll_region -> compute_adjusted_n [label="是"];
+    check_scroll_region -> end [label="否"];
+    compute_adjusted_n -> move_lines;
+    move_lines -> clear_lines;
+    clear_lines -> end;
+}

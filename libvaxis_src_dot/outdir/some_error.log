@@ -1,0 +1,7 @@
+widgets.terminal.Screen.sgr.dot
+----------err-----------------
+Error: widgets.terminal.Screen.sgr.dot: syntax error in line 37 near '->'
+
+----------out-----------------
+
+------------------------------

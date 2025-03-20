@@ -1,0 +1,47 @@
+
+digraph Flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 insertChildren"];
+    assert [label="断言: self.scroll.top > 0"];
+    init [label="self.scroll.top -= 1\nupheight = add_height"];
+    loop_cond [label="循环条件: self.scroll.top >= 0?", shape=diamond];
+    get_child [label="获取子元素\nchild = builder.itemAtIdx(...)"];
+    check_child [label="子元素存在?", shape=diamond];
+    setup_constraints [label="设置子元素约束\nchild_ctx = ..."];
+    draw_child [label="绘制子表面\nsurf = child.draw(...)"];
+    update_upheight [label="upheight -= surf.size.height"];
+    insert_child [label="插入子元素到列表开头\nchild_list.insert(0, ...)"];
+    check_break [label="upheight <=0\n或 top ==0?", shape=diamond];
+    adjust_top [label="self.scroll.top -= 1"];
+    set_offset [label="self.scroll.vertical_offset = upheight"];
+    check_overflow [label="self.scroll.top ==0\n且 upheight>0?", shape=diamond];
+    reset_origins [label="重置原点\n循环调整所有子元素行位置"];
+    end [label="结束"];
+
+    start -> assert;
+    assert -> init;
+    init -> loop_cond;
+
+    loop_cond -> get_child [label="是"];
+    loop_cond -> set_offset [label="否"];
+
+    get_child -> check_child;
+    check_child -> setup_constraints [label="存在"];
+    check_child -> adjust_top [label="不存在", style=dashed];
+    adjust_top -> loop_cond [style=dashed];
+
+    setup_constraints -> draw_child;
+    draw_child -> update_upheight;
+    update_upheight -> insert_child;
+    insert_child -> check_break;
+
+    check_break -> adjust_top [label="否"];
+    check_break -> loop_cond [label="是", style=dashed];
+
+    set_offset -> check_overflow;
+    check_overflow -> reset_origins [label="是"];
+    check_overflow -> end [label="否"];
+    reset_origins -> end;
+}

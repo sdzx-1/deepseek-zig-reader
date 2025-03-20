@@ -1,0 +1,64 @@
+
+digraph flowchart {
+    node [shape=rectangle fontname="Arial" style=filled fillcolor="#CCCCCC"];
+    start [label="Start drawWithStyle" shape=ellipse];
+    adjust_offset [label="Adjust draw_offset based on cursor_idx"];
+    check_win_width [label="Window width == 0?" shape=diamond];
+    end [label="Return" shape=ellipse];
+    while_loop [label="Adjust draw_offset in while loop"];
+    save_cursor [label="Save prev_cursor_idx and prev_cursor_col"];
+    process_first_half [label="Process firstHalf buffer"];
+    process_second_half [label="Process secondHalf buffer"];
+    left_ellipsis [label="Draw left ellipsis if draw_offset > 0"];
+    show_cursor [label="Show cursor in window"];
+    
+    // Process steps for firstHalf
+    first_iter [label="Iterate firstHalf graphemes"];
+    check_i_offset [label="i < draw_offset?" shape=diamond];
+    skip_grapheme [label="Skip grapheme"];
+    check_col_width [label="col + w >= win.width?" shape=diamond];
+    write_ellipsis [label="Write ellipsis at end"];
+    write_grapheme [label="Write grapheme to window"];
+    update_col_i [label="Update col and i"];
+    check_cursor [label="i == cursor_idx?" shape=diamond];
+    update_cursor_col [label="Update prev_cursor_col"];
+    
+    // Process steps for secondHalf (similar to firstHalf)
+    second_iter [label="Iterate secondHalf graphemes"];
+    // ... similar nodes as firstHalf, omitted for brevity
+    
+    // Edges
+    start -> adjust_offset;
+    adjust_offset -> check_win_width;
+    check_win_width -> end [label="Yes"];
+    check_win_width -> while_loop [label="No"];
+    while_loop -> save_cursor;
+    save_cursor -> process_first_half;
+    process_first_half -> process_second_half;
+    process_second_half -> left_ellipsis;
+    left_ellipsis -> show_cursor;
+    show_cursor -> end;
+    
+    // FirstHalf processing
+    process_first_half -> first_iter;
+    first_iter -> check_i_offset;
+    check_i_offset -> skip_grapheme [label="Yes"];
+    check_i_offset -> check_col_width [label="No"];
+    skip_grapheme -> update_col_i;
+    update_col_i -> first_iter;
+    check_col_width -> write_ellipsis [label="Yes"];
+    write_ellipsis -> end_loop_first [label="Break"];
+    check_col_width -> write_grapheme [label="No"];
+    write_grapheme -> check_cursor;
+    check_cursor -> update_cursor_col [label="Yes"];
+    check_cursor -> update_col_i [label="No"];
+    update_cursor_col -> update_col_i;
+    
+    // SecondHalf processing (similar structure)
+    process_second_half -> second_iter;
+    // ... similar edges as firstHalf
+    
+    // Invisible edges to handle loops
+    end_loop_first [shape=point width=0];
+    end_loop_first -> process_second_half [arrowhead=none];
+}

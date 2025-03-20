@@ -1,0 +1,56 @@
+
+digraph LoopFlow {
+    graph [bgcolor=transparent, fontname="Arial"];
+    node [shape=rectangle, style=filled, fillcolor="#e8e8e8", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // 主结构
+    subgraph cluster_Loop {
+        label="Loop Structure";
+        labeljust=l;
+        
+        Init [label="init()\n- 初始化信号处理\n- 注册winsize回调"];
+        Start [label="start()\n- 创建输入线程"];
+        Stop [label="stop()\n- 设置退出标志\n- 触发状态报告\n- 等待线程结束"];
+        NextEvent [label="nextEvent()\n- 阻塞获取事件"];
+        PollEvent [label="pollEvent()\n- 阻塞等待事件"];
+        TryEvent [label="tryEvent()\n- 非阻塞获取事件"];
+        PostEvent [label="postEvent()\n- 推送事件到队列"];
+        WinsizeCB [label="winsizeCallback()\n- 处理窗口尺寸变化"];
+
+        // 线程流程
+        subgraph cluster_thread {
+            label="ttyRun线程";
+            TtyRunStart [label="ttyRun()\n- 初始化grapheme缓存"];
+            OSDecision [shape=diamond, label="操作系统类型?"];
+            WindowsBranch [label="Windows分支\n- 持续解析事件"];
+            UnixBranch [label="Unix分支\n- 获取初始winsize\n- 进入读取循环"];
+            ReadLoop [shape=ellipse, label="读取循环"];
+            ParseBuffer [label="解析缓冲区\n- 处理转义序列"];
+            HandleEvent [label="handleEventGeneric()\n- 事件处理逻辑"];
+
+            TtyRunStart -> OSDecision;
+            OSDecision -> WindowsBranch [label="Windows"];
+            OSDecision -> UnixBranch [label="其他系统"];
+            UnixBranch -> ReadLoop;
+            ReadLoop -> ParseBuffer [label="读取输入"];
+            ParseBuffer -> HandleEvent [label="有效事件"];
+            HandleEvent -> ReadLoop [label="继续循环"];
+        }
+    }
+
+    // 核心流程
+    edge [color="#2e3440"];
+    Init -> Start [label="用户调用"];
+    Start -> TtyRunStart [label="创建线程"];
+    Stop -> TtyRunStart [label="should_quit=true", dir=back];
+    PostEvent -> NextEvent [label="队列操作", style=dashed];
+    WinsizeCB -> PostEvent [label="窗口变化事件"];
+    HandleEvent -> PostEvent [label="生成事件", style=dashed];
+    ReadLoop -> Stop [label="should_quit检查", constraint=false];
+    WindowsBranch -> HandleEvent [label="持续处理"];
+    
+    // 事件接口
+    {rank=same; NextEvent; PollEvent; TryEvent}
+    {rank=same; PostEvent; WinsizeCB}
+}

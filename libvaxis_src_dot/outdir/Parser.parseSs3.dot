@@ -1,0 +1,24 @@
+
+digraph {
+    node [fontname="Helvetica,Arial,sans-serif"];
+    start [label="parseSs3(input)" shape=ellipse];
+    check_len [label="input长度小于3?" shape=diamond];
+    return0 [label="返回 {event: null, n: 0}" shape=rect];
+    check_esc [label="检查input[2]的值" shape=diamond];
+    return2 [label="返回 {event: null, n: 2}" shape=rect];
+    valid_key [label="映射到对应Key枚举\n(例如'A'→↑，'B'→↓)" shape=rect];
+    warn [label="记录未处理的SS3警告" shape=rect];
+    return3_valid [label="返回 {event: key_press, n: 3}" shape=rect];
+    return3_null [label="返回 {event: null, n: 3}" shape=rect];
+
+    start -> check_len;
+    check_len -> return0 [label="是"];
+    check_len -> check_esc [label="否"];
+
+    check_esc -> return2 [label="0x1B (ESC)"];
+    check_esc -> valid_key [label="'A'/'B'/'C'/.../'S'"];
+    check_esc -> warn [label="其他字符"];
+
+    valid_key -> return3_valid;
+    warn -> return3_null;
+}

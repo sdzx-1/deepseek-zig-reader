@@ -1,0 +1,29 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect, style=rounded];
+    start [label="开始 print 函数", shape=ellipse];
+    check_pending_wrap [label="cursor.pending_wrap 为真？", shape=diamond];
+    execute_index [label="执行 self.index()\n设置 cursor.col = scrolling_region.left"];
+    check_col_width [label="cursor.col >= width 或\ncursor.row >= height？", shape=diamond];
+    return_early [label="返回", shape=ellipse];
+    calculate_i [label="计算 i = (row * width) + col"];
+    update_buf [label="更新 buf[i]:\n- 清空并写入 grapheme\n- 清空并写入 uri\n- 清空并写入 uri_id\n- 设置 style/width/dirty"];
+    check_wrap [label="wrap 为真且 cursor.col >= width-1？", shape=diamond];
+    set_pending_wrap [label="设置 cursor.pending_wrap = true"];
+    increment_col [label="cursor.col += width"];
+    end [label="结束", shape=ellipse];
+
+    start -> check_pending_wrap;
+    check_pending_wrap -> execute_index [label="是"];
+    check_pending_wrap -> check_col_width [label="否"];
+    execute_index -> check_col_width;
+    check_col_width -> return_early [label="是"];
+    check_col_width -> calculate_i [label="否"];
+    calculate_i -> update_buf;
+    update_buf -> check_wrap;
+    check_wrap -> set_pending_wrap [label="是"];
+    check_wrap -> increment_col [label="否"];
+    set_pending_wrap -> increment_col;
+    increment_col -> end;
+    return_early -> end [style=invis]; // 保持布局整洁
+}

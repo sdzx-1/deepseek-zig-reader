@@ -1,0 +1,69 @@
+
+digraph G {
+    node [shape=rectangle fontname="Courier" fontsize=12];
+    edge [fontname="Courier" fontsize=10];
+
+    start [label="开始处理handleCapture"];
+    event_switch [label="检查事件类型" shape=diamond];
+    mouse_event [label="事件是.mouse类型？" shape=diamond];
+    process_vertical_thumb [label="处理垂直滑块拖动"];
+    check_vertical_dragging [label="self.is_dragging_vertical_thumb?" shape=diamond];
+    mouse_release_vertical [label="mouse.type是.release且左键？" shape=diamond];
+    stop_vertical_drag [label="停止垂直拖动\n设置redraw=true"];
+    check_hover_vertical [label="鼠标在垂直滑块上？" shape=diamond];
+    unset_hover_vertical [label="取消悬停状态\n设置redraw=true"];
+    consume_event [label="调用ctx.consumeEvent()"];
+
+    mouse_drag_vertical [label="mouse.type是.drag？" shape=diamond];
+    process_vertical_drag [label="计算新滑块位置\n更新scroll_view.scroll.top"];
+    consume_and_redraw [label="调用ctx.consumeAndRedraw()"];
+
+    process_horizontal_thumb [label="处理水平滑块拖动"];
+    check_horizontal_dragging [label="self.is_dragging_horizontal_thumb?" shape=diamond];
+    mouse_release_horizontal [label="mouse.type是.release且左键？" shape=diamond];
+    stop_horizontal_drag [label="停止水平拖动\n设置redraw=true"];
+    check_hover_horizontal [label="鼠标在水平滑块上？" shape=diamond];
+    unset_hover_horizontal [label="取消悬停状态\n设置redraw=true"];
+
+    mouse_drag_horizontal [label="mouse.type是.drag？" shape=diamond];
+    process_horizontal_drag [label="计算新滑块位置\n更新scroll_view.scroll.left"];
+
+    end [label="处理结束"];
+
+    start -> event_switch;
+    event_switch -> mouse_event [label="是"];
+    mouse_event -> process_vertical_thumb [label="是"];
+    mouse_event -> end [label="否"];
+
+    process_vertical_thumb -> check_vertical_dragging;
+    check_vertical_dragging -> mouse_release_vertical [label="是"];
+    check_vertical_dragging -> mouse_drag_vertical [label="否"];
+
+    mouse_release_vertical -> stop_vertical_drag [label="是"];
+    stop_vertical_drag -> check_hover_vertical;
+    check_hover_vertical -> unset_hover_vertical [label="否"];
+    unset_hover_vertical -> consume_event;
+    check_hover_vertical -> consume_event [label="是"];
+    consume_event -> end;
+
+    mouse_drag_vertical -> process_vertical_drag [label="是"];
+    process_vertical_drag -> consume_and_redraw;
+    consume_and_redraw -> end;
+
+    process_vertical_thumb -> process_horizontal_thumb [label="垂直处理完成"];
+
+    process_horizontal_thumb -> check_horizontal_dragging;
+    check_horizontal_dragging -> mouse_release_horizontal [label="是"];
+    check_horizontal_dragging -> mouse_drag_horizontal [label="否"];
+
+    mouse_release_horizontal -> stop_horizontal_drag [label="是"];
+    stop_horizontal_drag -> check_hover_horizontal;
+    check_hover_horizontal -> unset_hover_horizontal [label="否"];
+    unset_hover_horizontal -> consume_event;
+    check_hover_horizontal -> consume_event [label="是"];
+    consume_event -> end;
+
+    mouse_drag_horizontal -> process_horizontal_drag [label="是"];
+    process_horizontal_drag -> consume_and_redraw;
+    consume_and_redraw -> end;
+}

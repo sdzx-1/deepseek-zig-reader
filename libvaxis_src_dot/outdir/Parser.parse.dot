@@ -1,0 +1,39 @@
+
+digraph ParserFlowchart {
+    start [label="开始" shape=ellipse];
+    check_escape [label="input[0] == 0x1b 且 input.len > 1?" shape=diamond];
+    parse_ground [label="调用 parseGround(input, self.grapheme_data)" shape=rect];
+    switch_input1 [label="根据 input[1] 分支" shape=diamond];
+    case_0x4F [label="调用 parseSs3(input)" shape=rect];
+    case_0x50 [label="调用 skipUntilST(input)" shape=rect];
+    case_0x58 [label="调用 skipUntilST(input)" shape=rect];
+    case_0x5B [label="调用 parseCsi(input, &self.buf)" shape=rect];
+    case_0x5D [label="调用 parseOsc(input, paste_allocator)" shape=rect];
+    case_0x5E [label="调用 skipUntilST(input)" shape=rect];
+    case_0x5F [label="调用 parseApc(input)" shape=rect];
+    default_case [label="生成 Alt+<char> Key 事件" shape=rect];
+    return_result [label="返回 Result" shape=ellipse];
+
+    start -> check_escape;
+    check_escape -> parse_ground [label="否"];
+    check_escape -> switch_input1 [label="是"];
+
+    switch_input1 -> case_0x4F [label="0x4F"];
+    switch_input1 -> case_0x50 [label="0x50"];
+    switch_input1 -> case_0x58 [label="0x58"];
+    switch_input1 -> case_0x5B [label="0x5B"];
+    switch_input1 -> case_0x5D [label="0x5D"];
+    switch_input1 -> case_0x5E [label="0x5E"];
+    switch_input1 -> case_0x5F [label="0x5F"];
+    switch_input1 -> default_case [label="其他"];
+
+    case_0x4F -> return_result;
+    case_0x50 -> return_result;
+    case_0x58 -> return_result;
+    case_0x5B -> return_result;
+    case_0x5D -> return_result;
+    case_0x5E -> return_result;
+    case_0x5F -> return_result;
+    default_case -> return_result;
+    parse_ground -> return_result;
+}

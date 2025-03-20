@@ -1,0 +1,60 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="开始处理事件", shape=ellipse, fillcolor="#b4eeb4"];
+    event_switch [label="检查事件类型"];
+    mouse_leave [label="设置 pressed = false\n返回"];
+    other_events [label="直接返回"];
+    get_mouse [label="获取 mouse 事件"];
+    calc_separator [label="计算 separator_col"];
+    check_last_max [label="last_max_width 存在？", shape=diamond];
+    redraw_return [label="设置 redraw = true\n返回"];
+    check_col [label="mouse.col == separator_col?", shape=diamond];
+    set_resize [label="设置鼠标形状为 ew-resize\nmouse_set = true"];
+    check_left_click [label="左键按下？", shape=diamond];
+    set_pressed [label="pressed = true"];
+    check_mouse_set [label="mouse_set 为真？", shape=diamond];
+    reset_mouse [label="恢复默认鼠标形状\nmouse_set = false"];
+    check_release [label="mouse.type == release?", shape=diamond];
+    reset_states [label="pressed = false\nmouse_set = false\n恢复默认形状"];
+    check_pressed [label="pressed 为真？", shape=diamond];
+    keep_resize [label="保持 ew-resize 形状"];
+    adjust_width [label="根据 constrain 调整 width\n设置 consume_event = true"];
+    end [label="结束", shape=ellipse, fillcolor="#ffb3ba"];
+
+    start -> event_switch;
+    event_switch -> mouse_leave [label="mouse_leave"];
+    event_switch -> other_events [label="非 mouse 事件"];
+    event_switch -> get_mouse [label="mouse 事件"];
+    
+    get_mouse -> calc_separator;
+    calc_separator -> check_last_max [label="constrain == rhs?"];
+    check_last_max -> redraw_return [label="否"];
+    check_last_max -> check_col [label="是/其他情况"];
+
+    check_col -> set_resize [label="是"];
+    check_col -> check_mouse_set [label="否"];
+    set_resize -> check_left_click;
+    check_left_click -> set_pressed [label="是"];
+    check_left_click -> check_release;
+    set_pressed -> check_release;
+
+    check_mouse_set -> reset_mouse [label="是"];
+    check_mouse_set -> check_release [label="否"];
+    reset_mouse -> check_release;
+
+    check_release -> reset_states [label="是"];
+    check_release -> check_pressed [label="否"];
+    reset_states -> end;
+
+    check_pressed -> keep_resize [label="是"];
+    check_pressed -> end [label="否"];
+    keep_resize -> adjust_width;
+    adjust_width -> end;
+
+    mouse_leave -> end;
+    other_events -> end;
+    redraw_return -> end;
+}

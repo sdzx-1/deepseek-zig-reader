@@ -1,0 +1,116 @@
+
+digraph Queue {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 公共方法
+    subgraph cluster_main {
+        label="Queue Methods";
+        Push [label="push(item)"];
+        Pop [label="pop()"];
+        TryPush [label="tryPush(item)"];
+        TryPop [label="tryPop()"];
+        Poll [label="poll()"];
+    }
+
+    // push流程
+    subgraph cluster_push {
+        label="push 方法流程";
+        push_start [label="加锁(mutex.lock)"];
+        push_check_full [label="while 队列满?", shape=diamond];
+        push_wait_full [label="等待not_full条件"];
+        push_assert [label="断言未满"];
+        push_write [label="写入缓冲区"];
+        push_check_empty [label="之前是否空?", shape=diamond];
+        push_signal_empty [label="触发not_empty信号"];
+        push_unlock [label="解锁(mutex.unlock)"];
+
+        Push -> push_start;
+        push_start -> push_check_full;
+        push_check_full -> push_wait_full [label="是"];
+        push_check_full -> push_assert [label="否"];
+        push_wait_full -> push_check_full;
+        push_assert -> push_write;
+        push_write -> push_check_empty;
+        push_check_empty -> push_signal_empty [label="是"];
+        push_check_empty -> push_unlock [label="否"];
+        push_signal_empty -> push_unlock;
+    }
+
+    // pop流程
+    subgraph cluster_pop {
+        label="pop 方法流程";
+        pop_start [label="加锁(mutex.lock)"];
+        pop_check_empty [label="while 队列空?", shape=diamond];
+        pop_wait_empty [label="等待not_empty条件"];
+        pop_assert [label="断言非空"];
+        pop_check_full [label="之前是否满?", shape=diamond];
+        pop_signal_full [label="触发not_full信号"];
+        pop_read [label="读取缓冲区"];
+        pop_unlock [label="解锁(mutex.unlock)"];
+        pop_return [label="返回结果"];
+
+        Pop -> pop_start;
+        pop_start -> pop_check_empty;
+        pop_check_empty -> pop_wait_empty [label="是"];
+        pop_check_empty -> pop_assert [label="否"];
+        pop_wait_empty -> pop_check_empty;
+        pop_assert -> pop_check_full;
+        pop_check_full -> pop_signal_full [label="是"];
+        pop_check_full -> pop_read [label="否"];
+        pop_signal_full -> pop_read;
+        pop_read -> pop_unlock;
+        pop_unlock -> pop_return;
+    }
+
+    // tryPush流程
+    subgraph cluster_trypush {
+        label="tryPush 方法流程";
+        trypush_start [label="加锁"];
+        trypush_check_full [label="队列满?", shape=diamond];
+        trypush_fail [label="解锁返回false"];
+        trypush_success [label="解锁后调用push()"];
+        
+        TryPush -> trypush_start;
+        trypush_start -> trypush_check_full;
+        trypush_check_full -> trypush_fail [label="是"];
+        trypush_check_full -> trypush_success [label="否"];
+        trypush_success -> Push [style=dashed];
+    }
+
+    // tryPop流程
+    subgraph cluster_trypop {
+        label="tryPop 方法流程";
+        trypop_start [label="加锁"];
+        trypop_check_empty [label="队列空?", shape=diamond];
+        trypop_fail [label="解锁返回null"];
+        trypop_success [label="解锁后调用pop()"];
+        
+        TryPop -> trypop_start;
+        trypop_start -> trypop_check_empty;
+        trypop_check_empty -> trypop_fail [label="是"];
+        trypop_check_empty -> trypop_success [label="否"];
+        trypop_success -> Pop [style=dashed];
+    }
+
+    // poll流程
+    subgraph cluster_poll {
+        label="poll 方法流程";
+        poll_start [label="加锁"];
+        poll_check_empty [label="while 队列空?", shape=diamond];
+        poll_wait [label="等待not_empty条件"];
+        poll_assert [label="断言非空"];
+        poll_unlock [label="解锁"];
+        
+        Poll -> poll_start;
+        poll_start -> poll_check_empty;
+        poll_check_empty -> poll_wait [label="是"];
+        poll_check_empty -> poll_assert [label="否"];
+        poll_wait -> poll_check_empty;
+        poll_assert -> poll_unlock;
+    }
+
+    // 跨子图关系
+    Push -> pop_signal_full [style=invis];
+    Pop -> push_signal_empty [style=invis];
+}

@@ -1,0 +1,60 @@
+
+digraph drawBuilder {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    init_surface [label="初始化 surface 结构体"];
+    set_scroll_state [label="设置滚动状态 has_more_vertical=true"];
+    init_child_list [label="创建子部件列表 child_list"];
+    calc_accumulated_height [label="计算 accumulated_height = -(vertical_offset + pending_lines)"];
+    reset_pending_lines [label="重置 pending_lines=0"];
+    handle_initial_offset [label="处理初始偏移 (accumulated_height>0 且 top=0)"];
+    insert_initial_children [label="向上插入可见子部件"];
+    setup_loop [label="初始化循环变量 i=scroll.top"];
+    loop_condition [label="遍历子部件 (itemAtIdx(i))"];
+    draw_child [label="绘制子部件并添加到 child_list"];
+    update_accumulated_height [label="更新 accumulated_height += 子部件高度"];
+    check_visibility [label="检查是否填满屏幕或需要光标"];
+    break_loop [label="跳出循环"];
+    post_loop [label="设置 has_more_vertical=false"];
+    check_remaining_space [label="检查剩余空间并补充子部件"];
+    handle_cursor [label="处理光标绘制和位置调整"];
+    reset_horizontal_scroll [label="更新水平滚动状态"];
+    filter_visible_children [label="过滤可见子部件范围 (start-end)"];
+    update_surface [label="更新 surface.children 和 last_height"];
+    return [label="返回 surface"];
+
+    start -> init_surface;
+    init_surface -> set_scroll_state;
+    set_scroll_state -> init_child_list;
+    init_child_list -> calc_accumulated_height;
+    calc_accumulated_height -> reset_pending_lines;
+    reset_pending_lines -> handle_initial_offset;
+
+    handle_initial_offset -> insert_initial_children [label="accumulated_height>0"];
+    insert_initial_children -> setup_loop;
+    handle_initial_offset -> setup_loop [label="否则"];
+
+    setup_loop -> loop_condition;
+    loop_condition -> draw_child [label="存在子部件"];
+    draw_child -> update_accumulated_height;
+    update_accumulated_height -> check_visibility;
+
+    check_visibility -> loop_condition [label="继续循环"];
+    check_visibility -> break_loop [label="accumulated_height >= max_height 或 wants_cursor 满足"];
+    break_loop -> post_loop;
+
+    loop_condition -> post_loop [label="无更多子部件"];
+    post_loop -> check_remaining_space;
+
+    check_remaining_space -> handle_cursor;
+    handle_cursor -> reset_horizontal_scroll;
+    reset_horizontal_scroll -> filter_visible_children;
+    filter_visible_children -> update_surface;
+    update_surface -> return;
+
+    edge [label="异常路径", color=red];
+    draw_child -> return [label="Allocator.Error"];
+    insert_initial_children -> return [label="Allocator.Error"];
+    check_remaining_space -> return [label="Allocator.Error"];
+}

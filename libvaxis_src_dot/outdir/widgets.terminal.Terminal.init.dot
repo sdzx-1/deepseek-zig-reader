@@ -1,0 +1,27 @@
+
+digraph Terminal_init_flowchart {
+    node [shape=rectangle];
+    start [label="Start", shape=ellipse];
+    check_pwd [label="检查 initial_working_directory 是否为绝对路径", shape=diamond];
+    error_return [label="返回错误 InvalidWorkingDirectory", shape=ellipse];
+    init_pty [label="初始化 Pty"];
+    set_pty_size [label="设置 Pty 大小 (opts.winsize)"];
+    create_cmd [label="创建 Command 结构体"];
+    init_tabs [label="初始化 tabs 数组\n根据 opts.winsize.cols 按每 8 列填充"];
+    init_screens [label="初始化 front_screen, back_screen_pri, back_screen_alt"];
+    init_lists [label="初始化 title 和 working_directory ArrayList"];
+    return_terminal [label="返回 Terminal 实例", shape=ellipse];
+
+    start -> check_pwd;
+    check_pwd -> error_return [label="否"];
+    check_pwd -> init_pty [label="是"];
+    init_pty -> set_pty_size;
+    set_pty_size -> create_cmd;
+    create_cmd -> init_tabs;
+    init_tabs -> init_screens;
+    init_screens -> init_lists;
+    init_lists -> return_terminal;
+
+    // 隐藏布局辅助节点
+    {rank=same; check_pwd error_return}
+}

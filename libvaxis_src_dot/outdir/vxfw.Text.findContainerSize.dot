@@ -1,0 +1,62 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rectangle];
+    edge [fontname="Helvetica"];
+    
+    start [label="开始", shape=ellipse];
+    init [label="初始化 row=0\nmax_width=ctx.min.width"];
+    check_softwrap [label="self.softwrap?", shape=diamond];
+    softwrap_true [label="创建 SoftwrapIterator\niter = init(self.text, ctx)"];
+    softwrap_loop [label="循环处理每一行", shape=diamond];
+    check_max_height_soft [label="ctx.max.outsideHeight(row)?", shape=diamond];
+    update_max_soft [label="max_width = @max(max_width, line.width)"];
+    increment_row_soft [label="row += 1 (defer)"];
+    softwrap_false [label="创建 LineIterator\nline_iter = { .buf = self.text }"];
+    line_loop [label="循环处理每一行", shape=diamond];
+    check_max_height_line [label="ctx.max.outsideHeight(row)?", shape=diamond];
+    calc_line_width [label="line_width = @truncate(ctx.stringWidth(line))"];
+    resolve_width [label="resolved_line_width = ctx.max.width存在？\n@min(max, line_width) : line_width"];
+    update_max_line [label="max_width = @max(max_width, resolved_line_width)"];
+    increment_row_line [label="row += 1 (defer)"];
+    process_result [label="计算 result_width"];
+    check_width_basis [label="self.width_basis?", shape=diamond];
+    longest_line [label="result_width = ctx.max.width存在？\n@min(max, max_width) : max_width"];
+    parent [label="断言 ctx.max.width != null\nresult_width = ctx.max.width"];
+    calc_height [label="height = @max(row, ctx.min.height)"];
+    return [label="返回 { width=result_width, height=height }", shape=ellipse];
+    
+    start -> init;
+    init -> check_softwrap;
+    
+    check_softwrap -> softwrap_true [label="是"];
+    check_softwrap -> softwrap_false [label="否"];
+    
+    // Softwrap分支
+    softwrap_true -> softwrap_loop;
+    softwrap_loop -> check_max_height_soft [label="有下一行？"];
+    check_max_height_soft -> update_max_soft [label="否"];
+    check_max_height_soft -> softwrap_loop [label="是，继续循环"];
+    update_max_soft -> increment_row_soft;
+    increment_row_soft -> softwrap_loop [label="继续循环"];
+    
+    // 非Softwrap分支
+    softwrap_false -> line_loop;
+    line_loop -> check_max_height_line [label="有下一行？"];
+    check_max_height_line -> calc_line_width [label="否"];
+    check_max_height_line -> line_loop [label="是，继续循环"];
+    calc_line_width -> resolve_width;
+    resolve_width -> update_max_line;
+    update_max_line -> increment_row_line;
+    increment_row_line -> line_loop [label="继续循环"];
+    
+    // 合并后的流程
+    softwrap_loop -> process_result [label="结束循环"];
+    line_loop -> process_result [label="结束循环"];
+    
+    process_result -> check_width_basis;
+    check_width_basis -> longest_line [label=".longest_line"];
+    check_width_basis -> parent [label=".parent"];
+    longest_line -> calc_height;
+    parent -> calc_height;
+    calc_height -> return;
+}

@@ -1,0 +1,86 @@
+
+digraph handleEvent {
+    node [shape=rectangle, fontname="Courier New"];
+    start [label="handleEvent开始", shape=ellipse];
+    end [label="结束处理", shape=ellipse];
+    
+    event_switch [label="switch(event)", shape=diamond];
+    focus_in_out [label="ctx.redraw = true"];
+    key_press [label="处理按键事件", shape=diamond];
+    other_event [label="其他事件\n直接忽略", shape=point];
+    
+    start -> event_switch;
+    
+    // 事件类型分支
+    event_switch -> focus_in_out [label=".focus_in/.focus_out"];
+    event_switch -> key_press [label=".key_press"];
+    event_switch -> other_event [label="else"];
+    other_event -> end;
+    
+    focus_in_out -> end;
+    
+    // 按键处理分支
+    subgraph cluster_key_handling {
+        label="按键处理";
+        style=dashed;
+        
+        key_press -> backspace [label="Backspace?"];
+        backspace [label="self.deleteBeforeCursor()\nself.checkChanged()", shape=box];
+        backspace -> end;
+        
+        key_press -> delete [label="Delete/Ctrl+D?"];
+        delete [label="self.deleteAfterCursor()\nself.checkChanged()", shape=box];
+        delete -> end;
+        
+        key_press -> left [label="Left/Ctrl+B?"];
+        left [label="self.cursorLeft()\nctx.consumeAndRedraw()", shape=box];
+        left -> end;
+        
+        key_press -> right [label="Right/Ctrl+F?"];
+        right [label="self.cursorRight()\nctx.consumeAndRedraw()", shape=box];
+        right -> end;
+        
+        key_press -> home [label="Ctrl+A/Home?"];
+        home [label="移动光标到开头\nctx.consumeAndRedraw()", shape=box];
+        home -> end;
+        
+        key_press -> end_key [label="Ctrl+E/End?"];
+        end_key [label="移动光标到末尾\nctx.consumeAndRedraw()", shape=box];
+        end_key -> end;
+        
+        key_press -> ctrl_k [label="Ctrl+K?"];
+        ctrl_k [label="self.deleteToEnd()\nself.checkChanged()", shape=box];
+        ctrl_k -> end;
+        
+        key_press -> ctrl_u [label="Ctrl+U?"];
+        ctrl_u [label="self.deleteToStart()\nself.checkChanged()", shape=box];
+        ctrl_u -> end;
+        
+        key_press -> alt_b [label="Alt+B/Alt+Left?"];
+        alt_b [label="self.moveBackwardWordwise()\nctx.consumeAndRedraw()", shape=box];
+        alt_b -> end;
+        
+        key_press -> alt_f [label="Alt+F/Alt+Right?"];
+        alt_f [label="self.moveForwardWordwise()\nctx.consumeAndRedraw()", shape=box];
+        alt_f -> end;
+        
+        key_press -> ctrl_w [label="Ctrl+W/Alt+Backspace?"];
+        ctrl_w [label="self.deleteWordBefore()\nself.checkChanged()", shape=box];
+        ctrl_w -> end;
+        
+        key_press -> alt_d [label="Alt+D?"];
+        alt_d [label="self.deleteWordAfter()\nself.checkChanged()", shape=box];
+        alt_d -> end;
+        
+        key_press -> enter [label="Enter/Ctrl+J?"];
+        enter [label="调用onSubmit回调\n处理提交逻辑", shape=box];
+        enter -> end;
+        
+        key_press -> text_input [label="文本输入?"];
+        text_input [label="self.insertSliceAtCursor()\nself.checkChanged()", shape=box];
+        text_input -> end;
+    }
+    
+    // 连接未匹配的按键事件
+    key_press -> end [label="其他按键"];
+}

@@ -1,0 +1,41 @@
+
+digraph G {
+    node [shape=rectangle, fontname="Arial"];
+    start [label="开始绘制ScrollBars"];
+    check_draw [label="是否绘制垂直或水平滚动条？", shape=diamond];
+    draw_scrollview [label="直接绘制ScrollView"];
+    draw_both [label="绘制滚动条和ScrollView"];
+    setup_max [label="设置最大尺寸"];
+    draw_scrollview_surface [label="绘制ScrollView表面"];
+    check_vertical [label="是否需要绘制垂直滚动条？", shape=diamond];
+    check_vertical_condition [label="是否可滚动或未到顶部/底部？", shape=diamond];
+    calc_vertical_thumb [label="计算垂直滑块高度和位置"];
+    draw_vertical_bar [label="绘制垂直滚动条"];
+    check_horizontal [label="是否需要绘制水平滚动条？", shape=diamond];
+    check_horizontal_condition [label="是否水平滚动或有更多内容？", shape=diamond];
+    calc_horizontal_thumb [label="计算水平滑块宽度和位置"];
+    draw_horizontal_bar [label="绘制水平滚动条"];
+    combine_children [label="组合所有子表面"];
+    end [label="返回Surface"];
+
+    start -> check_draw;
+    check_draw -> draw_scrollview [label="否"];
+    check_draw -> draw_both [label="是"];
+    draw_scrollview -> combine_children;
+    draw_both -> setup_max;
+    setup_max -> draw_scrollview_surface;
+    draw_scrollview_surface -> check_vertical;
+    check_vertical -> check_vertical_condition [label="是"];
+    check_vertical -> check_horizontal [label="否"];
+    check_vertical_condition -> calc_vertical_thumb [label="是"];
+    check_vertical_condition -> check_horizontal [label="否"];
+    calc_vertical_thumb -> draw_vertical_bar;
+    draw_vertical_bar -> check_horizontal;
+    check_horizontal -> check_horizontal_condition [label="是"];
+    check_horizontal -> combine_children [label="否"];
+    check_horizontal_condition -> calc_horizontal_thumb [label="是"];
+    check_horizontal_condition -> combine_children [label="否"];
+    calc_horizontal_thumb -> draw_horizontal_bar;
+    draw_horizontal_bar -> combine_children;
+    combine_children -> end;
+}

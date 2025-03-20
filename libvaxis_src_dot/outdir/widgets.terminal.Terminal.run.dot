@@ -1,0 +1,71 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 run()", shape=ellipse];
+    init_parser [label="初始化 parser 和 reader"];
+    loop [label="循环: !self.should_quit?", shape=diamond];
+    read_event [label="parser.parseReader() 读取事件"];
+    lock_mutex [label="锁定 back_mutex"];
+    check_dirty [label="检查 dirty 标志\n并尝试推送 redraw 事件", shape=diamond];
+    handle_event [label="处理事件", shape=diamond];
+    unlock_mutex [label="解锁 back_mutex (defer)"];
+    end [label="退出循环", shape=ellipse];
+
+    // Event types
+    subgraph cluster_events {
+        label="事件处理分支";
+        event_print [label=".print 事件\n处理字符串打印"];
+        event_c0 [label=".c0 事件\n处理控制字符"];
+        event_escape [label=".escape 事件\n处理转义序列"];
+        event_csi [label=".csi 事件\n处理控制序列引入"];
+        event_osc [label=".osc 事件\n处理操作系统命令"];
+        event_apc [label=".apc 事件\n未处理"];
+    }
+
+    // CSI Sub-handling
+    subgraph cluster_csi {
+        label="CSI 处理分支";
+        csi_cursor_up [label="'A/k'\n光标上移"];
+        csi_cursor_down [label="'B'\n光标下移"];
+        csi_cursor_right [label="'C'\n光标右移"];
+        csi_erase_display [label="'J'\n擦除显示区域"];
+        csi_set_mode [label="'h/l'\n设置终端模式"];
+        csi_other [label="其他 CSI 命令\n记录日志"];
+    }
+
+    // Main flow
+    start -> init_parser;
+    init_parser -> loop;
+
+    loop -> read_event [label="true"];
+    read_event -> lock_mutex;
+    lock_mutex -> check_dirty;
+    check_dirty -> handle_event [label="dirty=false 时\n推送 redraw"];
+    handle_event -> event_print [label=".print"];
+    handle_event -> event_c0 [label=".c0"];
+    handle_event -> event_escape [label=".escape"];
+    handle_event -> event_csi [label=".csi"];
+    handle_event -> event_osc [label=".osc"];
+    handle_event -> event_apc [label=".apc"];
+
+    // CSI branch
+    event_csi -> csi_cursor_up [label="final='A/k'"];
+    event_csi -> csi_cursor_down [label="final='B'"];
+    event_csi -> csi_cursor_right [label="final='C'"];
+    event_csi -> csi_erase_display [label="final='J'"];
+    event_csi -> csi_set_mode [label="final='h/l'"];
+    event_csi -> csi_other [label="其他 final"];
+
+    // Loop continuation
+    unlock_mutex -> loop [label="继续循环"];
+    event_print -> unlock_mutex;
+    event_c0 -> unlock_mutex;
+    event_escape -> unlock_mutex;
+    event_csi -> unlock_mutex;
+    event_osc -> unlock_mutex;
+    event_apc -> unlock_mutex;
+    
+    loop -> end [label="false"];
+}

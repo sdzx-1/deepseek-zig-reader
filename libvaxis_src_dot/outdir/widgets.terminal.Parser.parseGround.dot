@@ -1,0 +1,80 @@
+
+digraph parseGround {
+    node [shape=rectangle, fontname="Courier"];
+    edge [fontname="Courier"];
+    
+    start [label="开始 parseGround"];
+    declare_buf [label="声明 buf: [1]u8"];
+    assert_check [label="assert(self.buf.items.len > 0)"];
+    get_len [label="获取第一个字节的UTF8长度 len"];
+    init_i [label="i = 1"];
+    loop_i [label="i < len?" shape=diamond];
+    read_byte_initial [label="读取字节到 buf"];
+    check_read_initial [label="read == 0?" shape=diamond];
+    append_initial [label="self.buf.append(buf[0])"];
+    increment_i [label="i += 1"];
+    main_loop [label="主循环"];
+    check_reader_state [label="reader.start == reader.end?" shape=diamond];
+    return_print [label="返回 .print 事件" shape=oval];
+    read_byte_main [label="读取字节到 buf"];
+    check_read_main [label="n == 0?" shape=diamond];
+    eof_error_main [label="返回 error.EOF" shape=oval];
+    check_control_char [label="b 在 0x00-0x1f?" shape=diamond];
+    handle_control [label="设置 pending_byte\n返回 .print" shape=oval];
+    append_main [label="self.buf.append(b)"];
+    get_new_len [label="获取新字节的UTF8长度 len"];
+    init_new_i [label="i = 1"];
+    loop_new_i [label="i < len?" shape=diamond];
+    read_byte_new [label="读取字节到 buf"];
+    check_read_new [label="read == 0?" shape=diamond];
+    append_new [label="self.buf.append(buf[0])"];
+    increment_new_i [label="i += 1"];
+    
+    start -> declare_buf;
+    declare_buf -> assert_check;
+    assert_check -> get_len;
+    get_len -> init_i;
+    init_i -> loop_i;
+    
+    loop_i -> read_byte_initial [label="是"];
+    read_byte_initial -> check_read_initial;
+    check_read_initial -> eof_error_initial [label="是"];
+    check_read_initial -> append_initial [label="否"];
+    append_initial -> increment_i;
+    increment_i -> loop_i;
+    
+    loop_i -> main_loop [label="否"];
+    
+    main_loop -> check_reader_state;
+    check_reader_state -> return_print [label="是"];
+    check_reader_state -> read_byte_main [label="否"];
+    read_byte_main -> check_read_main;
+    check_read_main -> eof_error_main [label="是"];
+    check_read_main -> check_control_char [label="否"];
+    
+    check_control_char -> handle_control [label="是"];
+    check_control_char -> append_main [label="否"];
+    append_main -> get_new_len;
+    get_new_len -> init_new_i;
+    init_new_i -> loop_new_i;
+    
+    loop_new_i -> read_byte_new [label="是"];
+    read_byte_new -> check_read_new;
+    check_read_new -> eof_error_new [label="是"];
+    check_read_new -> append_new [label="否"];
+    append_new -> increment_new_i;
+    increment_new_i -> loop_new_i;
+    
+    loop_new_i -> main_loop [label="否"];
+    
+    // 错误处理连接
+    eof_error_initial [label="返回 error.EOF" shape=oval];
+    check_read_initial -> eof_error_initial [label="是"];
+    eof_error_main -> return_print [style=invis];
+    eof_error_new [label="返回 error.EOF" shape=oval];
+    check_read_new -> eof_error_new [label="是"];
+    
+    // 隐藏边保持布局
+    handle_control -> main_loop [style=invis];
+    return_print -> main_loop [style=invis];
+}

@@ -1,0 +1,72 @@
+
+digraph handleEvent {
+    graph [fontname="Arial", bgcolor="#f0f0f0"];
+    node [shape=rectangle, style="rounded,filled", fillcolor="#e0e0e0", fontname="Arial"];
+    edge [fontname="Arial", color="#666666"];
+
+    start [label="开始处理事件"];
+    end [label="结束处理", shape=rectangle];
+
+    // 事件类型判断
+    event_switch [label="switch(event)", shape=diamond];
+    start -> event_switch;
+
+    // 鼠标事件分支
+    mouse_case [label="case .mouse", shape=rectangle];
+    event_switch -> mouse_case [label="是"];
+    event_switch -> mouse_leave_case [label=".mouse_leave"];
+    event_switch -> end [label="其他事件"];
+
+    // 垂直滚动条处理
+    subgraph cluster_vertical {
+        label="垂直滚动条处理";
+        color="#808080";
+
+        check_vertical_hover [label="鼠标悬停在垂直thumb上？", shape=diamond];
+        mouse_case -> check_vertical_hover;
+
+        update_vertical_hover_yes [label="设置is_hovering_vertical_thumb=true\n触发重绘"];
+        check_vertical_hover -> update_vertical_hover_yes [label="是"];
+        update_vertical_hover_yes -> check_drag_vertical;
+
+        update_vertical_hover_no [label="设置is_hovering_vertical_thumb=false\n触发重绘"];
+        check_vertical_hover -> update_vertical_hover_no [label="否"];
+        update_vertical_hover_no -> check_drag_vertical;
+
+        check_drag_vertical [label="左键按下且悬停？", shape=diamond];
+        check_drag_vertical -> drag_vertical_yes [label="是"];
+        drag_vertical_yes [label="设置is_dragging=true\n记录偏移量\n消费事件并返回"];
+        drag_vertical_yes -> end;
+
+        check_drag_vertical -> horizontal_processing [label="否"];
+    }
+
+    // 水平滚动条处理
+    subgraph cluster_horizontal {
+        label="水平滚动条处理";
+        color="#808080";
+
+        horizontal_processing [label="水平滚动条处理", shape=rectangle];
+        check_horizontal_hover [label="鼠标悬停在水平thumb上？", shape=diamond];
+        horizontal_processing -> check_horizontal_hover;
+
+        update_horizontal_hover_yes [label="设置is_hovering_horizontal_thumb=true\n触发重绘"];
+        check_horizontal_hover -> update_horizontal_hover_yes [label="是"];
+        update_horizontal_hover_yes -> check_drag_horizontal;
+
+        update_horizontal_hover_no [label="设置is_hovering_horizontal_thumb=false\n触发重绘"];
+        check_horizontal_hover -> update_horizontal_hover_no [label="否"];
+        update_horizontal_hover_no -> check_drag_horizontal;
+
+        check_drag_horizontal [label="左键按下且悬停？", shape=diamond];
+        check_drag_horizontal -> drag_horizontal_yes [label="是"];
+        drag_horizontal_yes [label="设置is_dragging=true\n记录偏移量\n消费事件并返回"];
+        drag_horizontal_yes -> end;
+
+        check_drag_horizontal -> end [label="否"];
+    }
+
+    // 鼠标离开处理
+    mouse_leave_case [label="case .mouse_leave\n设置is_dragging_vertical_thumb=false"];
+    mouse_leave_case -> end;
+}
