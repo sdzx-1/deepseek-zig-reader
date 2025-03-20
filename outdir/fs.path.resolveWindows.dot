@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: resolveWindows"];
+    check_paths_empty [label="断言 paths.len > 0", shape=diamond];
+    parse_initial_loop [label="遍历 paths 解析磁盘标识符和绝对路径\n(确定 drive_kind 和 first_index)"];
+    check_drive_kind [label="drive_kind != None?", shape=diamond];
+    second_loop [label="再次遍历 paths 验证磁盘标识符\n(更新 first_index 和 have_abs_path)"];
+    init_result [label="初始化 result 数组\n添加磁盘标识符 (C: 或 \\\\server\\share)"];
+    process_components [label="遍历 paths[first_index..]\n分割组件并处理 . 和 .."];
+    check_component [label="组件是 '.'?", shape=diamond];
+    handle_dot [label="跳过"];
+    handle_dotdot [label="向上回退路径\n或增加 negative_count"];
+    add_component [label="添加组件到 result"];
+    check_result_len [label="disk_designator_len !=0 &&\nresult.len == disk_designator_len?", shape=diamond];
+    add_final_slash [label="添加 '\\' 结尾"];
+    check_negative_count [label="negative_count > 0?", shape=diamond];
+    build_negative_path [label="构造包含 '..' 的路径"];
+    return_result [label="返回最终路径"];
+
+    start -> check_paths_empty;
+    check_paths_empty -> parse_initial_loop [label="Yes"];
+    parse_initial_loop -> check_drive_kind;
+    check_drive_kind -> second_loop [label="Yes"];
+    check_drive_kind -> init_result [label="No"];
+    second_loop -> init_result;
+    init_result -> process_components;
+    
+    process_components -> check_component;
+    check_component -> handle_dot [label="Yes"];
+    check_component -> handle_dotdot [label="是 .."];
+    handle_dot -> process_components;
+    handle_dotdot -> process_components;
+    check_component -> add_component [label="普通组件"];
+    add_component -> process_components;
+    
+    process_components -> check_result_len;
+    check_result_len -> add_final_slash [label="Yes"];
+    add_final_slash -> check_negative_count;
+    check_result_len -> check_negative_count [label="No"];
+    
+    check_negative_count -> build_negative_path [label="Yes"];
+    check_negative_count -> return_result [label="No"];
+    build_negative_path -> return_result;
+}

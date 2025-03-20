@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10]
+    edge [fontname="Courier", fontsize=10]
+
+    start [label="开始 deleteTreeMinStackSizeWithKindHint"]
+    start_over [label="start_over 循环"]
+    open_subpath [label="尝试打开初始子路径 (deleteTreeOpenInitialSubpath)"]
+    check_subpath [label="是否成功打开？", shape=diamond]
+    return1 [label="返回", shape=rectangle]
+    init_cleanup [label="初始化 cleanup_dir_parent 和 cleanup_dir"]
+    scan_dir_loop [label="scan_dir 循环"]
+    dir_iterate [label="创建目录迭代器 (dir.iterateAssumeFirstIteration)"]
+    next_entry [label="获取下一个条目 (dir_it.next())", shape=diamond]
+    handle_entry [label="处理条目"]
+    is_directory [label="条目是目录？", shape=diamond]
+    open_new_dir [label="尝试打开新目录 (openDir)"]
+    handle_open_error [label="处理错误：NotDir => 视为文件\nFileNotFound => 继续迭代", shape=diamond]
+    update_dirs [label="更新 cleanup_dir_parent 和 dir\n记录目录名到 dir_name_buf"]
+    delete_file [label="删除文件 (deleteFile)"]
+    delete_error [label="处理删除错误", shape=diamond]
+    end_of_entries [label="所有条目处理完毕"]
+    close_dir [label="关闭当前目录 (dir.close())\n设置 cleanup_dir=false"]
+    delete_current_dir [label="删除当前目录 (deleteDir)"]
+    check_cleanup_parent [label="cleanup_dir_parent 存在？", shape=diamond]
+    handle_dir_error [label="处理错误：FileNotFound/DirNotEmpty => 重启循环\n其他错误 => 返回错误"]
+    restart_loop [label="继续 start_over 循环"]
+
+    start -> start_over
+    start_over -> open_subpath
+    open_subpath -> check_subpath
+    check_subpath -> return1 [label="否"]
+    check_subpath -> init_cleanup [label="是"]
+    init_cleanup -> scan_dir_loop
+    scan_dir_loop -> dir_iterate
+    dir_iterate -> next_entry
+    next_entry -> handle_entry [label="有下一个条目"]
+    next_entry -> end_of_entries [label="无更多条目"]
+    handle_entry -> is_directory
+    is_directory -> open_new_dir [label="是"]
+    is_directory -> delete_file [label="否"]
+    open_new_dir -> handle_open_error
+    handle_open_error -> update_dirs [label="成功打开"]
+    handle_open_error -> next_entry [label="FileNotFound"]
+    handle_open_error -> delete_file [label="NotDir (视为文件)"]
+    update_dirs -> scan_dir_loop [label="切换到新目录"]
+    delete_file -> delete_error
+    delete_error -> next_entry [label="成功或FileNotFound"]
+    delete_error -> is_directory [label="IsDir (标记为目录重新处理)"]
+    end_of_entries -> close_dir
+    close_dir -> delete_current_dir
+    delete_current_dir -> check_cleanup_parent
+    check_cleanup_parent -> handle_dir_error [label="存在"]
+    check_cleanup_parent -> handle_dir_error [label="不存在"]
+    handle_dir_error -> restart_loop [label="需要重试"]
+    handle_dir_error -> return1 [label="成功"]
+    restart_loop -> start_over [label="重新开始"]
+}

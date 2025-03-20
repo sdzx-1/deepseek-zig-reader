@@ -1,0 +1,58 @@
+
+digraph Decompressor {
+    node [shape=rectangle, style=rounded];
+    edge [fontsize=10];
+
+    start [label="Decompressor.init()"];
+    new_frame [label="State: NewFrame"];
+    decode_frame_header [label="decodeFrameHeader()"];
+    skippable_frame [label="Skippable Frame\nskipBytes()"];
+    zstandard_frame [label="Zstandard Frame\ninit FrameContext"];
+    in_frame [label="State: InFrame"];
+    read_block_header [label="Read Block Header"];
+    decode_block [label="decodeBlockReader()"];
+    update_checksum [label="Update Checksum (if enabled)"];
+    last_block_check [label="Last Block?";
+    shape=diamond];
+    last_block_state [label="State: LastBlock"];
+    verify_checksum [label="Verify Checksum";
+    shape=diamond];
+    reset_state [label="Reset to NewFrame"];
+    read_buffer [label="Copy Data to User Buffer"];
+    end [label="Return Read Size"];
+
+    start -> new_frame;
+    new_frame -> decode_frame_header;
+    decode_frame_header -> skippable_frame [label="Skippable Frame"];
+    decode_frame_header -> zstandard_frame [label="Zstandard Frame"];
+    skippable_frame -> new_frame;
+    zstandard_frame -> in_frame;
+    in_frame -> read_block_header;
+    read_block_header -> decode_block;
+    decode_block -> update_checksum;
+    update_checksum -> last_block_check;
+    last_block_check -> in_frame [label="No"];
+    last_block_check -> last_block_state [label="Yes"];
+    last_block_state -> verify_checksum;
+    verify_checksum -> reset_state [label="Valid/Not Required"];
+    verify_checksum -> error_checksum_failure [label="Invalid"];
+    reset_state -> new_frame;
+    in_frame -> read_buffer [label="Buffer not empty"];
+    read_buffer -> end;
+    last_block_state -> read_buffer;
+    read_buffer -> reset_state [label="Buffer emptied"];
+
+    // Error nodes
+    error_checksum_failure [label="Error: ChecksumFailure";
+    shape=octagon, color=red];
+    error_malformed [label="Error: MalformedFrame";
+    shape=octagon, color=red];
+    error_unsupported [label="Error: DictionaryIdFlagUnsupported";
+    shape=octagon, color=red];
+
+    // Error edges
+    decode_frame_header -> error_malformed [label="EndOfStream"];
+    decode_block -> error_malformed [label="Failure"];
+    verify_checksum -> error_checksum_failure;
+    zstandard_frame -> error_unsupported [label="Unsupported Dictionary"];
+}

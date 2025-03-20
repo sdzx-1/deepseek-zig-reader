@@ -1,0 +1,77 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="detectIntelProcessor(cpu, family, model, brand_id)"];
+    check_brand_id [label="brand_id != 0?"];
+    return_unknown [label="return (Unknown CPU)", style=dashed];
+    family_switch [label="switch (family)"];
+
+    start -> check_brand_id;
+    check_brand_id -> return_unknown [label="Yes"];
+    check_brand_id -> family_switch [label="No"];
+
+    // Family 3
+    family_3 [label="family=3"];
+    family_switch -> family_3 [label="3"];
+    family_3 -> set_i386 [label="cpu.model = i386"];
+    set_i386 -> return;
+
+    // Family 4
+    family_4 [label="family=4"];
+    family_switch -> family_4 [label="4"];
+    family_4 -> set_i486 [label="cpu.model = i486"];
+    set_i486 -> return;
+
+    // Family 5
+    family_5 [label="family=5"];
+    family_switch -> family_5 [label="5"];
+    check_mmx [label="Has MMX?"];
+    family_5 -> check_mmx;
+    check_mmx -> set_pentium_mmx [label="Yes"];
+    check_mmx -> set_pentium [label="No"];
+    set_pentium_mmx -> return;
+    set_pentium -> return;
+
+    // Family 6
+    family_6 [label="family=6"];
+    family_switch -> family_6 [label="6"];
+    model_switch [label="switch (model)", shape=diamond];
+    family_6 -> model_switch;
+
+    // Model 0x01
+    model_0x01 [label="model=0x01"];
+    model_switch -> model_0x01 [label="0x01"];
+    model_0x01 -> set_pentiumpro [label="cpu.model = pentiumpro"];
+    set_pentiumpro -> return;
+
+    // Model 0x03,0x05,0x06
+    model_0x03_05_06 [label="model=0x03/0x05/0x06"];
+    model_switch -> model_0x03_05_06 [label="0x03|0x05|0x06"];
+    model_0x03_05_06 -> set_pentium2 [label="cpu.model = pentium2"];
+    set_pentium2 -> return;
+
+    // ...（其他model分支类似，此处省略以保持简洁）...
+
+    // Family 15
+    family_15 [label="family=15"];
+    family_switch -> family_15 [label="15"];
+    check_64bit [label="Has 64bit?"];
+    family_15 -> check_64bit;
+    check_64bit -> set_nocona [label="Yes"];
+    check_64bit -> check_sse3 [label="No"];
+    check_sse3 [label="Has SSE3?"];
+    check_sse3 -> set_prescott [label="Yes"];
+    check_sse3 -> set_pentium4 [label="No"];
+    set_nocona -> return;
+    set_prescott -> return;
+    set_pentium4 -> return;
+
+    // Unknown cases
+    family_switch -> return_unknown [label="default"];
+    model_switch -> return_unknown [label="default"];
+
+    // Shared return node
+    return [label="return", shape=ellipse];
+}

@@ -1,0 +1,82 @@
+
+digraph RenderVarDeclWithoutFixups {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="开始"];
+    end [label="结束"];
+    
+    visib_token_check [label="var_decl.visib_token 存在?"];
+    render_visib [label="渲染 visib_token"];
+    extern_check [label="var_decl.extern_export_token 存在?"];
+    render_extern [label="渲染 extern_export_token"];
+    libname_check [label="var_decl.lib_name 存在?"];
+    render_libname [label="渲染 lib_name"];
+    threadlocal_check [label="var_decl.threadlocal_token 存在?"];
+    render_threadlocal [label="渲染 threadlocal_token"];
+    comptime_check [label="!ignore_comptime_token\n且 comptime_token 存在?"];
+    render_comptime [label="渲染 comptime_token"];
+    render_mut [label="渲染 mut_token (var)"];
+    name_handling [label="处理变量名渲染\n（根据类型/对齐/地址空间/节区/初始化节点决定空格）"];
+    type_node_check [label="var_decl.ast.type_node 存在?"];
+    render_colon [label="渲染 :"];
+    render_type [label="渲染类型表达式"];
+    align_node_check [label="var_decl.ast.align_node 存在?"];
+    render_align [label="渲染 align(...)"];
+    addrspace_check [label="var_decl.ast.addrspace_node 存在?"];
+    render_addrspace [label="渲染 addrspace(...)"];
+    section_check [label="var_decl.ast.section_node 存在?"];
+    render_section [label="渲染 linksection(...)"];
+    init_node_check [label="var_decl.ast.init_node 存在?"];
+    render_eq [label="渲染 ="];
+    render_init [label="渲染初始化表达式"];
+    handle_remaining [label="处理右括号后的空格/换行"];
+    
+    start -> visib_token_check;
+    
+    visib_token_check -> render_visib [label="是"];
+    visib_token_check -> extern_check [label="否"];
+    render_visib -> extern_check;
+    
+    extern_check -> render_extern [label="是"];
+    extern_check -> threadlocal_check [label="否"];
+    render_extern -> libname_check;
+    libname_check -> render_libname [label="是"];
+    libname_check -> threadlocal_check [label="否"];
+    render_libname -> threadlocal_check;
+    
+    threadlocal_check -> render_threadlocal [label="是"];
+    threadlocal_check -> comptime_check [label="否"];
+    render_threadlocal -> comptime_check;
+    
+    comptime_check -> render_comptime [label="是"];
+    comptime_check -> render_mut [label="否"];
+    render_comptime -> render_mut;
+    
+    render_mut -> name_handling;
+    name_handling -> type_node_check;
+    
+    type_node_check -> render_colon [label="是"];
+    type_node_check -> align_node_check [label="否"];
+    render_colon -> render_type;
+    render_type -> align_node_check;
+    
+    align_node_check -> render_align [label="是"];
+    align_node_check -> addrspace_check [label="否"];
+    render_align -> handle_remaining;
+    handle_remaining -> addrspace_check;
+    
+    addrspace_check -> render_addrspace [label="是"];
+    addrspace_check -> section_check [label="否"];
+    render_addrspace -> handle_remaining;
+    handle_remaining -> section_check;
+    
+    section_check -> render_section [label="是"];
+    section_check -> init_node_check [label="否"];
+    render_section -> handle_remaining;
+    handle_remaining -> init_node_check;
+    
+    init_node_check -> render_eq [label="是"];
+    render_eq -> render_init;
+    render_init -> end;
+}

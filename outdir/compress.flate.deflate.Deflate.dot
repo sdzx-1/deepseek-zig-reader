@@ -1,0 +1,36 @@
+
+digraph DeflateFlow {
+    rankdir="TB";
+    node [shape=rectangle, style="rounded"];
+
+    // Main functions and processes
+    compress [label="compress()"];
+    tokenize [label="tokenize(flush_opt)"];
+    flushTokens [label="flushTokens(flush_opt)"];
+    findMatch [label="findMatch()"];
+    addMatch [label="addMatch()"];
+    addPrevLiteral [label="addPrevLiteral()"];
+    slide [label="slide()"];
+    flush [label="flush()"];
+    finish [label="finish()"];
+    init [label="init()"];
+
+    // Edges
+    init -> compress [label="初始化后进入压缩流程"];
+    compress -> tokenize [label="调用tokenize(.none)"];
+    tokenize -> findMatch [label="寻找匹配"];
+    findMatch -> addMatch [label="找到匹配时"];
+    findMatch -> addPrevLiteral [label="无更好匹配时"];
+    tokenize -> flushTokens [label="需要刷新令牌时"];
+    flushTokens -> compress [label="继续处理数据"];
+    compress -> slide [label="窗口滑动"];
+    slide -> compress [label="继续填充窗口"];
+    flush -> tokenize [label="调用tokenize(.flush)"];
+    finish -> tokenize [label="调用tokenize(.final)"];
+    tokenize -> flushTokens [label="处理完成后刷新"];
+    flushTokens -> finish [label="写入页脚"];
+
+    // Conditionals and loops (simplified)
+    tokenize -> tokenize [label="循环处理窗口数据" style=dashed];
+    findMatch -> findMatch [label="链式回溯匹配" style=dashed];
+}

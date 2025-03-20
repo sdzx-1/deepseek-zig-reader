@@ -1,0 +1,51 @@
+
+digraph flowchart {
+    node [shape=rectangle fontname="Courier" fontsize=12];
+    edge [fontname="Courier" fontsize=12];
+
+    start [label="Start callExpr"];
+    get_callee [label="Get callee expression via calleeExpr()"];
+    determine_modifier [label="Determine CallModifier"];
+    async_check [label="async_token exists?" shape=diamond];
+    modifier_async [label="Modifier: .async_kw"];
+    nosuspend_check [label="gz.nosuspend_node != .none?" shape=diamond];
+    modifier_no_async [label="Modifier: .no_async"];
+    modifier_auto [label="Modifier: .auto"];
+    emit_dbg_stmt [label="Emit debug statement (emitDbgStmt)"];
+    validate_callee [label="Validate callee type (direct/field)"];
+    create_call_inst [label="Create call_index and call_inst"];
+    init_scratch [label="Initialize scratch space"];
+    loop_params [label="Loop through call.ast.params" shape=diamond];
+    process_param [label="Process parameter node"];
+    append_body [label="Append parameter body with fixups"];
+    determine_propagate_error [label="Determine propagate_error_trace"];
+    callee_type_check [label="callee is direct or field?" shape=diamond];
+    direct_case [label="Generate .call ZIR instruction"];
+    field_case [label="Generate .field_call ZIR instruction"];
+    return_result [label="Return result via rvalue()"];
+
+    start -> get_callee;
+    get_callee -> determine_modifier;
+    determine_modifier -> async_check;
+    async_check:w -> modifier_async [label="Yes"];
+    async_check:e -> nosuspend_check [label="No"];
+    nosuspend_check:w -> modifier_no_async [label="Yes"];
+    nosuspend_check:e -> modifier_auto [label="No"];
+    modifier_async -> emit_dbg_stmt;
+    modifier_no_async -> emit_dbg_stmt;
+    modifier_auto -> emit_dbg_stmt;
+    emit_dbg_stmt -> validate_callee;
+    validate_callee -> create_call_inst;
+    create_call_inst -> init_scratch;
+    init_scratch -> loop_params;
+    loop_params -> process_param [label="For each param"];
+    process_param -> append_body;
+    append_body -> loop_params [label="Next param"];
+    loop_params -> determine_propagate_error [label="Done"];
+    determine_propagate_error -> callee_type_check;
+    callee_type_check -> direct_case [label="direct"];
+    callee_type_check -> field_case [label="field"];
+    direct_case -> return_result;
+    field_case -> return_result;
+    return_result -> end [label="End"];
+}

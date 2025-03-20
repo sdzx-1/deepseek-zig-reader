@@ -1,0 +1,66 @@
+
+digraph runCommand {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 runCommand"];
+    init_vars [label="初始化变量\n(cwd, arena, step)"];
+    handle_child_proc [label="处理子进程配置\n(handleChildProcUnsupported)"];
+    verbose_logging [label="详细日志处理\n(handleVerbose2)"];
+    spawn_child [label="尝试生成子进程\n(spawnChildAndCollect)"];
+    check_spawn_error [label="生成错误？", shape=diamond];
+    
+    error_handling [label="错误处理分支"];
+    check_exe_type [label="检查可执行文件类型\n(artifact检查)", shape=diamond];
+    get_external_executor [label="获取外部执行器\n(getExternalExecutor)"];
+    interp_argv_setup [label="构建解释器参数\n(interp_argv)"];
+    spawn_with_interpreter [label="使用解释器再次生成进程"];
+    check_interpreter_error [label="解释器执行错误？", shape=diamond];
+    handle_foreign_error [label="处理外部执行错误\n(failForeign/step.fail)"];
+    
+    process_results [label="处理执行结果\n(记录时间、内存)"];
+    capture_output [label="捕获stdout/stderr到文件"];
+    check_stdio_checks [label="检查stdio配置\n(switch run.stdio)"];
+    
+    expect_match [label="匹配预期输出/状态"];
+    handle_mismatch [label="输出不匹配处理\n(step.fail)"];
+    handle_zig_test [label="处理zig_test结果"];
+    handle_child_term [label="处理子进程终止状态"];
+    end [label="结束"];
+
+    // 主流程
+    start -> init_vars -> handle_child_proc -> verbose_logging -> spawn_child;
+    spawn_child -> check_spawn_error;
+    
+    // 错误处理分支
+    check_spawn_error -> error_handling [label="错误"];
+    error_handling -> check_exe_type;
+    
+    check_exe_type -> get_external_executor [label="是有效artifact"];
+    check_exe_type -> handle_foreign_error [label="无效"];
+    
+    get_external_executor -> interp_argv_setup [label="选择解释器"];
+    interp_argv_setup -> spawn_with_interpreter;
+    spawn_with_interpreter -> check_interpreter_error;
+    
+    check_interpreter_error -> process_results [label="成功"];
+    check_interpreter_error -> handle_foreign_error [label="失败"];
+    
+    // 正常流程
+    check_spawn_error -> process_results [label="成功"];
+    process_results -> capture_output -> check_stdio_checks;
+    
+    // 检查stdio配置分支
+    check_stdio_checks -> expect_match [label=".check"];
+    check_stdio_checks -> handle_zig_test [label=".zig_test"];
+    check_stdio_checks -> handle_child_term [label="其他"];
+    
+    expect_match -> handle_mismatch [label="不匹配"];
+    expect_match -> end [label="匹配"];
+    handle_mismatch -> end;
+    
+    handle_zig_test -> handle_child_term [label="检查测试结果"];
+    handle_child_term -> end;
+
+    // 错误路径统一处理
+    handle_foreign_error -> end [label="返回错误"];
+}

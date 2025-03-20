@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start: lastToken(tree, node)"];
+    loop [label="Loop: while (true)"];
+    switch [label="Switch tree.nodeTag(n)"];
+
+    root [label="Case .root\nReturn tokens.len - 1"];
+    usingnamespace_group [label="Cases: .usingnamespace, .bool_not, ...\nn = nodeData(n).node"];
+    catch_group [label="Cases: .catch, .equal_equal, ...\nn = nodeData(n).node_and_node[1]"];
+    test_decl_group [label="Cases: .test_decl, .errdefer\nn = opt_token_and_node[1]"];
+    return_group [label="Case .return\nHandle optional node"];
+    call_group [label="Cases: .call, .async_call\nProcess parameters"];
+    return_token [label="Return token + end_offset"];
+    other_cases [label="Other cases handling..."];
+
+    start -> loop;
+    loop -> switch;
+
+    switch -> root [label=".root"];
+    root -> return_token;
+
+    switch -> usingnamespace_group [label=".usingnamespace, .bool_not,..."];
+    usingnamespace_group -> loop;
+
+    switch -> catch_group [label=".catch, .equal_equal,..."];
+    catch_group -> loop;
+
+    switch -> test_decl_group [label=".test_decl, .errdefer"];
+    test_decl_group -> loop;
+
+    switch -> return_group [label=".return"];
+    return_group -> loop [label="Has optional node"];
+    return_group -> return_token [label="No optional node"];
+
+    switch -> call_group [label=".call, .async_call"];
+    call_group -> loop [label="Update n and end_offset"];
+
+    switch -> other_cases [label="Other node types"];
+    other_cases -> return_token [label="Direct return"];
+    other_cases -> loop [label="Update n"];
+
+    return_token [shape=oval];
+}

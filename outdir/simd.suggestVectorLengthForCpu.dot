@@ -1,0 +1,102 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial", fontsize=10];
+    
+    start [label="开始 suggestVectorLengthForCpu(T, cpu)"];
+    compute_element_bit_size [label="计算 element_bit_size = max(8, ceilPowerOfTwo(bitSizeOf(T)))"];
+    check_arch [label="检查 CPU 架构", shape=diamond];
+    
+    // x86分支
+    x86_arch [label="x86"];
+    x86_bool_mask [label="T 是 bool 且支持 prefer_mask_registers?", shape=diamond];
+    x86_avx512 [label="支持 AVX512F 且无 prefer_256/128?", shape=diamond];
+    x86_avx256 [label="支持 AVX2/prefer_256 且无 prefer_128?", shape=diamond];
+    x86_sse [label="支持 SSE?", shape=diamond];
+    x86_mmx [label="支持 MMX/3DNow?", shape=diamond];
+    
+    // ARM分支
+    arm_arch [label="ARM"];
+    arm_neon [label="支持 NEON?", shape=diamond];
+    
+    // AARCH64分支
+    aarch64_arch [label="AARCH64"];
+    aarch64_sve [label="支持 SVE?", shape=diamond];
+    aarch64_neon [label="支持 NEON?", shape=diamond];
+    
+    // RISC-V分支
+    riscv_arch [label="RISC-V"];
+    riscv_v [label="支持 V 扩展?", shape=diamond];
+    riscv_zvl [label="根据 zvl*b 特性选择向量长度"];
+    
+    // 其他架构分支（PowerPC/MIPS/SPARC/WASM）
+    other_arch [label="其他架构检查"];
+    
+    // 公共结束逻辑
+    check_vector_size [label="vector_bit_size > element_bit_size?", shape=diamond];
+    return_null [label="返回 null"];
+    compute_result [label="返回 vector_bit_size / element_bit_size"];
+    
+    // 连接节点
+    start -> compute_element_bit_size;
+    compute_element_bit_size -> check_arch;
+    
+    // x86分支
+    check_arch -> x86_arch [label="是 x86"];
+    x86_arch -> x86_bool_mask;
+    x86_bool_mask -> return_null [label="是"];
+    x86_bool_mask -> x86_avx512 [label="否"];
+    x86_avx512 -> x86_avx256 [label="否"];
+    x86_avx512 -> blk_512 [label="是"];
+    x86_avx256 -> x86_sse [label="否"];
+    x86_avx256 -> blk_256 [label="是"];
+    x86_sse -> blk_128 [label="是"];
+    x86_sse -> x86_mmx [label="否"];
+    x86_mmx -> blk_64 [label="是"];
+    x86_mmx -> return_null [label="否"];
+    
+    // ARM分支
+    check_arch -> arm_arch [label="是 ARM"];
+    arm_arch -> arm_neon;
+    arm_neon -> blk_128 [label="是"];
+    arm_neon -> return_null [label="否"];
+    
+    // AARCH64分支
+    check_arch -> aarch64_arch [label="是 AARCH64"];
+    aarch64_arch -> aarch64_sve;
+    aarch64_sve -> blk_128 [label="是"];
+    aarch64_sve -> aarch64_neon [label="否"];
+    aarch64_neon -> blk_128 [label="是"];
+    aarch64_neon -> return_null [label="否"];
+    
+    // RISC-V分支
+    check_arch -> riscv_arch [label="是 RISC-V"];
+    riscv_arch -> riscv_v;
+    riscv_v -> riscv_zvl [label="是"];
+    riscv_v -> return_null [label="否"];
+    riscv_zvl -> check_vector_size;
+    
+    // 其他架构分支
+    check_arch -> other_arch [label="其他架构"];
+    other_arch -> return_null [label="未匹配到特性"];
+    other_arch -> check_vector_size [label="匹配到特性"];
+    
+    // 公共结束逻辑
+    check_vector_size -> return_null [label="否"];
+    check_vector_size -> compute_result [label="是"];
+    
+    // 定义公共块
+    subgraph cluster_blocks {
+        label="向量位大小赋值块";
+        blk_512 [label="vector_bit_size = 512"];
+        blk_256 [label="vector_bit_size = 256"];
+        blk_128 [label="vector_bit_size = 128"];
+        blk_64 [label="vector_bit_size = 64"];
+    }
+    
+    // 连接公共块到结束逻辑
+    blk_512 -> check_vector_size;
+    blk_256 -> check_vector_size;
+    blk_128 -> check_vector_size;
+    blk_64 -> check_vector_size;
+}

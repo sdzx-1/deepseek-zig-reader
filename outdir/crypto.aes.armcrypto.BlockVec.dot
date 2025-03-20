@@ -1,0 +1,61 @@
+
+digraph BlockVecFlowchart {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    start [label="Start BlockVec(comptime blocks_count)"];
+    define_struct [label="Define struct"];
+    native_vector_size [label="pub const native_vector_size = 1"];
+    native_word_size [label="pub const native_word_size = native_vector_size * 16"];
+    native_words [label="const native_words = blocks_count"];
+    repr [label="repr: [native_words]Block"];
+    block_length [label="pub const block_length = blocks_count * 16"];
+    methods [label="Methods", shape=ellipse];
+
+    start -> define_struct;
+    define_struct -> native_vector_size;
+    native_vector_size -> native_word_size;
+    native_word_size -> native_words;
+    native_words -> repr;
+    repr -> block_length;
+    block_length -> methods;
+
+    subgraph cluster_methods {
+        label="Methods";
+        fromBytes [label="fromBytes(bytes)"];
+        toBytes [label="toBytes()"];
+        xorBytes [label="xorBytes(bytes)"];
+        encrypt [label="encrypt(round_key_vec)"];
+        encryptLast [label="encryptLast(round_key_vec)"];
+        decrypt [label="decrypt(inv_round_key_vec)"];
+        decryptLast [label="decryptLast(inv_round_key_vec)"];
+        xorBlocks [label="xorBlocks(block_vec2)"];
+        andBlocks [label="andBlocks(block_vec2)"];
+        orBlocks [label="orBlocks(block_vec2)"];
+
+        fromBytes -> toBytes [style=invis];
+        toBytes -> xorBytes [style=invis];
+        xorBytes -> encrypt [style=invis];
+        encrypt -> encryptLast [style=invis];
+        encryptLast -> decrypt [style=invis];
+        decrypt -> decryptLast [style=invis];
+        decryptLast -> xorBlocks [style=invis];
+        xorBlocks -> andBlocks [style=invis];
+        andBlocks -> orBlocks [style=invis];
+    }
+
+    methods -> fromBytes [lhead=cluster_methods];
+    
+    // Common logic for loop operations
+    loop_logic [label="For each block in 0..native_words:\n- Apply operation to repr[i]"];
+    fromBytes -> loop_logic [style=dashed];
+    toBytes -> loop_logic [style=dashed];
+    xorBytes -> loop_logic [style=dashed];
+    encrypt -> loop_logic [style=dashed];
+    encryptLast -> loop_logic [style=dashed];
+    decrypt -> loop_logic [style=dashed];
+    decryptLast -> loop_logic [style=dashed];
+    xorBlocks -> loop_logic [style=dashed];
+    andBlocks -> loop_logic [style=dashed];
+    orBlocks -> loop_logic [style=dashed];
+}

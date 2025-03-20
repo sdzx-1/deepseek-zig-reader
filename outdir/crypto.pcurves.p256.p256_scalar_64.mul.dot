@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始执行mul函数"];
+    decompose [label="分解输入参数\narg1[0], arg1[1], arg1[2], arg1[3]\narg2[0], arg2[1], arg2[2], arg2[3]"];
+    
+    // 处理x4（arg1[0]）部分
+    process_x4 [label="计算x4 * arg2各部分\nmulxU64生成x5-x12\n累加进位addcarryxU64"];
+    mont_reduce_x4 [label="Montgomery约减\n乘逆元0xccd1c8aaee00bc4f\n计算x20-x36并累加"];
+    
+    // 处理x1（arg1[1]）部分
+    process_x1 [label="计算x1 * arg2各部分\nmulxU64生成x47-x54\n累加进位addcarryxU64"];
+    mont_reduce_x1 [label="Montgomery约减\n乘逆元0xccd1c8aaee00bc4f\n计算x72-x88并累加"];
+    
+    // 处理x2（arg1[2]）部分
+    process_x2 [label="计算x2 * arg2各部分\nmulxU64生成x100-x107\n累加进位addcarryxU64"];
+    mont_reduce_x2 [label="Montgomery约减\n乘逆元0xccd1c8aaee00bc4f\n计算x125-x141并累加"];
+    
+    // 处理x3（arg1[3]）部分
+    process_x3 [label="计算x3 * arg2各部分\nmulxU64生成x153-x160\n累加进位addcarryxU64"];
+    mont_reduce_x3 [label="Montgomery约减\n乘逆元0xccd1c8aaee00bc4f\n计算x178-x194并累加"];
+    
+    // 最终调整
+    final_adjust [label="最终模约减调整\nsubborrowxU64检查借位\ncmovznzU64选择结果"];
+    output [label="存储结果到out1[0]-out1[3]"];
+    end [label="函数结束"];
+
+    start -> decompose;
+    decompose -> process_x4;
+    
+    process_x4 -> mont_reduce_x4;
+    mont_reduce_x4 -> process_x1;
+    
+    process_x1 -> mont_reduce_x1;
+    mont_reduce_x1 -> process_x2;
+    
+    process_x2 -> mont_reduce_x2;
+    mont_reduce_x2 -> process_x3;
+    
+    process_x3 -> mont_reduce_x3;
+    mont_reduce_x3 -> final_adjust;
+    
+    final_adjust -> output;
+    output -> end;
+}

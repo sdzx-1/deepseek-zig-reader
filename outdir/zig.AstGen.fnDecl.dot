@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start fnDecl"];
+    save_hasher [label="Save old_hasher,\ninit new src_hasher"];
+    process_name [label="Process function name (fn_name_token)"];
+    create_decl_inst [label="Create decl_inst instruction"];
+    advance_cursor [label="Advance source cursor to decl_node"];
+    check_visibility [label="Check is_pub/is_export/is_extern/has_inline"];
+    process_libname [label="Validate library name (if present)"];
+    check_callconv [label="Check callconv vs inline keyword conflict"];
+    process_returntype [label="Process return type and error inference"];
+    validate_body [label="Validate body presence\nfor extern/non-extern"];
+    init_type_gz [label="Initialize type_gz block"];
+    handle_extern [label="For extern functions:\ngenerate function type"];
+    handle_align [label="Process align_expr (if present)", shape=diamond];
+    handle_section [label="Process section_expr (if present)", shape=diamond];
+    handle_addrspace [label="Process addrspace_expr (if present)", shape=diamond];
+    handle_value [label="For non-extern functions:\ngenerate function value"];
+    finalize_hash [label="Compute final src_hash"];
+    set_declaration [label="Set declaration attributes"];
+    end [label="End"];
+
+    start -> save_hasher;
+    save_hasher -> process_name;
+    process_name -> create_decl_inst;
+    create_decl_inst -> advance_cursor;
+    advance_cursor -> check_visibility;
+    check_visibility -> process_libname;
+    process_libname -> check_callconv;
+    check_callconv -> process_returntype;
+    process_returntype -> validate_body;
+    validate_body -> init_type_gz;
+
+    init_type_gz -> handle_extern [label="is_extern"];
+    handle_extern -> handle_align;
+
+    init_type_gz -> handle_align [label="!is_extern"];
+
+    handle_align -> handle_section [label="No align_expr"];
+    handle_align -> handle_section [label="Has align_expr"];
+
+    handle_section -> handle_addrspace [label="No section_expr"];
+    handle_section -> handle_addrspace [label="Has section_expr"];
+
+    handle_addrspace -> handle_value [label="!is_extern"];
+    handle_addrspace -> finalize_hash [label="is_extern"];
+
+    handle_value -> finalize_hash;
+    finalize_hash -> set_declaration;
+    set_declaration -> end;
+}

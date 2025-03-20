@@ -1,0 +1,60 @@
+
+digraph HeadParserFlow {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    finished [label="返回 index"];
+    process_state [label="处理当前状态"];
+    check_state [label="检查 p.state"];
+    state_start [label="状态: start"];
+    state_seen_n [label="状态: seen_n"];
+    state_seen_r [label="状态: seen_r"];
+    state_seen_rn [label="状态: seen_rn"];
+    state_seen_rnr [label="状态: seen_rnr"];
+    handle_bytes_0 [label="bytes.len - index == 0?\l返回 index"];
+    handle_bytes_1 [label="bytes.len - index == 1?\l检查字符并更新状态\l返回 index+1"];
+    handle_bytes_2 [label="bytes.len - index == 2?\l检查双字符组合并更新状态\l返回 index+2"];
+    handle_bytes_3 [label="bytes.len - index == 3?\l检查三字符组合并更新状态\l返回 index+3"];
+    handle_bytes_4_to_vector [label="bytes.len - index >=4 && < vector_len?\l检查四字符组合并更新状态\lindex +=4\l继续循环"];
+    handle_vector_chunk [label="处理 vector_len 字节块\l根据匹配数更新状态\lindex += vector_len\l继续循环"];
+    handle_seen_n [label="处理 seen_n 状态\l检查下一个字符并更新状态\lindex +=1\l继续循环"];
+    handle_seen_r [label="处理 seen_r 状态\l根据剩余字节数更新状态\l返回或继续循环"];
+    handle_seen_rn [label="处理 seen_rn 状态\l检查后续字符并更新状态\lindex +=2\l继续循环"];
+    handle_seen_rnr [label="处理 seen_rnr 状态\l检查下一个字符并更新状态\lindex +=1\l继续循环"];
+
+    start -> check_state;
+    check_state -> state_start [label="p.state == start"];
+    check_state -> state_seen_n [label="p.state == seen_n"];
+    check_state -> state_seen_r [label="p.state == seen_r"];
+    check_state -> state_seen_rn [label="p.state == seen_rn"];
+    check_state -> state_seen_rnr [label="p.state == seen_rnr"];
+    check_state -> finished [label="p.state == finished"];
+
+    state_start -> handle_bytes_0 [label="剩余0字节"];
+    state_start -> handle_bytes_1 [label="剩余1字节"];
+    state_start -> handle_bytes_2 [label="剩余2字节"];
+    state_start -> handle_bytes_3 [label="剩余3字节"];
+    state_start -> handle_bytes_4_to_vector [label="剩余4~vector_len-1字节"];
+    state_start -> handle_vector_chunk [label="剩余>=vector_len字节"];
+
+    handle_bytes_0 -> finished;
+    handle_bytes_1 -> finished;
+    handle_bytes_2 -> finished;
+    handle_bytes_3 -> finished;
+    handle_bytes_4_to_vector -> process_state;
+    handle_vector_chunk -> process_state;
+
+    state_seen_n -> handle_seen_n;
+    handle_seen_n -> check_state;
+
+    state_seen_r -> handle_seen_r;
+    handle_seen_r -> check_state [label="处理完成"];
+
+    state_seen_rn -> handle_seen_rn;
+    handle_seen_rn -> check_state;
+
+    state_seen_rnr -> handle_seen_rnr;
+    handle_seen_rnr -> check_state;
+
+    process_state -> check_state [label="继续循环"];
+}

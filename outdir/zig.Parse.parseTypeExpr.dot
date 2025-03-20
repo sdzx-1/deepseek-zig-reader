@@ -1,0 +1,79 @@
+
+digraph ParseTypeExprFlowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start parseTypeExpr()", shape=ellipse];
+    end [label="Return Node.Index", shape=ellipse];
+
+    start -> switch_token [label="Check current token"];
+
+    subgraph cluster_main_switch {
+        label="Main Token Switch";
+        switch_token [label="switch(p.tokenTag(p.tok_i))", shape=diamond];
+
+        // Question Mark Case
+        switch_token -> case_question_mark [label=".question_mark"];
+        case_question_mark [label="Create optional_type node\nCall expectTypeExpr()"];
+        case_question_mark -> add_optional_node [label="Add node"];
+        add_optional_node -> end;
+
+        // Anyframe Case
+        switch_token -> case_anyframe [label=".keyword_anyframe"];
+        case_anyframe [label="Check next token", shape=diamond];
+        case_anyframe -> anyframe_arrow [label=".arrow"];
+        anyframe_arrow [label="Create anyframe_type node\nCall expectTypeExpr()"];
+        anyframe_arrow -> add_anyframe_node [label="Add node"];
+        add_anyframe_node -> end;
+        case_anyframe -> parse_error_union_1 [label="else"];
+
+        // Asterisk Cases
+        switch_token -> case_asterisk [label=".asterisk"];
+        case_asterisk [label="Parse pointer modifiers\nCheck bit_range/addrspace"];
+        case_asterisk -> ptr_bit_range [label="bit_range exists"];
+        ptr_bit_range [label="Create ptr_type_bit_range"];
+        ptr_bit_range -> end;
+        case_asterisk -> ptr_addrspace [label="addrspace exists"];
+        ptr_addrspace [label="Create ptr_type"];
+        ptr_addrspace -> end;
+        case_asterisk -> ptr_aligned [label="default"];
+        ptr_aligned [label="Create ptr_type_aligned"];
+        ptr_aligned -> end;
+
+        // Double Asterisk Case
+        switch_token -> case_double_asterisk [label=".asterisk_asterisk"];
+        case_double_asterisk [label="Parse pointer modifiers\nBuild inner pointer type"];
+        case_double_asterisk -> create_inner_ptr [label="Create inner node"];
+        create_inner_ptr -> wrap_ptr_aligned [label="Wrap in ptr_type_aligned"];
+        wrap_ptr_aligned -> end;
+
+        // L_Bracket Cases
+        switch_token -> case_lbracket [label=".l_bracket"];
+        case_lbracket [label="Check next token", shape=diamond];
+        case_lbracket -> lbracket_asterisk [label=".asterisk"];
+        lbracket_asterisk [label="Handle sentinel/align\nCheck modifiers"];
+        lbracket_asterisk -> ptr_sentinel [label="Create ptr_type*"];
+        ptr_sentinel -> end;
+        case_lbracket -> lbracket_general [label="else"];
+        lbracket_general [label="Parse len/sentinel\nCheck modifiers"];
+        lbracket_general -> array_type [label="Create array_type"];
+        array_type -> end;
+        lbracket_general -> array_sentinel [label="With sentinel"];
+        array_sentinel [label="Create array_type_sentinel"];
+        array_sentinel -> end;
+
+        // Default Case
+        switch_token -> parse_error_union_2 [label="else"];
+    }
+
+    // Common error union paths
+    parse_error_union_1 [label="Call parseErrorUnionExpr()"];
+    parse_error_union_1 -> end;
+    parse_error_union_2 [label="Call parseErrorUnionExpr()"];
+    parse_error_union_2 -> end;
+
+    // Style enhancements
+    {rank=same; case_question_mark case_anyframe case_asterisk case_double_asterisk case_lbracket}
+    {rank=same; ptr_bit_range ptr_addrspace ptr_aligned}
+    {rank=same; array_type array_sentinel}
+}

@@ -1,0 +1,39 @@
+
+digraph GenericReader {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+
+    // 入口节点
+    GenericReader [label="GenericReader 函数\n(输入: Context, ReadError, readFn)"];
+    
+    // 返回的结构体
+    subgraph cluster_struct {
+        label="返回的结构体";
+        Struct [label="结构体包含:\l- context: Context\l- Error 类型别名\l- NoEofError 类型别名\l"];
+        Methods [label="方法列表:\l- read()\l- readAll()\l- readAtLeast()\l- readNoEof()\l- readAllArrayList()\l- readByte()\l- readInt()\l- ...其他方法\l"];
+        AnyMethod [label="any() 方法\n(返回 AnyReader)", shape=ellipse];
+        TypeErasedReadFn [label="typeErasedReadFn\n(类型擦除的读取函数)", shape=component];
+    }
+
+    // 连接关系
+    GenericReader -> Struct;
+    Struct -> Methods;
+    Methods -> AnyMethod [label="所有方法调用"];
+    AnyMethod -> TypeErasedReadFn [label="通过上下文指针"];
+    
+    // 类型系统分支
+    subgraph cluster_errors {
+        label="错误处理";
+        ReadErrorNode [label="ReadError 类型"];
+        NoEofErrorNode [label="NoEofError = ReadError + error{EndOfStream}"];
+        ErrorCast [label="@errorCast\n(错误类型转换)", shape=diamond];
+    }
+
+    Methods -> ErrorCast [label="方法返回错误时"];
+    ErrorCast -> ReadErrorNode;
+    ErrorCast -> NoEofErrorNode;
+
+    // 依赖关系
+    {rank=same; AnyMethod; TypeErasedReadFn}
+    {rank=same; ReadErrorNode; NoEofErrorNode}
+}

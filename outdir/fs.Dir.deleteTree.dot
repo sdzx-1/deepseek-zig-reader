@@ -1,0 +1,57 @@
+
+digraph deleteTree {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 deleteTree"];
+    open_initial [label="调用 deleteTreeOpenInitialSubpath"];
+    initial_null [label="返回 null?", shape=diamond];
+    return_early [label="直接返回"];
+    init_stack [label="初始化栈，压入初始目录项"];
+    process_stack [label="栈不为空?", shape=diamond];
+    pop_stack [label="弹出栈顶元素"];
+    iterate_entry [label="遍历目录条目"];
+    entry_exists [label="获取下一个条目", shape=diamond];
+    handle_entry [label="处理当前条目"];
+    is_directory [label="条目是目录?", shape=diamond];
+    stack_capacity [label="栈有空间?", shape=diamond];
+    push_stack [label="压入子目录到栈"];
+    delete_min_stack [label="调用 deleteTreeMinStackSizeWithKindHint"];
+    delete_file [label="尝试删除文件"];
+    delete_success [label="删除成功?", shape=diamond];
+    handle_errors [label="处理错误"];
+    close_dir [label="关闭目录句柄"];
+    delete_dir [label="尝试删除目录"];
+    dir_not_empty [label="DirNotEmpty?", shape=diamond];
+    retry_push [label="重新打开目录并压入栈"];
+    end [label="结束"];
+
+    start -> open_initial;
+    open_initial -> initial_null;
+    initial_null -> return_early [label="是"];
+    initial_null -> init_stack [label="否"];
+    init_stack -> process_stack;
+    process_stack -> pop_stack [label="是"];
+    pop_stack -> iterate_entry;
+    iterate_entry -> entry_exists;
+    entry_exists -> handle_entry [label="有条目"];
+    entry_exists -> close_dir [label="无更多条目"];
+    handle_entry -> is_directory;
+    is_directory -> stack_capacity [label="是"];
+    is_directory -> delete_file [label="否"];
+    stack_capacity -> push_stack [label="有"];
+    stack_capacity -> delete_min_stack [label="无"];
+    push_stack -> process_stack [label="继续处理栈顶"];
+    delete_min_stack -> iterate_entry;
+    delete_file -> delete_success;
+    delete_success -> iterate_entry [label="成功"];
+    delete_success -> handle_errors [label="失败"];
+    handle_errors -> iterate_entry [label="可恢复错误"];
+    handle_errors -> end [label="不可恢复错误", style=dashed];
+    close_dir -> delete_dir;
+    delete_dir -> dir_not_empty;
+    dir_not_empty -> retry_push [label="是"];
+    dir_not_empty -> process_stack [label="否"];
+    retry_push -> process_stack;
+    process_stack -> end [label="否"];
+}

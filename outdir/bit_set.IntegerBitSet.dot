@@ -1,0 +1,53 @@
+
+digraph IntegerBitSet {
+    rankdir="TB";
+    node [shape=rectangle, style="rounded"];
+
+    // 入口点
+    start [label="调用 IntegerBitSet(size)"];
+    start -> struct_def;
+
+    // 结构体定义
+    struct_def [label="定义 packed struct\n(包含 MaskInt、ShiftInt、mask 字段)"];
+    struct_def -> initEmpty;
+    struct_def -> initFull;
+    struct_def -> isSet;
+    struct_def -> setValue;
+    struct_def -> setRangeValue;
+    struct_def -> iterator;
+
+    // 初始化方法
+    initEmpty [label="initEmpty()\n返回 mask=0"];
+    initFull [label="initFull()\n返回 mask=全1"];
+
+    // 基本操作
+    isSet [label="isSet(index)\n检查索引并返回 (mask & bit) ≠ 0"];
+    setValue [label="setValue(index, value)\n设置对应位的值"];
+    setRangeValue [label="setRangeValue(range, value)\n批量设置范围内的位"];
+
+    // 迭代器逻辑
+    iterator [label="iterator(options)\n根据选项生成迭代器"];
+    iterator -> next [label="调用 next()"];
+    next [label="next()\n按方向返回下一个位的索引"];
+
+    // 方法间关系
+    setValue -> maskBit [label="调用 maskBit()"];
+    setRangeValue -> maskBit [label="调用 maskBit()"];
+    setRangeValue -> boolMaskBit [label="调用 boolMaskBit()"];
+    iterator -> SingleWordIterator [label="返回迭代器实例"];
+
+    // 辅助函数
+    maskBit [label="maskBit(index)\n生成对应位的掩码"];
+    boolMaskBit [label="boolMaskBit(index, value)\n生成布尔值掩码"];
+
+    // 条件分支示例（以 setValue 为例）
+    setValue -> check_index [label="断言 index < bit_length"];
+    check_index [shape=diamond, label="索引有效？"];
+    check_index -> check_u0 [label="是"];
+    check_u0 [shape=diamond, label="MaskInt 是 u0？"];
+    check_u0 -> return [label="是"];
+    check_u0 -> compute_bit [label="否"];
+    compute_bit [label="计算 bit 和 new_bit"];
+    compute_bit -> update_mask [label="更新 mask"];
+    update_mask [label="mask = (mask & ~bit) | new_bit"];
+}

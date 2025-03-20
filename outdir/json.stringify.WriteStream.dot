@@ -1,0 +1,89 @@
+
+digraph WriteStreamFlow {
+    node [shape=rectangle, style=rounded];
+    edge [color=black];
+
+    start [label="开始使用WriteStream"];
+    init [label="初始化WriteStream\n设置safety_checks、indent_level等"];
+    begin_array [label="调用beginArray()"];
+    begin_object [label="调用beginObject()"];
+    write_value [label="调用write()\n处理不同类型数据"];
+    end_array [label="调用endArray()"];
+    end_object [label="调用endObject()"];
+    deinit [label="释放资源\n（如释放nesting_stack）"];
+    error_handling [label="错误处理", shape=diamond];
+    end [label="结束"];
+
+    // 主流程
+    start -> init;
+    init -> begin_array [label="开始数组"];
+    init -> begin_object [label="开始对象"];
+    begin_array -> write_value [label="写入数组元素"];
+    begin_object -> write_value [label="写入对象字段"];
+    write_value -> write_value [label="递归处理嵌套结构"];
+    write_value -> end_array [label="结束当前数组"];
+    write_value -> end_object [label="结束当前对象"];
+    end_array -> error_handling;
+    end_object -> error_handling;
+    error_handling -> end [label="无错误"];
+    error_handling -> write_value [label="继续操作"];
+    init -> deinit [label="显式调用deinit()"];
+    deinit -> end;
+
+    // 条件分支
+    subgraph cluster_safety_checks {
+        label="安全检查模式分支";
+        safety_check [label="safety_checks类型?", shape=diamond];
+        checked_arbitrary [label="checked_to_arbitrary_depth\n使用动态BitStack"];
+        checked_fixed [label="checked_to_fixed_depth\n使用固定大小缓冲区"];
+        assumed [label="assumed_correct\n无安全检查"];
+        safety_check -> checked_arbitrary;
+        safety_check -> checked_fixed;
+        safety_check -> assumed;
+    }
+
+    // 缩进处理分支
+    subgraph cluster_indent {
+        label="缩进处理逻辑";
+        push_indent [label="pushIndentation()", shape=diamond];
+        pop_indent [label="popIndentation()", shape=diamond];
+        push_arbitrary [label="动态栈操作"];
+        push_fixed [label="固定缓冲区操作"];
+        push_assumed [label="直接增加缩进"];
+        pop_arbitrary [label="动态栈弹出"];
+        pop_fixed [label="固定缓冲区弹出"];
+        pop_assumed [label="直接减少缩进"];
+        push_indent -> push_arbitrary [label="checked_to_arbitrary_depth"];
+        push_indent -> push_fixed [label="checked_to_fixed_depth"];
+        push_indent -> push_assumed [label="assumed_correct"];
+        pop_indent -> pop_arbitrary [label="checked_to_arbitrary_depth"];
+        pop_indent -> pop_fixed [label="checked_to_fixed_depth"];
+        pop_indent -> pop_assumed [label="assumed_correct"];
+    }
+
+    // 连接缩进分支到主流程
+    begin_array -> push_indent;
+    begin_object -> push_indent;
+    end_array -> pop_indent;
+    end_object -> pop_indent;
+
+    // 数据类型处理分支
+    subgraph cluster_write_types {
+        label="write()方法数据类型分支";
+        check_type [label="判断数据类型", shape=diamond];
+        handle_int [label="处理整数"];
+        handle_float [label="处理浮点数"];
+        handle_bool [label="处理布尔值"];
+        handle_string [label="处理字符串"];
+        handle_struct [label="处理结构体"];
+        handle_union [label="处理联合类型"];
+        check_type -> handle_int;
+        check_type -> handle_float;
+        check_type -> handle_bool;
+        check_type -> handle_string;
+        check_type -> handle_struct;
+        check_type -> handle_union;
+    }
+
+    write_value -> check_type;
+}

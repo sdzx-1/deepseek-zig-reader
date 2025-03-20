@@ -1,0 +1,32 @@
+
+digraph square_flowchart {
+    node [shape=rectangle, style=rounded];
+    rankdir=TB;
+
+    start [label="开始: square(out1, arg1)"];
+    init [label="初始化运行时安全检查\n提取arg1元素x1, x2, x3, x4"];
+    mul_x4 [label="处理x4的乘法累加:\n- mulxU64四次\n- addcarryxU64三次"];
+    reduce1 [label="第一次模约简:\n- 使用常数0xd838091dd2253531\n- 乘法和进位处理"];
+    mul_x1 [label="处理x1的乘法累加:\n- mulxU64四次\n- addcarryxU64三次"];
+    reduce2 [label="第二次模约简"];
+    mul_x2 [label="处理x2的乘法累加:\n- mulxU64四次\n- addcarryxU64三次"];
+    reduce3 [label="第三次模约简"];
+    mul_x3 [label="处理x3的乘法累加:\n- mulxU64四次\n- addcarryxU64三次"];
+    reduce4 [label="第四次模约简"];
+    sub_adj [label="减法调整:\n- subborrowxU64四次\n- 条件选择(cmovznzU64)"];
+    output [label="输出结果到out1[0..3]"];
+    end [label="结束"];
+
+    start -> init;
+    init -> mul_x4;
+    mul_x4 -> reduce1;
+    reduce1 -> mul_x1;
+    mul_x1 -> reduce2;
+    reduce2 -> mul_x2;
+    mul_x2 -> reduce3;
+    reduce3 -> mul_x3;
+    mul_x3 -> reduce4;
+    reduce4 -> sub_adj;
+    sub_adj -> output;
+    output -> end;
+}

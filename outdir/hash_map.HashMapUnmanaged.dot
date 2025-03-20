@@ -1,0 +1,78 @@
+
+digraph HashMapUnmanaged {
+    rankdir=LR;
+    node [shape=rectangle, style="rounded"];
+
+    // 初始化
+    start [label="开始创建HashMapUnmanaged"];
+    check_max_load [label="检查max_load_percentage是否在0-100之间"];
+    error_max_load [label="抛出编译错误"];
+    create_struct [label="返回结构体类型"];
+
+    start -> check_max_load;
+    check_max_load -> error_max_load [label="无效"];
+    check_max_load -> create_struct [label="有效"];
+
+    // 插入流程
+    subgraph cluster_put {
+        label="插入操作(put)";
+        
+        put_start [label="开始插入"];
+        check_capacity [label="检查可用容量"];
+        need_grow [label="需要扩容"];
+        grow_process [label="分配新内存\n重新哈希数据"];
+        find_slot [label="计算哈希值\n查找可用槽位"];
+        update_metadata [label="更新元数据\n写入键值对"];
+        finish_put [label="插入完成"];
+
+        put_start -> check_capacity;
+        check_capacity -> need_grow [label="容量不足"];
+        need_grow -> grow_process;
+        grow_process -> find_slot;
+        check_capacity -> find_slot [label="容量足够"];
+        find_slot -> update_metadata;
+        update_metadata -> finish_put;
+    }
+
+    // 查找流程
+    subgraph cluster_get {
+        label="查找操作(get)";
+        
+        get_start [label="开始查找"];
+        compute_hash [label="计算键的哈希值"];
+        check_metadata [label="检查元数据状态"];
+        compare_key [label="比较键值"];
+        found [label="找到值"];
+        not_found [label="未找到"];
+
+        get_start -> compute_hash;
+        compute_hash -> check_metadata;
+        check_metadata -> compare_key [label="槽位已用"];
+        check_metadata -> not_found [label="槽位空闲"];
+        compare_key -> found [label="匹配"];
+        compare_key -> check_metadata [label="继续探测"];
+    }
+
+    // 扩容流程
+    subgraph cluster_grow {
+        label="扩容过程";
+        
+        grow_start [label="开始扩容"];
+        alloc_memory [label="分配更大内存"];
+        rehash_all [label="重新哈希所有条目"];
+        update_pointers [label="更新元数据和指针"];
+        free_old [label="释放旧内存"];
+        grow_end [label="扩容完成"];
+
+        grow_start -> alloc_memory;
+        alloc_memory -> rehash_all;
+        rehash_all -> update_pointers;
+        update_pointers -> free_old;
+        free_old -> grow_end;
+    }
+
+    // 连接主流程
+    create_struct -> put_start [ltail=cluster_put];
+    create_struct -> get_start [ltail=cluster_get];
+    create_struct -> grow_start [ltail=cluster_grow];
+}

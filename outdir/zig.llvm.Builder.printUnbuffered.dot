@@ -1,0 +1,71 @@
+
+digraph printUnbuffered_flowchart {
+    graph [rankdir=TB, fontname="Courier New", splines=ortho];
+    node [shape=rectangle, fontname="Courier New", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier New"];
+
+    start [label="Start printUnbuffered", shape=ellipse, fillcolor="#b3e2cd"];
+    init_writer [label="Initialize writer_with_errors\nand writer"];
+    check_metadata [label="Check source_filename,\ndata_layout, target_triple"];
+    write_header [label="Write module header\n(ModuleID, datalayout, triple)"];
+    module_asm [label="Process module_asm items"];
+    process_types [label="Process type definitions"];
+    process_vars [label="Process global variables"];
+    process_aliases [label="Process aliases"];
+    process_funcs [label="Process functions"];
+    attribute_groups [label="Process attribute groups"];
+    metadata_named [label="Process named metadata"];
+    metadata_map [label="Process metadata map"];
+    end [label="End", shape=ellipse, fillcolor="#b3e2cd"];
+
+    // 主要流程顺序
+    start -> init_writer -> check_metadata;
+    check_metadata -> write_header [label="Any metadata exists"];
+    check_metadata -> module_asm [label="No metadata"];
+
+    write_header -> module_asm;
+    module_asm -> process_types;
+    process_types -> process_vars;
+    process_vars -> process_aliases;
+    process_aliases -> process_funcs;
+    process_funcs -> attribute_groups;
+    attribute_groups -> metadata_named;
+    metadata_named -> metadata_map -> end;
+
+    // 函数处理子流程
+    subgraph cluster_functions {
+        label="Process Functions";
+        func_start [label="For each function"];
+        func_metadata [label="Write function attributes\nand metadata"];
+        write_prototype [label="Write function prototype\n(define/declare)"];
+        process_params [label="Process parameters"];
+        write_body [label="Write function body"];
+        process_instructions [label="Process instructions\n(binary ops, calls, etc)"];
+        write_metadata [label="Attach debug metadata"];
+
+        func_start -> func_metadata -> write_prototype -> process_params;
+        process_params -> write_body -> process_instructions -> write_metadata;
+    }
+
+    process_funcs -> func_start [lhead=cluster_functions];
+
+    // 元数据处理子流程
+    subgraph cluster_metadata {
+        label="Process Metadata";
+        md_start [label="For each metadata item"];
+        md_file [label="DIFile metadata"];
+        md_compile_unit [label="DICompileUnit"];
+        md_subprogram [label="DISubprogram"];
+        md_location [label="DILocation"];
+        md_types [label="Type metadata"];
+
+        md_start -> {md_file, md_compile_unit, md_subprogram, md_location, md_types};
+    }
+
+    metadata_map -> md_start [lhead=cluster_metadata];
+
+    // 条件判断示例
+    check_metadata -> write_header [xlabel="source_filename\n|| data_layout\n|| target_triple", fontsize=10];
+    check_metadata -> module_asm [xlabel="else", fontsize=10];
+    process_instructions -> write_metadata [xlabel="if has\ndebug info", fontsize=10];
+}

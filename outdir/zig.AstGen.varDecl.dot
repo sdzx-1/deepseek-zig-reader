@@ -1,0 +1,98 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Courier"];
+    edge [fontname="Courier"];
+
+    start [label="开始varDecl函数"];
+    emit_dbg [label="调用emitDbgNode生成调试信息"];
+    get_astgen_tree [label="获取astgen和tree"];
+    check_underscore [label="检查变量名是否为'_'"];
+    error_underscore [label="报错：'_'需要@\"_\"语法", shape=box, color=red];
+    detect_shadow [label="检测局部变量阴影"];
+    check_init_node [label="检查是否有初始化节点"];
+    error_no_init [label="报错：变量必须初始化", shape=box, color=red];
+    check_addrspace [label="检查addrspace_node是否存在"];
+    error_addrspace [label="报错：不能设置局部变量的地址空间", shape=box, color=red];
+    check_section [label="检查section_node是否存在"];
+    error_section [label="报错：不能设置局部变量的段", shape=box, color=red];
+    handle_align [label="处理对齐align_node"];
+    switch_mut_token [label="根据mut_token类型分支", shape=diamond];
+    handle_const [label="处理const声明"];
+    handle_var [label="处理var声明"];
+    return_scope [label="返回子作用域"];
+
+    start -> emit_dbg;
+    emit_dbg -> get_astgen_tree;
+    get_astgen_tree -> check_underscore;
+
+    check_underscore -> error_underscore [label="是"];
+    check_underscore -> detect_shadow [label="否"];
+    error_underscore -> detect_shadow [style=invis];
+
+    detect_shadow -> check_init_node;
+    check_init_node -> error_no_init [label="无初始化"];
+    check_init_node -> check_addrspace [label="有初始化"];
+    error_no_init -> check_addrspace [style=invis];
+
+    check_addrspace -> error_addrspace [label="存在"];
+    check_addrspace -> check_section [label="不存在"];
+    error_addrspace -> check_section [style=invis];
+
+    check_section -> error_section [label="存在"];
+    check_section -> handle_align [label="不存在"];
+    error_section -> handle_align [style=invis];
+
+    handle_align -> switch_mut_token;
+
+    switch_mut_token -> handle_const [label="keyword_const"];
+    switch_mut_token -> handle_var [label="keyword_var"];
+
+    subgraph cluster_const {
+        label="处理const分支";
+        style=dashed;
+        const_check_comptime [label="检查comptime_token是否冗余"];
+        const_force_comptime [label="标记强制comptime"];
+        const_check_align [label="检查align_inst是否为.none"];
+        const_handle_init [label="处理初始化表达式"];
+        const_add_validate [label="添加validate_const指令"];
+        const_add_dbg_val [label="添加dbg_var_val调试"];
+        const_create_scope_val [label="创建LocalVal子作用域"];
+        const_handle_ptr [label="处理指针分配"];
+        const_resolve_inferred [label="解析推断指针"];
+        const_add_dbg_ptr [label="添加dbg_var_ptr调试"];
+        const_create_scope_ptr [label="创建LocalPtr子作用域"];
+
+        handle_const -> const_check_comptime;
+        const_check_comptime -> const_force_comptime;
+        const_force_comptime -> const_check_align;
+        const_check_align -> const_handle_init [label="条件满足"];
+        const_handle_init -> const_add_validate;
+        const_add_validate -> const_add_dbg_val;
+        const_add_dbg_val -> const_create_scope_val -> return_scope;
+
+        const_check_align -> const_handle_ptr [label="条件不满足"];
+        const_handle_ptr -> const_resolve_inferred;
+        const_resolve_inferred -> const_add_dbg_ptr;
+        const_add_dbg_ptr -> const_create_scope_ptr -> return_scope;
+    }
+
+    subgraph cluster_var {
+        label="处理var分支";
+        style=dashed;
+        var_check_comptime [label="检查comptime_token冗余"];
+        var_handle_alloc [label="处理内存分配"];
+        var_handle_init [label="处理初始化表达式"];
+        var_resolve_inferred [label="解析推断指针"];
+        var_add_dbg_ptr [label="添加dbg_var_ptr调试"];
+        var_create_scope_ptr [label="创建LocalPtr子作用域"];
+
+        handle_var -> var_check_comptime;
+        var_check_comptime -> var_handle_alloc;
+        var_handle_alloc -> var_handle_init;
+        var_handle_init -> var_resolve_inferred;
+        var_resolve_inferred -> var_add_dbg_ptr;
+        var_add_dbg_ptr -> var_create_scope_ptr -> return_scope;
+    }
+
+    return_scope [shape=ellipse];
+}

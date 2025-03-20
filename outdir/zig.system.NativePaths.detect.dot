@@ -1,0 +1,57 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect];
+    start [label="开始", shape=ellipse];
+    end [label="返回self", shape=ellipse];
+    check_nix_cflags [label="检查NIX_CFLAGS_COMPILE环境变量", shape=diamond];
+    parse_nix_cflags [label="解析NIX_CFLAGS_COMPILE\n处理-isystem/-iframework等参数"];
+    check_nix_ldflags [label="检查NIX_LDFLAGS环境变量", shape=diamond];
+    parse_nix_ldflags [label="解析NIX_LDFLAGS\n处理-rpath/-L/-l等参数"];
+    check_is_nix [label="is_nix为真？", shape=diamond];
+    handle_darwin [label="处理macOS系统\n检查SDK路径和Homebrew路径"];
+    handle_solarish [label="处理Solarish系统\n添加/usr/lib/64等路径"];
+    handle_haiku [label="处理Haiku系统\n添加/system/lib等路径"];
+    handle_linux [label="处理非Windows/WASI系统\n添加标准路径和环境变量路径"];
+    env_checks [label="处理C_INCLUDE_PATH\nCPLUS_INCLUDE_PATH\nLIBRARY_PATH"];
+    os_switch [label="根据操作系统类型分支", shape=diamond];
+
+    start -> check_nix_cflags;
+    check_nix_cflags -> parse_nix_cflags [label="存在"];
+    check_nix_cflags -> check_nix_ldflags [label="不存在"];
+    parse_nix_cflags -> check_nix_ldflags;
+    check_nix_ldflags -> parse_nix_ldflags [label="存在"];
+    check_nix_ldflags -> check_is_nix [label="不存在"];
+    parse_nix_ldflags -> check_is_nix;
+    check_is_nix -> end [label="是"];
+    check_is_nix -> os_switch [label="否"];
+
+    os_switch -> handle_darwin [label="Darwin"];
+    os_switch -> handle_solarish [label="Solarish"];
+    os_switch -> handle_haiku [label="Haiku"];
+    os_switch -> handle_linux [label="其他(非Windows/WASI)"];
+
+    handle_darwin -> end;
+    handle_solarish -> end;
+    handle_haiku -> end;
+    handle_linux -> env_checks -> end;
+
+    // Subprocesses
+    subgraph cluster_nix {
+        label="Nix环境处理";
+        check_nix_cflags;
+        parse_nix_cflags;
+        check_nix_ldflags;
+        parse_nix_ldflags;
+        check_is_nix;
+    }
+
+    subgraph cluster_os {
+        label="操作系统特定处理";
+        os_switch;
+        handle_darwin;
+        handle_solarish;
+        handle_haiku;
+        handle_linux;
+        env_checks;
+    }
+}

@@ -1,0 +1,69 @@
+
+digraph ArgIteratorGeneral {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 主结构
+    ArgIteratorGeneral -> Struct;
+    Struct [label="返回的结构体类型"];
+    Struct -> init;
+    Struct -> initTakeOwnership;
+    Struct -> skipWhitespace;
+    Struct -> skip;
+    Struct -> next;
+    Struct -> emitBackslashes;
+    Struct -> emitCharacter;
+    Struct -> deinit;
+
+    // init 方法
+    init [label="init():\n- 分配buffer\n- 设置初始状态"];
+    init -> buffer_alloc [label="allocator.alloc()"];
+    buffer_alloc -> errdefer [label="错误时释放buffer"];
+    init -> return_struct [label="返回初始化后的结构体"];
+
+    // initTakeOwnership 方法
+    initTakeOwnership [label="initTakeOwnership():\n- 分配buffer\n- 设置释放标志"];
+    initTakeOwnership -> buffer_alloc_take;
+    buffer_alloc_take [label="allocator.alloc()"];
+    buffer_alloc_take -> errdefer_take [label="错误时释放buffer"];
+    initTakeOwnership -> return_struct_take [label="返回带所有权标志的结构体"];
+
+    // skipWhitespace 逻辑
+    skipWhitespace [label="skipWhitespace():\n循环处理空白和注释"];
+    skipWhitespace -> check_character [label="遍历字符"];
+    check_character -> is_whitespace [label="空格/制表符"];
+    check_character -> is_comment [label="'#' 且支持注释"];
+    is_comment -> skip_comment_line [label="跳过直到换行符"];
+    check_character -> return_false [label="遇到终止符"];
+    check_character -> break_loop [label="非空白字符"];
+
+    // next() 主解析流程
+    next [label="next():\n参数解析状态机"];
+    next -> call_skipWhitespace;
+    call_skipWhitespace -> has_content [label="有内容继续"];
+    has_content -> handle_quotes [label="处理引号"];
+    handle_quotes -> in_quote_check [label="切换引号状态"];
+    handle_quotes -> emit_escaped_quote [label="转义引号"];
+    next -> handle_backslash [label="处理反斜杠计数"];
+    handle_backslash -> check_space [label="遇到空格且不在引号内"];
+    check_space -> return_token [label="生成token"];
+    next -> emit_character [label="普通字符处理"];
+    emit_character -> buffer_write [label="写入缓冲区"];
+
+    // 辅助方法
+    emitBackslashes [label="emitBackslashes():\n写入指定数量的反斜杠"];
+    emitCharacter [label="emitCharacter():\n写入单个字符到缓冲区"];
+
+    // 资源释放
+    deinit [label="deinit():\n释放buffer和cmd_line"];
+    deinit -> free_buffer [label="allocator.free(buffer)"];
+    deinit -> conditional_free_cmd [label="如果free_cmd_line_on_deinit为真"];
+
+    // 连接逻辑关系
+    edge [style=dashed, color=gray];
+    init -> skipWhitespace;
+    next -> emitBackslashes;
+    next -> emitCharacter;
+    handle_backslash -> emitBackslashes;
+    emit_escaped_quote -> emitCharacter;
+}

@@ -1,0 +1,96 @@
+
+digraph TLSClientInitFlow {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    start [label="开始初始化"];
+    parse_host [label="解析options.host"];
+    generate_random [label="生成随机缓冲区"];
+    init_key_share [label="初始化密钥共享参数"];
+    build_extensions [label="构建扩展载荷"];
+    handle_server_name [label="处理服务器名称扩展"];
+    construct_client_hello [label="构造Client Hello消息"];
+    write_cleartext [label="写入明文头到流"];
+    read_record [label="读取TLS记录"];
+    process_record [label="处理记录内容"];
+    handle_server_hello [label="处理Server Hello"];
+    handle_encrypted_ext [label="处理Encrypted Extensions"];
+    process_certificates [label="处理证书"];
+    verify_cert_chain [label="验证证书链"];
+    handle_server_key_exchange [label="处理Server Key Exchange"];
+    handle_server_hello_done [label="处理Server Hello Done"];
+    handle_certificate_verify [label="处理Certificate Verify"];
+    handle_finished [label="处理Finished消息"];
+    setup_application_cipher [label="设置应用层密码"];
+    return_client [label="返回Client实例"];
+    error [label="错误处理"];
+
+    start -> parse_host;
+    parse_host -> generate_random;
+    generate_random -> init_key_share;
+    init_key_share -> build_extensions;
+    build_extensions -> handle_server_name;
+    handle_server_name -> construct_client_hello;
+    construct_client_hello -> write_cleartext;
+    write_cleartext -> read_record;
+
+    read_record -> process_record [label="读取记录头"];
+    process_record -> handle_server_hello [label="Server Hello"];
+    process_record -> handle_encrypted_ext [label="Encrypted Extensions"];
+    process_record -> process_certificates [label="Certificate"];
+    process_record -> handle_server_key_exchange [label="Server Key Exchange"];
+    process_record -> handle_server_hello_done [label="Server Hello Done"];
+    process_record -> handle_certificate_verify [label="Certificate Verify"];
+    process_record -> handle_finished [label="Finished"];
+    process_record -> error [label="错误类型"];
+
+    handle_server_hello -> verify_tls_version [label="协商TLS版本"];
+    verify_tls_version -> setup_handshake_cipher [label="选择密码套件"];
+    setup_handshake_cipher -> read_record [label="继续读取记录"];
+
+    handle_encrypted_ext -> read_record [label="进入证书阶段"];
+    process_certificates -> verify_cert_chain;
+    verify_cert_chain -> read_record [label="继续验证或完成"];
+
+    handle_server_key_exchange -> verify_signature [label="验证签名"];
+    verify_signature -> read_record [label="等待Server Hello Done"];
+
+    handle_server_hello_done -> send_client_key_exchange [label="发送密钥"];
+    send_client_key_exchange -> setup_application_cipher;
+
+    handle_certificate_verify -> verify_signature_handshake [label="验证握手签名"];
+    verify_signature_handshake -> read_record [label="等待Finished"];
+
+    handle_finished -> setup_application_cipher [label="验证完成消息"];
+    setup_application_cipher -> return_client [label="完成握手"];
+
+    error -> return_client [label="返回错误"];
+
+    // 子流程节点定义
+    subgraph cluster_tls_handshake {
+        label="TLS握手处理";
+        handle_server_hello;
+        handle_encrypted_ext;
+        process_certificates;
+        handle_server_key_exchange;
+        handle_server_hello_done;
+        handle_certificate_verify;
+        handle_finished;
+    }
+
+    subgraph cluster_initialization {
+        label="初始化阶段";
+        parse_host;
+        generate_random;
+        init_key_share;
+        build_extensions;
+        handle_server_name;
+        construct_client_hello;
+        write_cleartext;
+    }
+
+    subgraph cluster_error_handling {
+        label="错误处理";
+        error;
+    }
+}

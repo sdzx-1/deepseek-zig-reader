@@ -1,0 +1,88 @@
+
+digraph ComponentIterator {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 初始化流程
+    start [label="开始"];
+    init [label="init(path)"];
+    check_path_type [label="检查path_type"];
+    handle_posix_uefi [label="处理POSIX/UEFI路径\n计算连续分隔符确定root_end_index"];
+    handle_windows [label="处理Windows路径"];
+    check_namespace_prefix [label="检测命名空间前缀\n(\\.\, \\?\, \??\)"];
+    return_error [label="返回error.BadPathName"];
+    check_unc [label="处理UNC路径"];
+    check_drive [label="处理驱动器路径"];
+    check_relative [label="处理相对路径"];
+    init_return [label="返回初始化结构体"];
+
+    // 方法流程
+    root_method [label="root()"];
+    first_method [label="first()"];
+    last_method [label="last()"];
+    next_method [label="next()"];
+    peek_next_method [label="peekNext()"];
+    previous_method [label="previous()"];
+    peek_previous_method [label="peekPrevious()"];
+
+    // 初始化逻辑连接
+    start -> init;
+    init -> check_path_type;
+    check_path_type -> handle_posix_uefi [label="posix/uefi"];
+    check_path_type -> handle_windows [label="windows"];
+    
+    handle_windows -> check_namespace_prefix;
+    check_namespace_prefix -> return_error [label="检测到命名空间前缀"];
+    check_namespace_prefix -> check_unc [label="未检测到前缀\n检查UNC/驱动器"];
+    
+    check_unc -> check_drive [label="非UNC"];
+    check_unc -> handle_unc_logic [label="UNC路径处理"];
+    check_drive -> handle_drive_logic [label="绝对/相对路径处理"];
+    
+    handle_posix_uefi -> init_return;
+    handle_unc_logic -> init_return;
+    handle_drive_logic -> init_return;
+    check_relative -> init_return [label="相对路径处理"];
+
+    // 方法调用关系
+    init_return -> root_method [label="root()调用"];
+    init_return -> first_method [label="first()调用"];
+    init_return -> last_method [label="last()调用"];
+    
+    first_method -> next_method [label="调用next()"];
+    last_method -> previous_method [label="调用previous()"];
+    
+    next_method -> peek_next_method [label="peekNext()内部调用"];
+    previous_method -> peek_previous_method [label="peekPrevious()内部调用"];
+
+    // 通用流程节点
+    return_error -> end [label="错误返回"];
+    init_return -> end [label="成功返回"];
+    
+    end [label="结束"];
+    
+    // 子图分组（仅示例结构）
+    subgraph cluster_init {
+        label="初始化阶段";
+        init;
+        check_path_type;
+        handle_posix_uefi;
+        handle_windows;
+        check_namespace_prefix;
+        check_unc;
+        check_drive;
+        check_relative;
+        init_return;
+    }
+    
+    subgraph cluster_methods {
+        label="迭代方法";
+        root_method;
+        first_method;
+        last_method;
+        next_method;
+        peek_next_method;
+        previous_method;
+        peek_previous_method;
+    }
+}

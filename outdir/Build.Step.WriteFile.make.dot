@@ -1,0 +1,73 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect, style=rounded];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 make 函数", shape=ellipse];
+    init_vars [label="初始化变量：\nb, arena, write_file"];
+    clear_watch [label="清除监视输入"];
+    init_cache [label="初始化缓存管理器 man"];
+    process_files [label="遍历所有文件"];
+    hash_bytes [label="哈希处理字节内容", shape=diamond];
+    hash_copy [label="哈希处理复制路径\n并添加监视输入", shape=diamond];
+    process_dirs [label="遍历所有目录"];
+    open_dir [label="打开目录\n处理包含/排除扩展名"];
+    walk_dir [label="遍历目录条目"];
+    check_entry [label="检查条目是否符合条件", shape=diamond];
+    handle_dir [label="处理目录\n添加监视输入"];
+    handle_file [label="处理文件\n添加到哈希"];
+    check_cache [label="检查缓存是否命中", shape=diamond];
+    cache_hit [label="设置生成目录路径\n标记缓存命中"];
+    cache_miss [label="生成缓存路径\n创建缓存目录"];
+    write_files [label="处理文件写入/复制"];
+    write_bytes [label="写入字节内容", shape=diamond];
+    copy_file [label="复制文件到缓存", shape=diamond];
+    copy_dirs [label="处理目录复制"];
+    walk_cache_dir [label="遍历缓存目录"];
+    copy_entry [label="复制文件/创建目录", shape=diamond];
+    write_manifest [label="写入清单文件"];
+    end [label="结束", shape=ellipse];
+    error [label="错误处理\n记录失败信息", shape=hexagon];
+
+    start -> init_vars -> clear_watch -> init_cache;
+    init_cache -> process_files;
+
+    process_files -> hash_bytes [label="文件内容为 bytes"];
+    process_files -> hash_copy [label="文件内容为 copy"];
+    hash_bytes -> process_files;
+    hash_copy -> process_files;
+
+    process_files -> process_dirs [label="文件处理完成"];
+    process_dirs -> open_dir -> walk_dir;
+    walk_dir -> check_entry;
+    check_entry -> handle_dir [label="目录"];
+    check_entry -> handle_file [label="文件"];
+    check_entry -> walk_dir [label="其他类型"];
+    handle_dir -> walk_dir;
+    handle_file -> walk_dir;
+    walk_dir -> process_dirs [label="遍历完成"];
+
+    process_dirs -> check_cache;
+    check_cache -> cache_hit [label="命中"];
+    check_cache -> cache_miss [label="未命中"];
+    cache_hit -> end;
+    cache_miss -> write_files -> copy_dirs -> write_manifest -> end;
+
+    write_files -> write_bytes [label="bytes 类型"];
+    write_files -> copy_file [label="copy 类型"];
+    write_bytes -> write_files;
+    copy_file -> write_files;
+
+    copy_dirs -> walk_cache_dir;
+    walk_cache_dir -> copy_entry;
+    copy_entry -> walk_cache_dir [label="继续遍历"];
+    walk_cache_dir -> copy_dirs [label="遍历完成"];
+
+    // 错误处理路径
+    open_dir -> error [label="打开失败"];
+    write_bytes -> error [label="写入失败"];
+    copy_file -> error [label="复制失败"];
+    copy_entry -> error [label="复制失败"];
+    check_entry -> error [label="路径检查失败"];
+    walk_dir -> error [label="遍历错误"];
+}

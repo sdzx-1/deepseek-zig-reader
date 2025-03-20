@@ -1,0 +1,98 @@
+
+digraph PriorityQueue {
+    node [shape=rectangle, style=filled, fillcolor=lightblue];
+
+    // Initialization and Deinitialization
+    init [label="init(allocator, context)"];
+    deinit [label="deinit()"];
+    fromOwnedSlice [label="fromOwnedSlice(allocator, items, context)"];
+
+    // Capacity Management
+    ensureTotalCapacity [label="ensureTotalCapacity(new_capacity)"];
+    ensureTotalCapacityPrecise [label="ensureTotalCapacityPrecise(new_capacity)"];
+    ensureUnusedCapacity [label="ensureUnusedCapacity(additional_count)"];
+    shrinkAndFree [label="shrinkAndFree(new_capacity)"];
+    clearRetainingCapacity [label="clearRetainingCapacity()"];
+    clearAndFree [label="clearAndFree()"];
+
+    // Core Operations
+    add [label="add(elem)"];
+    addUnchecked [label="addUnchecked(elem)"];
+    siftUp [label="siftUp(start_index)"];
+    addSlice [label="addSlice(items)"];
+    peek [label="peek()"];
+    removeOrNull [label="removeOrNull()"];
+    remove [label="remove()"];
+    removeIndex [label="removeIndex(index)"];
+    siftDown [label="siftDown(target_index)"];
+    update [label="update(elem, new_elem)"];
+
+    // Helper Functions
+    allocatedSlice [label="allocatedSlice()"];
+    Iterator [label="Iterator"];
+
+    // Relationships
+    init -> fromOwnedSlice [style=dotted];
+    deinit -> allocatedSlice;
+
+    add -> ensureUnusedCapacity;
+    ensureUnusedCapacity -> ensureTotalCapacity;
+    ensureTotalCapacity -> ensureTotalCapacityPrecise [label="if needed"];
+    add -> addUnchecked;
+    addUnchecked -> siftUp;
+    addSlice -> addUnchecked;
+
+    removeOrNull -> remove;
+    remove -> removeIndex;
+    removeIndex -> siftDown [label="if index == 0"];
+    removeIndex -> siftUp [label="if last < parent"];
+    removeIndex -> siftDown [label="default case"];
+
+    update -> siftUp [label="new_elem < old_elem"];
+    update -> siftDown [label="new_elem > old_elem"];
+
+    // Memory Management
+    ensureTotalCapacityPrecise -> allocatedSlice;
+    shrinkAndFree -> allocatedSlice;
+
+    // Subroutines
+    siftUp -> compareFn;
+    siftDown -> compareFn;
+
+    // Iterator
+    Iterator -> next;
+    Iterator -> reset;
+
+    // Grouping
+    subgraph cluster_memory {
+        label="Memory Management";
+        ensureTotalCapacity;
+        ensureTotalCapacityPrecise;
+        ensureUnusedCapacity;
+        shrinkAndFree;
+        clearRetainingCapacity;
+        clearAndFree;
+        allocatedSlice;
+    }
+
+    subgraph cluster_core {
+        label="Core Operations";
+        add;
+        addUnchecked;
+        siftUp;
+        addSlice;
+        peek;
+        removeOrNull;
+        remove;
+        removeIndex;
+        siftDown;
+        update;
+    }
+
+    subgraph cluster_init {
+        label="Initialization";
+        init;
+        fromOwnedSlice;
+        deinit;
+    }
+}

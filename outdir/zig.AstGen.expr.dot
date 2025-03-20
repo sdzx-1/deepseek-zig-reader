@@ -1,0 +1,55 @@
+
+digraph flowchart_expr {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start expr(gz, scope, ri, node)"];
+    init [label="初始化:\n- 获取astgen和tree\n- 设置匿名名称策略"];
+    check_node_uses_anon [label="检查node是否需要匿名策略"];
+    switch_node_tag [label="根据node的标签进行分支"];
+    handle_assign [label="处理赋值操作\n(assign, assign_destructure, 等)"];
+    handle_bin_op [label="处理二元操作\n(add, sub, mul, 等)"];
+    handle_un_op [label="处理一元操作\n(bool_not, bit_not, 等)"];
+    handle_identifier [label="处理标识符"];
+    handle_call [label="处理函数调用\n(call_one, builtin_call, 等)"];
+    handle_control_flow [label="处理控制流\n(if, while, for, switch)"];
+    handle_literals [label="处理字面量\n(string, number, char)"];
+    handle_special_ops [label="处理特殊操作\n(deref, address_of, catch, orelse)"];
+    return_result [label="返回结果\n(rvalue或其他指令)"];
+
+    start -> init;
+    init -> check_node_uses_anon;
+    check_node_uses_anon -> switch_node_tag;
+
+    switch_node_tag -> handle_assign [label=".assign*"];
+    switch_node_tag -> handle_bin_op [label=".add, .sub, .mul, 等"];
+    switch_node_tag -> handle_un_op [label=".bool_not, .bit_not"];
+    switch_node_tag -> handle_identifier [label=".identifier"];
+    switch_node_tag -> handle_call [label=".call*, .builtin_call*"];
+    switch_node_tag -> handle_control_flow [label=".if, .while, .for"];
+    switch_node_tag -> handle_literals [label=".string_literal, .number_literal"];
+    switch_node_tag -> handle_special_ops [label=".deref, .address_of, .catch"];
+    switch_node_tag -> return_result [label="其他分支直接返回"];
+
+    handle_assign -> return_result;
+    handle_bin_op -> return_result;
+    handle_un_op -> return_result;
+    handle_identifier -> return_result;
+    handle_call -> return_result;
+    handle_control_flow -> return_result;
+    handle_literals -> return_result;
+    handle_special_ops -> return_result;
+
+    // 递归调用示例
+    subgraph cluster_recursion {
+        label="递归调用处理子节点";
+        style="dashed";
+        handle_control_flow -> expr_call [label="例如处理条件表达式"];
+        expr_call [label="递归调用expr(...)"];
+        expr_call -> return_result;
+    }
+
+    // 注释节点
+    note [shape=note, label="注：部分节点类型（如unreachable）\n已在其他模块处理", color=grey];
+    switch_node_tag -> note [style="invis"];
+}

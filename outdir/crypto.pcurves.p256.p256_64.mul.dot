@@ -1,0 +1,30 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始"];
+    decompose_args [label="分解输入参数arg1和arg2"];
+    initial_mult [label="初始乘法步骤（mulxU64）"];
+    handle_carries [label="处理进位（addcarryxU64）"];
+    modular_reduction [label="模约减（使用特定常数乘法和调整）"];
+    intermediate_steps [label="中间乘法与累加"];
+    subtract_adjust [label="减法调整（subborrowxU64）"];
+    cmov_select [label="条件选择结果（cmovznzU64）"];
+    output [label="输出结果到out1"];
+    end [label="结束"];
+
+    start -> decompose_args;
+    decompose_args -> initial_mult;
+    initial_mult -> handle_carries;
+    handle_carries -> modular_reduction;
+    modular_reduction -> intermediate_steps [label="重复处理每个输入部分"];
+    intermediate_steps -> subtract_adjust;
+    subtract_adjust -> cmov_select;
+    cmov_select -> output;
+    output -> end;
+
+    // 细化中间步骤的循环结构
+    intermediate_steps -> handle_carries [style=dotted, label="循环处理每个元素"];
+    modular_reduction -> handle_carries [style=dotted, label="模约减中的进位处理"];
+}

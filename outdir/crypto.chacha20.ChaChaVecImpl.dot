@@ -1,0 +1,48 @@
+
+digraph ChaChaVecImpl {
+    rankdir=TB;
+    node [shape=rectangle, style=filled, fillcolor=lightblue];
+
+    // 主要函数和模块
+    ChaChaVecImpl [label="ChaChaVecImpl(rounds_nb, degree)"];
+    initContext [label="initContext(key, d)"];
+    chacha20Core [label="chacha20Core(x, input)"];
+    hashToBytes [label="hashToBytes(dm, out, x)"];
+    contextFeedback [label="contextFeedback(x, ctx)"];
+    chacha20Xor [label="chacha20Xor(out, in, key, nonce, count64)"];
+    chacha20Stream [label="chacha20Stream(out, key, nonce, count64)"];
+    hchacha20 [label="hchacha20(input, key)"];
+
+    // 结构体内部关系
+    ChaChaVecImpl -> {initContext, chacha20Core, hashToBytes, contextFeedback, chacha20Xor, chacha20Stream, hchacha20};
+
+    // 函数调用关系
+    initContext -> switch_degree [label="switch(degree)"];
+    switch_degree [label="分支处理 degree=1/2/4", shape=diamond];
+
+    chacha20Core -> rotl [label="向量旋转"];
+    chacha20Core -> shuffle [label="向量重排"];
+    chacha20Core -> rounds_loop [label="循环 rounds_nb/2 次"];
+    rounds_loop [label="每轮执行四步操作:\n1. 加法/XOR\n2. 旋转\n3. 重排\n4. 反馈"];
+
+    chacha20Xor -> initContext;
+    chacha20Xor -> chacha20Core;
+    chacha20Xor -> contextFeedback;
+    chacha20Xor -> hashToBytes [label="生成密钥流"];
+    chacha20Xor -> buffer_loop [label="分块处理输入"];
+    buffer_loop [label="按 64*d 分块处理", shape=ellipse];
+
+    chacha20Stream -> initContext;
+    chacha20Stream -> chacha20Core;
+    chacha20Stream -> hashToBytes [label="直接输出密钥流"];
+    chacha20Stream -> counter_update [label="更新计数器"];
+    counter_update [label="根据 count64 更新计数器"];
+
+    hchacha20 -> initContext;
+    hchacha20 -> chacha20Core [label="执行核心轮次"];
+    hchacha20 -> hashToBytes [label="提取中间结果"];
+
+    // 辅助节点布局
+    {rank=same; initContext, chacha20Core}
+    {rank=same; chacha20Xor, chacha20Stream}
+}

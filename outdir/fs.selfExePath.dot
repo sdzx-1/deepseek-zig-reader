@@ -1,0 +1,111 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start selfExePath(out_buffer)"];
+    check_darwin [label="if (is_darwin)" shape=diamond];
+    darwin_path [label="Call _NSGetExecutablePath()"];
+    check_rc [label="rc != 0?" shape=diamond];
+    error_nametoolong1 [label="return error.NameTooLong"];
+    darwin_realpath [label="Call realpathZ()"];
+    check_realpath_error [label="Handle realpath error" shape=diamond];
+    check_buffer_len [label="real_path.len > out_buffer.len?" shape=diamond];
+    error_nametoolong2 [label="return error.NameTooLong"];
+    copy_result [label="Copy to out_buffer and return"];
+    os_switch [label="switch (native_os)" shape=diamond];
+    linux_serenity [label="Read /proc/self/exe"];
+    solaris_illumos [label="Read /proc/self/path/a.out"];
+    freebsd_dragonfly [label="sysctl(KERN_PROC_PATHNAME)"];
+    netbsd [label="sysctl(KERN_PROC_ARGS)"];
+    openbsd_haiku [label="Check argv[0] and PATH"];
+    windows_path [label="Get Windows image path and resolve"];
+    compile_error [label="Compile error (unsupported OS)"];
+
+    start -> check_darwin;
+    
+    check_darwin -> darwin_path [label="Yes"];
+    darwin_path -> check_rc;
+    check_rc -> error_nametoolong1 [label="Yes"];
+    check_rc -> darwin_realpath [label="No"];
+    darwin_realpath -> check_realpath_error;
+    check_realpath_error -> check_buffer_len [label="No error"];
+    check_buffer_len -> error_nametoolong2 [label="Yes"];
+    check_buffer_len -> copy_result [label="No"];
+    
+    check_darwin -> os_switch [label="No"];
+    os_switch -> linux_serenity [label="Linux, Serenity"];
+    os_switch -> solaris_illumos [label="Solaris, Illumos"];
+    os_switch -> freebsd_dragonfly [label="FreeBSD, DragonFly"];
+    os_switch -> netbsd [label="NetBSD"];
+    os_switch -> openbsd_haiku [label="OpenBSD, Haiku"];
+    os_switch -> windows_path [label="Windows"];
+    os_switch -> compile_error [label="Other OS"];
+    
+    linux_serenity -> return_result [label="Return readlink result"];
+    solaris_illumos -> return_result [label="Return readlink result"];
+    freebsd_dragonfly -> return_result [label="Return sysctl result"];
+    netbsd -> return_result [label="Return sysctl result"];
+    
+    openbsd_haiku -> argv_check [label="Check argv[0]"];
+    argv_check [label="argv[0] contains '/'" shape=diamond];
+    argv_check -> realpath_argv [label="Yes"];
+    realpath_argv [label="Call realpath(argv[0])"];
+    realpath_argv -> check_realpath_error_haiku [label="Handle error"];
+    check_realpath_error_haiku [shape=diamond];
+    check_realpath_error_haiku -> copy_result_haiku [label="Success"];
+    copy_result_haiku [label="Copy to buffer and return"];
+    
+    argv_check -> search_path [label="No"];
+    search_path [label="Search in PATH"];
+    search_path -> found_in_path [label="Found"];
+    found_in_path [label="Resolve and return"];
+    search_path -> error_filenotfound [label="Not found"];
+    
+    windows_path -> resolve_symlink [label="Resolve image path"];
+    resolve_symlink -> return_result_win [label="Return realpath"];
+    
+    error_nametoolong1 [shape=ellipse];
+    error_nametoolong2 [shape=ellipse];
+    error_filenotfound [label="return error.FileNotFound" shape=ellipse];
+    return_result [shape=ellipse];
+    copy_result_haiku [shape=ellipse];
+    found_in_path [shape=ellipse];
+    return_result_win [shape=ellipse];
+    compile_error [shape=ellipse];
+
+    // Edge connections
+    darwin_realpath -> check_realpath_error;
+    check_realpath_error -> check_buffer_len [label="No error"];
+    check_buffer_len -> error_nametoolong2 [label="Yes"];
+    check_buffer_len -> copy_result [label="No"];
+    copy_result -> end;
+
+    openbsd_haiku -> argv_check;
+    argv_check -> realpath_argv [label="Yes"];
+    realpath_argv -> check_realpath_error_haiku;
+    check_realpath_error_haiku -> copy_result_haiku [label="Success"];
+    check_realpath_error_haiku -> error_filenotfound [label="Error"];
+    argv_check -> search_path [label="No"];
+    search_path -> found_in_path [label="Found"];
+    search_path -> error_filenotfound [label="Not found"];
+    found_in_path -> end;
+    error_filenotfound -> end;
+
+    windows_path -> resolve_symlink;
+    resolve_symlink -> return_result_win;
+    return_result_win -> end;
+
+    linux_serenity -> return_result;
+    return_result -> end;
+
+    solaris_illumos -> return_result;
+    freebsd_dragonfly -> return_result;
+    netbsd -> return_result;
+
+    error_nametoolong1 -> end;
+    error_nametoolong2 -> end;
+    compile_error -> end;
+
+    end [label="End", shape=ellipse];
+}

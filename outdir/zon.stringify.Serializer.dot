@@ -1,0 +1,80 @@
+
+digraph SerializerFlow {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded,filled", fillcolor=lightblue];
+
+    start [label="Start Serializer.init", shape=ellipse, fillcolor=pink];
+    init [label="Initialize Serializer\nwith writer and options"];
+    value [label="value()"];
+    type_check [label="Check Type of val", shape=diamond];
+    handle_int [label="int()\nFormat integer"];
+    handle_float [label="float()\nFormat float"];
+    handle_bool_null [label="Format bool/null"];
+    handle_enum [label="ident()\nFormat enum"];
+    handle_pointer [label="Check pointer type"];
+    handle_array [label="Begin Tuple\nLoop array items"];
+    handle_struct [label="Check struct fields\nBegin Struct"];
+    handle_union [label="Handle union tag and payload"];
+    handle_optional [label="Check optional\nvalue or null"];
+    handle_vector [label="Begin Tuple\nLoop vector items"];
+    end_value [label="End value()", shape=ellipse, fillcolor=pink];
+
+    start -> init;
+    init -> value;
+
+    value -> type_check;
+
+    type_check -> handle_int [label="int/comptime_int"];
+    type_check -> handle_float [label="float/comptime_float"];
+    type_check -> handle_bool_null [label="bool/null"];
+    type_check -> handle_enum [label="enum/enum_literal"];
+    type_check -> handle_pointer [label="pointer"];
+    type_check -> handle_array [label="array"];
+    type_check -> handle_struct [label="struct"];
+    type_check -> handle_union [label="union"];
+    type_check -> handle_optional [label="optional"];
+    type_check -> handle_vector [label="vector"];
+
+    handle_pointer -> handle_array [label="slice/array"];
+    handle_pointer -> handle_value [label="single item pointer"];
+
+    handle_array -> loop_array [label="for each item"];
+    loop_array [label="fieldArbitraryDepth(item)"];
+    loop_array -> loop_array [label="next item"];
+    loop_array -> end_array [label="end items"];
+    end_array [label="container.end()"];
+    end_array -> end_value;
+
+    handle_struct -> check_fields [label="inline fields"];
+    check_fields [label="Check default fields"];
+    check_fields -> loop_struct [label="valid fields"];
+    loop_struct [label="fieldArbitraryDepth(field)"];
+    loop_struct -> loop_struct [label="next field"];
+    loop_struct -> end_struct [label="end fields"];
+    end_struct [label="container.end()"];
+    end_struct -> end_value;
+
+    handle_union -> write_tag [label="tag"];
+    write_tag [label="Write .tagName"];
+    write_tag -> handle_payload [label="with payload"];
+    handle_payload [label="Begin Struct\nWrite payload"];
+    handle_payload -> end_union [label="container.end()"];
+    end_union -> end_value;
+
+    handle_optional -> end_value [label="null"];
+    handle_optional -> handle_value [label="inner value"];
+
+    handle_vector -> loop_vector [label="for each element"];
+    loop_vector [label="fieldArbitraryDepth(element)"];
+    loop_vector -> loop_vector [label="next element"];
+    loop_vector -> end_vector [label="end elements"];
+    end_vector [label="container.end()"];
+    end_vector -> end_value;
+
+    handle_int -> end_value;
+    handle_float -> end_value;
+    handle_bool_null -> end_value;
+    handle_enum -> end_value;
+    handle_value [label="Recursive valueArbitraryDepth"];
+    handle_value -> end_value;
+}

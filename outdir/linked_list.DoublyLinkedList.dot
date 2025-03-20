@@ -1,0 +1,58 @@
+
+digraph DoublyLinkedList {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 主链表结构
+    subgraph cluster_DoublyLinkedList {
+        label="DoublyLinkedList";
+        Node [label="Node结构\n|prev: ?*Node\nnext: ?*Node\ndata: T"];
+        LinkedList [label="链表属性\n|first: ?*Node\nlast: ?*Node\nlen: usize"];
+    }
+
+    // 方法节点
+    insertAfter [label="insertAfter\n1. 设置 new_node.prev = node\n2. 检查 node.next 是否存在"];
+    insertBefore [label="insertBefore\n1. 设置 new_node.next = node\n2. 检查 node.prev 是否存在"];
+    concatByMoving [label="concatByMoving\n1. 连接 list1.last ↔ list2.first\n2. 转移长度并清空 list2"];
+    append [label="append\n1. 检查 list.last 是否存在\n2. 调用 insertAfter 或 prepend"];
+    prepend [label="prepend\n1. 检查 list.first 是否存在\n2. 调用 insertBefore 或初始化链表"];
+    remove [label="remove\n1. 更新前后节点的指针\n2. 处理首尾边界条件\n3. len -= 1"];
+    pop [label="pop\n1. 获取 list.last\n2. 调用 remove"];
+    popFirst [label="popFirst\n1. 获取 list.first\n2. 调用 remove"];
+
+    // 条件分支
+    subgraph cluster_insertAfter {
+        label="insertAfter 条件分支";
+        insertAfter_condition [shape=diamond, label="node.next 存在？"];
+        insertAfter_yes [label="连接 new_node ↔ next_node"];
+        insertAfter_no [label="设置 new_node.next = null\n更新 list.last"];
+    }
+
+    subgraph cluster_insertBefore {
+        label="insertBefore 条件分支";
+        insertBefore_condition [shape=diamond, label="node.prev 存在？"];
+        insertBefore_yes [label="连接 new_node ↔ prev_node"];
+        insertBefore_no [label="设置 new_node.prev = null\n更新 list.first"];
+    }
+
+    // 方法调用关系
+    append -> insertAfter [label="当 list.last 存在"];
+    append -> prepend [label="当 list.last 不存在"];
+    prepend -> insertBefore [label="当 list.first 存在"];
+    prepend -> LinkedList [label="初始化 first/last"];
+
+    // 条件连接
+    insertAfter -> insertAfter_condition;
+    insertAfter_condition -> insertAfter_yes [label="是"];
+    insertAfter_condition -> insertAfter_no [label="否"];
+
+    insertBefore -> insertBefore_condition;
+    insertBefore_condition -> insertBefore_yes [label="是"];
+    insertBefore_condition -> insertBefore_no [label="否"];
+
+    // 通用关系
+    pop -> remove;
+    popFirst -> remove;
+    concatByMoving -> LinkedList [label="更新 first/last/len"];
+    remove -> LinkedList [label="更新 first/last/len"];
+}

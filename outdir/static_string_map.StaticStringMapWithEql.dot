@@ -1,0 +1,41 @@
+
+digraph StaticStringMapWithEql {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始/初始化"];
+    check_empty [label="检查kvs_list是否为空"];
+    empty_case [label="返回空结构体"];
+    non_empty_case [label="处理非空列表"];
+    sort_kvs [label="排序键值对"];
+    build_len_indexes [label="构建长度索引"];
+    init_comptime [label="initComptime完成"];
+    init_runtime [label="init完成"];
+    deinit [label="释放内存资源"];
+    has_key [label="has方法检查键是否存在"];
+    get_value [label="get方法获取值"];
+    get_index [label="getIndex查找索引"];
+    longest_prefix [label="getLongestPrefix查找最长前缀"];
+    keys_values [label="返回所有键/值"];
+
+    start -> check_empty;
+    check_empty -> empty_case [label="是"];
+    check_empty -> non_empty_case [label="否"];
+    non_empty_case -> sort_kvs;
+    sort_kvs -> build_len_indexes;
+    build_len_indexes -> init_comptime [label="编译时初始化"];
+    build_len_indexes -> init_runtime [label="运行时初始化"];
+    init_comptime -> has_key;
+    init_runtime -> deinit [label="调用deinit时"];
+    has_key -> get_value [label="存在"];
+    has_key -> get_value [label="不存在"];
+    get_value -> get_index;
+    get_index -> longest_prefix [label="查找失败时"];
+    longest_prefix -> keys_values;
+    keys_values -> end;
+
+    // 辅助连接和样式
+    deinit [shape=ellipse];
+    end [shape=ellipse, label="结束"];
+    {rank=same; init_comptime, init_runtime}
+    {rank=same; has_key, get_value}
+}

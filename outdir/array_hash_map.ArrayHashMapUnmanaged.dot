@@ -1,0 +1,58 @@
+
+digraph ArrayHashMapUnmanaged {
+    node [shape=rectangle, style=rounded];
+
+    start [label="Start"];
+    init [label="Initialize ArrayHashMapUnmanaged"];
+    getOrPut [label="getOrPut(key)"];
+    checkIndexHeader [label="Check if index_header exists"];
+    linearScan [label="Linear scan entries array"];
+    useIndex [label="Use index_header for lookup"];
+    foundExisting [label="Entry found"];
+    notFound [label="Entry not found"];
+    ensureCapacity [label="Ensure capacity (alloc if needed)"];
+    addEntry [label="Add new entry to entries array"];
+    updateIndex [label="Update index_header with new entry"];
+    returnExisting [label="Return existing entry"];
+    returnNew [label="Return new entry"];
+    end [label="End"];
+
+    start -> init;
+    init -> getOrPut;
+
+    getOrPut -> checkIndexHeader;
+    checkIndexHeader -> linearScan [label="No"];
+    checkIndexHeader -> useIndex [label="Yes"];
+
+    linearScan -> foundExisting [label="Key found"];
+    linearScan -> notFound [label="Key not found"];
+    useIndex -> foundExisting [label="Key found via index"];
+    useIndex -> notFound [label="Key not found via index"];
+
+    foundExisting -> returnExisting -> end;
+
+    notFound -> ensureCapacity;
+    ensureCapacity -> addEntry;
+    addEntry -> updateIndex;
+    updateIndex -> returnNew -> end;
+
+    // Subgraph for index operations
+    subgraph cluster_index {
+        label="Index Management";
+        style=dashed;
+        
+        rebuildIndex [label="Rebuild index_header"];
+        insertEntry [label="Insert entry to index"];
+        removeEntry [label="Remove entry from index"];
+        
+        rebuildIndex -> insertEntry;
+        updateIndex -> insertEntry;
+        removeEntry -> rebuildIndex [style=invis];
+    }
+
+    // Error handling branch
+    ensureCapacity -> errorHandling [label="Allocation failed"];
+    errorHandling [label="Handle OOM error", shape=diamond];
+    errorHandling -> returnExisting [label="Key exists"];
+    errorHandling -> end [label="Propagate error"];
+}

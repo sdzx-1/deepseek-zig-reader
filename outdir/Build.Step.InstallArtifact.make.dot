@@ -1,0 +1,99 @@
+
+digraph flowchart {
+    node [shape=ellipse, style=filled, color=lightblue];
+    start [label="Start make()"];
+    end [label="End", shape=ellipse];
+
+    node [shape=diamond, color=orange];
+    check_dest_dir [label="dest_dir exists?"];
+    check_implib_dir [label="implib_dir exists?"];
+    check_pdb_dir [label="pdb_dir exists?"];
+    check_h_dir [label="h_dir exists?"];
+    check_dylib_symlinks [label="dylib_symlinks exists?"];
+    check_emitted_h [label="emitted_h exists?"];
+    check_entry_kind [label="Entry is directory or file?"];
+    check_exclude_ext [label="Exclude extension?"];
+    check_include_ext [label="Include extension exists?"];
+
+    node [shape=rectangle, color=black];
+    init [label="Initialize all_cached = true"];
+    copy_dest_file [label="Copy src to dest_dir\nUpdate all_cached"];
+    handle_symlinks [label="Create dylib symlinks"];
+    set_installed_path [label="Set artifact.installed_path"];
+    copy_implib [label="Copy implib\nUpdate all_cached"];
+    copy_pdb [label="Copy pdb\nUpdate all_cached"];
+    copy_emitted_h [label="Copy emitted_h\nUpdate all_cached"];
+    process_headers [label="Process installed_headers"];
+    handle_file [label="Copy header file\nUpdate all_cached"];
+    open_src_dir [label="Open source directory"];
+    walk_dir [label="Walk directory entries"];
+    process_entry [label="Process entry"];
+    make_dest_dir [label="Create destination directory"];
+    copy_entry_file [label="Copy entry file\nUpdate all_cached"];
+    set_result [label="Set step.result_cached = all_cached"];
+
+    node [shape=parallelogram, color=red];
+    fail [label="Return step.fail()"];
+
+    start -> init;
+    init -> check_dest_dir;
+
+    check_dest_dir -> copy_dest_file [label="Yes"];
+    copy_dest_file -> check_dylib_symlinks;
+    check_dylib_symlinks -> handle_symlinks [label="Yes"];
+    handle_symlinks -> set_installed_path;
+    check_dylib_symlinks -> set_installed_path [label="No"];
+    set_installed_path -> check_implib_dir;
+
+    check_dest_dir -> check_implib_dir [label="No"];
+
+    check_implib_dir -> copy_implib [label="Yes"];
+    copy_implib -> check_pdb_dir;
+    check_implib_dir -> check_pdb_dir [label="No"];
+
+    check_pdb_dir -> copy_pdb [label="Yes"];
+    copy_pdb -> check_h_dir;
+    check_pdb_dir -> check_h_dir [label="No"];
+
+    check_h_dir -> check_emitted_h [label="Yes"];
+    check_emitted_h -> copy_emitted_h [label="Yes"];
+    copy_emitted_h -> process_headers;
+    check_emitted_h -> process_headers [label="No"];
+    process_headers -> process_entry [label="For each header"];
+
+    process_entry -> check_entry_kind;
+    check_entry_kind -> handle_file [label="File"];
+    handle_file -> next_entry [label="Continue"];
+
+    check_entry_kind -> open_src_dir [label="Directory"];
+    open_src_dir -> walk_dir;
+    walk_dir -> process_entry [label="Next entry"];
+    process_entry -> check_exclude_ext;
+    check_exclude_ext -> check_include_ext [label="Not excluded"];
+    check_exclude_ext -> next_entry [label="Excluded"];
+    check_include_ext -> make_dest_dir [label="Included"];
+    make_dest_dir -> check_entry_kind_entry [label="Directory"];
+    check_entry_kind_entry [shape=diamond, label="Entry kind?"];
+    check_entry_kind_entry -> make_dest_dir [label="Directory"];
+    check_entry_kind_entry -> copy_entry_file [label="File"];
+    copy_entry_file -> next_entry;
+
+    next_entry [label="Next entry", shape=rectangle];
+    next_entry -> walk_dir;
+
+    check_h_dir -> set_result [label="No"];
+
+    process_headers -> set_result;
+
+    set_result -> end;
+
+    // Error handling edges
+    copy_dest_file -> fail;
+    handle_symlinks -> fail;
+    copy_implib -> fail;
+    copy_pdb -> fail;
+    copy_emitted_h -> fail;
+    handle_file -> fail;
+    open_src_dir -> fail;
+    copy_entry_file -> fail;
+}

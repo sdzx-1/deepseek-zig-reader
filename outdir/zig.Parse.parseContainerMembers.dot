@@ -1,0 +1,68 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start parseContainerMembers"];
+    init [label="Initialize scratch_top, field_state, last_field"];
+    skip_docs [label="Skip container_doc_comment tokens"];
+    loop_start [label="Loop: Process container members"];
+    eat_doc [label="Eat doc comments (doc_comment)"];
+    check_token [label="Check current token tag"];
+
+    handle_test [label="Handle .keyword_test"];
+    handle_comptime [label="Handle .keyword_comptime"];
+    handle_pub [label="Handle .keyword_pub"];
+    handle_usingnamespace [label="Handle .keyword_usingnamespace"];
+    handle_other_keywords [label="Handle other keywords (const/var/etc)"];
+    handle_eof_rbrace [label="Handle .eof/.r_brace"];
+    handle_else [label="Handle else (c_container or container_field)"];
+
+    append_node [label="Append node to scratch"];
+    update_field_state [label="Update field_state if needed"];
+    check_comma [label="Check for comma or closing brace"];
+    warn_error [label="Warn error and recover parser"];
+    find_next_member [label="findNextContainerMember()"];
+
+    end_loop [label="Break loop"];
+    process_items [label="Process scratch items and return Members"];
+
+    start -> init;
+    init -> skip_docs;
+    skip_docs -> loop_start;
+
+    loop_start -> eat_doc;
+    eat_doc -> check_token;
+
+    check_token -> handle_test [label=".keyword_test"];
+    check_token -> handle_comptime [label=".keyword_comptime"];
+    check_token -> handle_pub [label=".keyword_pub"];
+    check_token -> handle_usingnamespace [label=".keyword_usingnamespace"];
+    check_token -> handle_other_keywords [label="Other keywords"];
+    check_token -> handle_eof_rbrace [label=".eof/.r_brace"];
+    check_token -> handle_else [label="default"];
+
+    handle_test -> append_node -> check_comma;
+    handle_comptime -> append_node -> check_comma;
+    handle_pub -> append_node -> check_comma;
+    handle_usingnamespace -> append_node -> check_comma;
+    handle_other_keywords -> append_node -> check_comma;
+
+    handle_else -> append_node -> check_comma;
+
+    check_comma -> loop_start [label="Continue loop"];
+    check_comma -> warn_error [label="No comma"];
+    warn_error -> find_next_member -> loop_start;
+
+    handle_eof_rbrace -> end_loop;
+
+    end_loop -> process_items;
+    process_items -> end;
+
+    // Error handling edges
+    append_node -> update_field_state [style=dashed];
+    update_field_state -> check_comma [style=dashed];
+    handle_else -> warn_error [style=dotted];
+    handle_comptime -> warn_error [style=dotted];
+    handle_test -> warn_error [style=dotted];
+}

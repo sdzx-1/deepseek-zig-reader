@@ -1,0 +1,52 @@
+
+digraph TreapFlowchart {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // Insert Function
+    subgraph cluster_insert {
+        label="Insert Function";
+        insert_start [label="Start Insert (key, parent, node)"];
+        insert_generate_priority [label="Generate Priority via PRNG"];
+        insert_initialize_node [label="Initialize Node (key, priority, parent, children)"];
+        insert_link_parent [label="Link Node to Parent"];
+        insert_check_parent_priority [label="Check Parent Priority <= Node Priority"];
+        insert_rotate_up [label="Rotate Node Up"];
+        insert_end [label="End Insert"];
+
+        insert_start -> insert_generate_priority -> insert_initialize_node -> insert_link_parent;
+        insert_link_parent -> insert_check_parent_priority;
+        insert_check_parent_priority -> insert_rotate_up [label="Parent Priority > Node Priority"];
+        insert_rotate_up -> insert_check_parent_priority [label="Continue Loop"];
+        insert_check_parent_priority -> insert_end [label="Exit Loop"];
+    }
+
+    // Remove Function
+    subgraph cluster_remove {
+        label="Remove Function";
+        remove_start [label="Start Remove (node)"];
+        remove_rotate_down [label="Rotate Node Down to Leaf"];
+        remove_unlink_parent [label="Unlink Node from Parent"];
+        remove_cleanup [label="Reset Node's Priority, Parent, Children"];
+        remove_end [label="End Remove"];
+
+        remove_start -> remove_rotate_down -> remove_unlink_parent -> remove_cleanup -> remove_end;
+    }
+
+    // Rotate Function
+    subgraph cluster_rotate {
+        label="Rotate Function";
+        rotate_start [label="Start Rotate (node, right)"];
+        rotate_get_target [label="Get Target Child (right/left)"];
+        rotate_adjust_children [label="Adjust Children Links"];
+        rotate_adjust_parents [label="Update Parent References"];
+        rotate_fix_parent_link [label="Update Parent's Child Pointer"];
+        rotate_end [label="End Rotate"];
+
+        rotate_start -> rotate_get_target -> rotate_adjust_children -> rotate_adjust_parents -> rotate_fix_parent_link -> rotate_end;
+    }
+
+    // Global Connections
+    insert_rotate_up -> rotate_start [label="Call Rotate" style=dashed];
+    remove_rotate_down -> rotate_start [label="Call Rotate" style=dashed];
+}

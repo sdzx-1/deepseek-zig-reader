@@ -1,0 +1,85 @@
+
+digraph Builder {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+    
+    // 主函数节点
+    Builder [label="Builder函数\n根据options.addr_size选择addr_type"];
+    ReturnedStruct [label="返回的结构体", shape=record];
+    
+    // 主函数与结构体的关系
+    Builder -> ReturnedStruct;
+    
+    // 结构体方法分组
+    subgraph cluster_methods {
+        label="结构体方法";
+        bgcolor="#f0f0f0";
+        
+        // 零操作数指令
+        writeOpcode [label="writeOpcode\n处理零操作数指令，检查CFA有效性"];
+        // 字面量编码
+        writeLiteral [label="writeLiteral\n写入0-31的字面量"];
+        // 常量操作
+        writeConst [label="writeConst\n写入整数常量，处理不同类型"];
+        writeConstx [label="writeConstx\n通过LEB128写入常量偏移"];
+        writeConstType [label="writeConstType\n写入类型化常量"];
+        // 地址操作
+        writeAddr [label="writeAddr\n写入地址值"];
+        writeAddrx [label="writeAddrx\n通过LEB128写入地址偏移"];
+        // 寄存器相关
+        writeFbreg [label="writeFbreg\n写入帧基址偏移"];
+        writeBreg [label="writeBreg\n写入寄存器的基址偏移"];
+        writeBregx [label="writeBregx\n通过LEB128写入寄存器和偏移"];
+        writeRegvalType [label="writeRegvalType\n写入寄存器值和类型"];
+        // 栈操作
+        writePick [label="writePick\n写入栈索引操作"];
+        writeDerefSize [label="writeDerefSize\n写入带大小的解引用"];
+        writeXDerefSize [label="writeXDerefSize\n写入带大小的交叉解引用"];
+        writeDerefType [label="writeDerefType\n写入带类型的解引用"];
+        writeXDerefType [label="writeXDerefType\n写入带类型的交叉解引用"];
+        // 算术和逻辑操作
+        writePlusUconst [label="writePlusUconst\n写入无符号常量加法"];
+        // 控制流
+        writeSkip [label="writeSkip\n写入跳过偏移"];
+        writeBra [label="writeBra\n写入条件分支"];
+        writeCall [label="writeCall\n写入调用指令"];
+        writeCallRef [label="writeCallRef\n写入引用调用"];
+        writeConvert [label="writeConvert\n写入类型转换"];
+        writeReinterpret [label="writeReinterpret\n写入重新解释"];
+        // 特殊操作
+        writeEntryValue [label="writeEntryValue\n写入入口值"];
+        // 位置描述
+        writeReg [label="writeReg\n写入寄存器"];
+        writeRegx [label="writeRegx\n通过LEB128写入寄存器"];
+        writeImplicitValue [label="writeImplicitValue\n写入隐式值"];
+    }
+    
+    // 结构体与方法的关系
+    ReturnedStruct -> writeOpcode;
+    ReturnedStruct -> writeLiteral;
+    ReturnedStruct -> writeConst;
+    ReturnedStruct -> writeConstx;
+    ReturnedStruct -> writeConstType;
+    ReturnedStruct -> writeAddr;
+    ReturnedStruct -> writeAddrx;
+    ReturnedStruct -> writeFbreg;
+    ReturnedStruct -> writeBreg;
+    ReturnedStruct -> writeBregx;
+    ReturnedStruct -> writeRegvalType;
+    ReturnedStruct -> writePick;
+    ReturnedStruct -> writeDerefSize;
+    ReturnedStruct -> writeXDerefSize;
+    ReturnedStruct -> writeDerefType;
+    ReturnedStruct -> writeXDerefType;
+    ReturnedStruct -> writePlusUconst;
+    ReturnedStruct -> writeSkip;
+    ReturnedStruct -> writeBra;
+    ReturnedStruct -> writeCall;
+    ReturnedStruct -> writeCallRef;
+    ReturnedStruct -> writeConvert;
+    ReturnedStruct -> writeReinterpret;
+    ReturnedStruct -> writeEntryValue;
+    ReturnedStruct -> writeReg;
+    ReturnedStruct -> writeRegx;
+    ReturnedStruct -> writeImplicitValue;
+}

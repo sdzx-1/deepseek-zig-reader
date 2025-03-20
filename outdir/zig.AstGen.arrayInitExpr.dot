@@ -1,0 +1,79 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Courier New"];
+    edge [fontname="Courier New"];
+
+    start [label="开始 arrayInitExpr"];
+    check_empty [label="assert(array_init.ast.elements.len != 0)"];
+    resolve_type [label="解析数组类型和元素类型\n(array_ty, elem_ty)"];
+    check_array_ty_none [label="array_ty != .none?" shape=diamond];
+
+    subgraph cluster_type_resolution {
+        label="类型解析逻辑";
+        type_expr_unwrap [label="type_expr = array_init.ast.type_expr.unwrap()"];
+        handle_underscore [label="处理'_'长度标识符"];
+        add_array_type [label="生成array_type_inst"];
+        validate_type [label="验证数组类型"];
+    }
+
+    handle_typed_init [label="处理有类型初始化"];
+    rl_switch [label="switch(ri.rl)" shape=diamond];
+    
+    subgraph cluster_rl_cases {
+        label="结果信息处理分支";
+        rl_discard [label="case .discard"];
+        rl_ref [label="case .ref"];
+        rl_default [label="case else"];
+        rl_none [label="case .none"];
+        rl_ref_coerced [label="case .ref_coerced_ty"];
+        rl_coerced [label="case .ty/.coerced_ty"];
+        rl_ptr [label="case .ptr"];
+        rl_inferred_ptr [label="case .inferred_ptr"];
+        rl_destructure [label="case .destructure"];
+    }
+
+    process_elements [label="遍历数组元素初始化表达式"];
+    return_void [label="return .void_value"];
+    call_arrayInitExprTyped [label="调用arrayInitExprTyped"];
+    call_arrayInitExprAnon [label="调用arrayInitExprAnon"];
+    rvalue_handling [label="处理rvalue并返回"];
+    destructure_check [label="检查元素与destructure数量匹配"];
+    destructure_process [label="处理destructure元素"];
+
+    start -> check_empty;
+    check_empty -> resolve_type;
+    resolve_type -> check_array_ty_none;
+
+    check_array_ty_none -> handle_typed_init [label="是"];
+    handle_typed_init -> rl_switch;
+    
+    rl_switch -> rl_discard;
+    rl_switch -> rl_ref;
+    rl_switch -> rl_default;
+    
+    rl_discard -> process_elements -> return_void;
+    rl_ref -> call_arrayInitExprTyped [label="返回引用"];
+    rl_default -> call_arrayInitExprTyped -> rvalue_handling;
+
+    check_array_ty_none -> rl_switch [label="否"];
+    
+    rl_switch -> rl_none;
+    rl_switch -> rl_ref_coerced;
+    rl_switch -> rl_coerced;
+    rl_switch -> rl_ptr;
+    rl_switch -> rl_inferred_ptr;
+    rl_switch -> rl_destructure;
+
+    rl_none -> call_arrayInitExprAnon;
+    rl_ref_coerced -> call_arrayInitExprTyped;
+    rl_coerced -> call_arrayInitExprTyped;
+    rl_ptr -> process_elements -> return_void;
+    rl_inferred_ptr -> call_arrayInitExprAnon -> rvalue_handling;
+    rl_destructure -> destructure_check;
+    
+    destructure_check -> destructure_process [label="数量匹配"];
+    destructure_process -> return_void;
+
+    {rank=same; check_array_ty_none rl_switch}
+    {rank=same; handle_typed_init rl_none}
+}

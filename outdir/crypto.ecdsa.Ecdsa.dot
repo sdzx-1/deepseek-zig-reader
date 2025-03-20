@@ -1,0 +1,51 @@
+
+digraph EcdsaFlow {
+    rankdir=TB;
+    node [shape=box, style=filled, fillcolor=lightblue];
+
+    // 主要结构体
+    Ecdsa [label="Ecdsa(Curve, Hash)", shape=ellipse, fillcolor=salmon];
+    SecretKey [label="SecretKey\n- fromBytes()\n- toBytes()"];
+    PublicKey [label="PublicKey\n- fromSec1()\n- toCompressedSec1()"];
+    Signature [label="Signature\n- toBytes()\n- fromBytes()\n- toDer()\n- fromDer()"];
+    Signer [label="Signer\n- init()\n- update()\n- finalize()"];
+    Verifier [label="Verifier\n- init()\n- update()\n- verify()"];
+    KeyPair [label="KeyPair\n- generateDeterministic()\n- generate()\n- fromSecretKey()\n- sign()"];
+
+    // 辅助函数
+    reduceToScalar [label="reduceToScalar()", fillcolor=lightgrey];
+    deterministicScalar [label="deterministicScalar()", fillcolor=lightgrey];
+
+    // 关系定义
+    Ecdsa -> {SecretKey, PublicKey, Signature, Signer, Verifier, KeyPair} [label="返回结构体"];
+
+    // KeyPair关系
+    KeyPair -> SecretKey [label="包含"];
+    KeyPair -> PublicKey [label="包含"];
+    KeyPair -> Signer [label="调用 signer()"];
+    KeyPair -> Signature [label="生成"];
+
+    // Signer流程
+    Signer -> deterministicScalar [label="调用"];
+    Signer -> reduceToScalar [label="调用"];
+    Signer -> Signature [label="生成"];
+
+    // Verifier流程
+    Verifier -> PublicKey [label="使用"];
+    Verifier -> Signature [label="验证"];
+
+    // 错误处理
+    subgraph cluster_errors {
+        label="错误类型";
+        IdentityElementError [shape=note, fillcolor=pink];
+        NonCanonicalError [shape=note, fillcolor=pink];
+        SignatureVerificationError [shape=note, fillcolor=pink];
+    }
+
+    Signer -> IdentityElementError [label="可能抛出"];
+    Verifier -> {IdentityElementError, NonCanonicalError, SignatureVerificationError} [label="可能抛出"];
+
+    // 辅助函数关系
+    deterministicScalar -> Prf [label="依赖HMAC/KMAC"];
+    reduceToScalar -> Curve [label="依赖曲线参数"];
+}

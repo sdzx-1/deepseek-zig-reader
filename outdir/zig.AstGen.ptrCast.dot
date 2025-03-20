@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start ptrCast()"];
+    declare_vars [label="Declare variables:\n- astgen, tree\n- FlagsInt, flags"];
+    loop_start [label="While true:\nCheck node tag"];
+    check_node_tag [shape=diamond, label="Node tag is\nbuiltin_call_two,\nbuiltin_call_two_comma\nor grouped_expression?"];
+    handle_grouped_expr [label="Handle grouped_expression:\nUpdate node to child"];
+    process_args [label="Parse builtin call params\nCheck args.len (0/1/2)"];
+    args_len_0 [shape=diamond, label="args.len == 0?"];
+    check_builtin_info [label="Lookup BuiltinFn info"];
+    check_param_count [shape=diamond, label="param_count matches\nargs.len?"];
+    handle_single_arg [label="Process single-arg builtins\n(ptr_cast/align_cast/etc)\nSet flags"];
+    handle_two_args [label="Process field_parent_ptr case\nGenerate ZIR instruction\nReturn result"];
+    flags_check [shape=diamond, label="flags_int == 0?"];
+    check_special_case [shape=diamond, label="flags ==\nptr_only?"];
+    simple_ptr_cast [label="Call typeCast()\nReturn result"];
+    check_no_result_ty [shape=diamond, label="Flags require\nno result type?"];
+    ptr_cast_no_dest [label="Generate .ptr_cast_no_dest\nReturn result"];
+    full_ptr_cast [label="Generate .ptr_cast_full\nReturn result"];
+    end [label="Return result"];
+
+    start -> declare_vars;
+    declare_vars -> loop_start;
+    loop_start -> check_node_tag;
+    
+    check_node_tag -> handle_grouped_expr [label="grouped_expression"];
+    handle_grouped_expr -> loop_start [label="continue"];
+    
+    check_node_tag -> process_args [label="builtin_call variants"];
+    process_args -> args_len_0;
+    
+    args_len_0 -> loop_start [label="Yes (break loop)"];
+    args_len_0 -> check_builtin_info [label="No"];
+    
+    check_builtin_info -> check_param_count;
+    check_param_count -> handle_single_arg [label="1 arg"];
+    check_param_count -> handle_two_args [label="2 args"];
+    check_param_count -> loop_start [label="Invalid (break)"];
+    
+    handle_single_arg -> loop_start [label="Update node to args[0]"];
+    handle_two_args -> end [label="Immediate return"];
+    
+    loop_start -> flags_check [label="Loop exit"];
+    flags_check -> end [label="flags_int == 0\n(assert)"];
+    flags_check -> check_special_case [label="flags_int != 0"];
+    
+    check_special_case -> simple_ptr_cast [label="Yes"];
+    check_special_case -> check_no_result_ty [label="No"];
+    
+    check_no_result_ty -> ptr_cast_no_dest [label="Yes"];
+    check_no_result_ty -> full_ptr_cast [label="No"];
+    
+    simple_ptr_cast -> end;
+    ptr_cast_no_dest -> end;
+    full_ptr_cast -> end;
+}

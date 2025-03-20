@@ -1,0 +1,54 @@
+
+digraph buildWasmBinary {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始", shape=ellipse];
+    build_argv [label="构建命令行参数 (argv)"];
+    spawn_child [label="启动子进程 (child.spawn())"];
+    init_poller [label="初始化轮询器 (poller)"];
+    send_messages [label="发送消息 (update 和 exit)"];
+    process_stdout [label="处理 stdout 消息循环"];
+    read_header [label="读取消息头 (Header)"];
+    check_tag [label="检查 header.tag", shape=diamond];
+    handle_zig_version [label="验证 Zig 版本"];
+    handle_error_bundle [label="记录错误包 (result_error_bundle)"];
+    handle_emit_digest [label="处理生成摘要 (result)"];
+    discard_body [label="丢弃已处理的消息体"];
+    process_stderr [label="处理 stderr 输出"];
+    close_stdin [label="关闭子进程 stdin"];
+    wait_child [label="等待子进程结束 (child.wait())"];
+    check_exit_code [label="检查退出码", shape=diamond];
+    check_errors [label="检查错误包", shape=diamond];
+    return_result [label="返回结果路径", shape=ellipse];
+    handle_errors [label="记录并返回错误", shape=ellipse];
+
+    start -> build_argv;
+    build_argv -> spawn_child;
+    spawn_child -> init_poller;
+    init_poller -> send_messages;
+    send_messages -> process_stdout;
+
+    process_stdout -> read_header;
+    read_header -> check_tag;
+
+    check_tag -> handle_zig_version [label=".zig_version"];
+    check_tag -> handle_error_bundle [label=".error_bundle"];
+    check_tag -> handle_emit_digest [label=".emit_digest"];
+    check_tag -> discard_body [label="其他"];
+
+    handle_zig_version -> discard_body;
+    handle_error_bundle -> discard_body;
+    handle_emit_digest -> discard_body;
+    discard_body -> process_stdout [label="继续轮询"];
+
+    process_stdout -> process_stderr [label="轮询结束"];
+    process_stderr -> close_stdin;
+    close_stdin -> wait_child;
+
+    wait_child -> check_exit_code;
+    check_exit_code -> check_errors [label="退出码为 0"];
+    check_exit_code -> handle_errors [label="非零退出码/意外终止"];
+
+    check_errors -> return_result [label="无错误"];
+    check_errors -> handle_errors [label="存在错误包"];
+}

@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style=rounded];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 asmExpr", shape=ellipse];
+    handle_template [label="处理模板标签和模板类型\n根据 nodeTag(full.ast.template) 选择 TagAndTmpl"];
+    check_container_asm [label="检查是否是容器级汇编\n(is_container_asm = astgen.fn_block == null)", shape=diamond];
+    container_asm_checks [label="全局汇编检查:\n- 无 volatile\n- 无输入/输出/clobbers"];
+    non_container_checks [label="非全局汇编检查:\n- 无输出时必须标记 volatile"];
+    check_outputs_count [label="检查 outputs.len > 32?", shape=diamond];
+    process_outputs [label="遍历 outputs[0..31]:\n- 处理符号名和约束\n- 检查是否有类型箭头\n- 处理类型或局部变量引用"];
+    check_inputs_count [label="检查 inputs.len > 32?", shape=diamond];
+    process_inputs [label="遍历 inputs[0..31]:\n- 处理符号名和约束\n- 生成操作数表达式"];
+    process_clobbers [label="遍历 clobbers:\n- 收集字符串索引到 clobbers_buffer"];
+    generate_result [label="调用 gz.addAsm 生成结果\n并返回 rvalue"];
+    error_node [label="返回错误", shape=parallelogram];
+
+    start -> handle_template;
+    handle_template -> check_container_asm;
+
+    check_container_asm -> container_asm_checks [label="是"];
+    check_container_asm -> non_container_checks [label="否"];
+
+    container_asm_checks -> check_outputs_count [label="通过检查"];
+    container_asm_checks -> error_node [label="违反规则"];
+
+    non_container_checks -> check_outputs_count [label="通过检查"];
+    non_container_checks -> error_node [label="违反规则"];
+
+    check_outputs_count -> error_node [label="是"];
+    check_outputs_count -> process_outputs [label="否"];
+
+    process_outputs -> check_inputs_count;
+    process_outputs -> error_node [label="输出类型冲突"];
+
+    check_inputs_count -> error_node [label="是"];
+    check_inputs_count -> process_inputs [label="否"];
+
+    process_inputs -> process_clobbers;
+
+    process_clobbers -> generate_result;
+    generate_result -> end;
+
+    end [label="返回结果", shape=ellipse];
+}

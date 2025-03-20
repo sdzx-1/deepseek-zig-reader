@@ -1,0 +1,83 @@
+
+digraph formatType {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 formatType(value, fmt, options, writer, max_depth)"];
+    determine_actual_fmt [label="确定 actual_fmt\n（处理 ANY 格式符和可选/错误联合类型）"];
+    check_asterisk_fmt [label="检查 fmt 是否是 \"*\"" shape=diamond];
+    format_address [label="调用 formatAddress(value, options, writer)"];
+    check_format_method [label="检查类型是否有 format 方法" shape=diamond];
+    call_value_format [label="调用 value.format(actual_fmt, options, writer)"];
+    type_switch [label="根据 @typeInfo(T) 分支处理" shape=diamond];
+
+    // 主要流程
+    start -> determine_actual_fmt;
+    determine_actual_fmt -> check_asterisk_fmt;
+
+    // 处理 "*" 格式符
+    check_asterisk_fmt -> format_address [label="是"];
+    check_asterisk_fmt -> check_format_method [label="否"];
+
+    // 检查 format 方法
+    check_format_method -> call_value_format [label="有"];
+    check_format_method -> type_switch [label="无"];
+
+    // 类型处理分支
+    type_switch -> handle_int_float [label=".comptime_int, .int\n.comptime_float, .float"];
+    type_switch -> handle_void [label=".void"];
+    type_switch -> handle_bool [label=".bool"];
+    type_switch -> handle_optional [label=".optional"];
+    type_switch -> handle_error_union [label=".error_union"];
+    type_switch -> handle_error_set [label=".error_set"];
+    type_switch -> handle_enum [label=".enum"];
+    type_switch -> handle_union [label=".union"];
+    type_switch -> handle_struct [label=".struct"];
+    type_switch -> handle_pointer [label=".pointer"];
+    type_switch -> handle_array [label=".array"];
+    type_switch -> handle_vector [label=".vector"];
+    type_switch -> handle_type [label=".type"];
+    type_switch -> handle_enum_literal [label=".enum_literal"];
+    type_switch -> handle_null [label=".null"];
+    type_switch -> compile_error [label="其他类型"];
+
+    // 各类型处理节点
+    handle_int_float [label="调用 formatValue(value, actual_fmt, options, writer)"];
+    handle_void [label="写入 \"void\""];
+    handle_bool [label="写入 \"true\" 或 \"false\""];
+    handle_optional [label="解包 Optional\n递归处理 payload"];
+    handle_error_union [label="解包 Error Union\n递归处理 payload 或 error"];
+    handle_error_set [label="写入 error.@errorName(value)"];
+    handle_enum [label="处理枚举标签名和值"];
+    handle_union [label="处理联合体标签和字段"];
+    handle_struct [label="递归处理结构体字段"];
+    handle_pointer [label="处理指针类型（单指针/切片/数组）"];
+    handle_array [label="处理数组元素"];
+    handle_vector [label="处理向量元素"];
+    handle_type [label="写入 @typeName(value)"];
+    handle_enum_literal [label="写入 .@tagName(value)"];
+    handle_null [label="写入 \"null\""];
+    compile_error [label="触发编译错误"];
+
+    // 连接返回路径
+    format_address -> end;
+    call_value_format -> end;
+    handle_int_float -> end;
+    handle_void -> end;
+    handle_bool -> end;
+    handle_optional -> end;
+    handle_error_union -> end;
+    handle_error_set -> end;
+    handle_enum -> end;
+    handle_union -> end;
+    handle_struct -> end;
+    handle_pointer -> end;
+    handle_array -> end;
+    handle_vector -> end;
+    handle_type -> end;
+    handle_enum_literal -> end;
+    handle_null -> end;
+    compile_error -> end;
+
+    end [label="返回 writer"];
+}

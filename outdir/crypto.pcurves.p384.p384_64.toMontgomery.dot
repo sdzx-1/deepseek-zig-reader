@@ -1,0 +1,59 @@
+
+digraph toMontgomeryFlow {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#E5E5E5"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    extract_input [label="提取输入元素\nx1=arg1[1], x2=arg1[2], ..., x6=arg1[0]"];
+    process_x6 [label="处理x6\nmulxU64和addcarryxU64\n计算中间值x7-x23"];
+    mont_reduce_x6 [label="Montgomery约减\nmulxU64 0x100000001\n累加进位x24-x59"];
+    
+    process_x1 [label="处理x1\nmulxU64和addcarryxU64\n计算中间值x61-x75"];
+    mont_reduce_x1 [label="Montgomery约减\nmulxU64 0x100000001\n累加进位x77-x125"];
+    
+    process_x2 [label="处理x2\nmulxU64和addcarryxU64\n计算中间值x127-x141"];
+    mont_reduce_x2 [label="Montgomery约减\nmulxU64 0x100000001\n累加进位x143-x191"];
+    
+    process_x3 [label="处理x3\nmulxU64和addcarryxU64\n计算中间值x193-x207"];
+    mont_reduce_x3 [label="Montgomery约减\nmulxU64 0x100000001\n累加进位x209-x257"];
+    
+    process_x4 [label="处理x4\nmulxU64和addcarryxU64\n计算中间值x259-x273"];
+    mont_reduce_x4 [label="Montgomery约减\nmulxU64 0x100000001\n累加进位x275-x323"];
+    
+    process_x5 [label="处理x5\nmulxU64和addcarryxU64\n计算中间值x325-x339"];
+    mont_reduce_x5 [label="Montgomery约减\nmulxU64 0x100000001\n累加进位x341-x389"];
+    
+    final_sub [label="最终调整\nsubborrowxU64检查溢出\nx391-x404"];
+    cmov_adj [label="条件移动调整\ncmovznzU64选择最终值\nx405-x410"];
+    store_output [label="存储结果\nout1[0]-out1[5]"];
+
+    start -> extract_input;
+    extract_input -> process_x6;
+    process_x6 -> mont_reduce_x6;
+    
+    mont_reduce_x6 -> process_x1 [label="处理下一个元素"];
+    process_x1 -> mont_reduce_x1;
+    mont_reduce_x1 -> process_x2 [label="处理下一个元素"];
+    process_x2 -> mont_reduce_x2;
+    mont_reduce_x2 -> process_x3 [label="处理下一个元素"];
+    process_x3 -> mont_reduce_x3;
+    mont_reduce_x3 -> process_x4 [label="处理下一个元素"];
+    process_x4 -> mont_reduce_x4;
+    mont_reduce_x4 -> process_x5 [label="处理最后一个元素"];
+    process_x5 -> mont_reduce_x5;
+    
+    mont_reduce_x5 -> final_sub;
+    final_sub -> cmov_adj;
+    cmov_adj -> store_output;
+    store_output -> end;
+    
+    // 隐式循环结构标注
+    subgraph cluster_loop {
+        label="元素处理循环 (x1-x5)";
+        style=dashed;
+        process_x1; process_x2; process_x3; process_x4; process_x5;
+        mont_reduce_x1; mont_reduce_x2; mont_reduce_x3; mont_reduce_x4; mont_reduce_x5;
+    }
+}

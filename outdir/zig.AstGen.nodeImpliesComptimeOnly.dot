@@ -1,0 +1,37 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start: nodeImpliesComptimeOnly"];
+    loop [label="Loop: while (true)"];
+    switch_node [label="Switch (tree.nodeTag(node))"];
+    return_true [label="Return true", shape=oval];
+    return_false [label="Return false", shape=oval];
+    handle_forward [label="Update node to LHS\n(node = tree.nodeData(...))"];
+    handle_identifier [label="Check identifier type"];
+    ident_primitive_check [label="Check primitive_instrs.get(ident_bytes)"];
+
+    start -> loop;
+    loop -> switch_node;
+
+    // Common false returns
+    switch_node -> return_false [label="All .xxx cases\nwith return false"];
+    
+    // True returns (fn_proto_xxx cases)
+    switch_node -> return_true [label=".fn_proto_simple\n.fn_proto_multi\n.fn_proto_one\n.fn_proto"];
+    
+    // Forwarding cases
+    switch_node -> handle_forward [label=".try/.await/.comptime/.nosuspend\n.grouped_expression/.unwrap_optional"];
+    handle_forward -> loop [label="Continue loop"];
+    
+    // Identifier handling
+    switch_node -> handle_identifier [label=".identifier"];
+    handle_identifier -> ident_primitive_check;
+    ident_primitive_check -> return_true [label="comptime_float_type\ncomptime_int_type\ntype_type"];
+    ident_primitive_check -> return_false [label="Other primitives\nor no match"];
+
+    // Unreachable cases
+    switch_node -> unreachable [label="Unreachable cases\n(.root, .usingnamespace, etc)", style=dashed];
+    unreachable [label="unreachable", shape=oval, style=dashed];
+}

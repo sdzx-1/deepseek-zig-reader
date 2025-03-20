@@ -1,0 +1,61 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 readvAdvanced"];
+    check_partial_cleartext [label="检查是否有部分明文数据 (partial_cleartext)"];
+    handle_partial_cleartext [label="将部分明文填充到 iovecs\n更新索引"];
+    check_buffer_empty [label="缓冲区是否为空？"];
+    reset_buffer [label="重置缓冲区索引"];
+    check_close_notify [label="received_close_notify 为真？"];
+    return_amt [label="返回已处理数据量 (amt)"];
+    read_new_data [label="准备读取新数据\n分配栈缓冲区"];
+    adjust_buffer_space [label="调整 partially_read_buffer 空间"];
+    construct_iovecs [label="构造 ask_iovecs_buf 请求结构"];
+    calculate_read_length [label="计算需要读取的长度 (ask_len)"];
+    stream_readv [label="调用 stream.readv 读取数据"];
+    check_read_zero [label="实际读取长度是否为0？"];
+    handle_truncation [label="处理截断情况\n设置 received_close_notify 或返回错误"];
+    process_fragments [label="处理密文片段 frag0 和 frag1"];
+    decrypt_loop [label="循环处理每个记录"];
+    parse_record_header [label="解析记录头\n(ContentType, 版本, 长度)"];
+    check_record_length [label="记录长度是否合法？"];
+    decrypt_data [label="解密数据\n处理 TLS 1.3/1.2 差异"];
+    handle_content_type [label="根据内容类型处理"];
+    handle_alert [label="处理 Alert (如 close_notify)"];
+    handle_handshake [label="处理 Handshake (如密钥更新)"];
+    handle_application_data [label="处理应用数据\n填充到 iovecs 或临时缓冲区"];
+    check_more_records [label="是否还有更多记录？"];
+    finish_return [label="返回总处理量 (vp.total)"];
+
+    start -> check_partial_cleartext;
+    check_partial_cleartext -> handle_partial_cleartext [label="有数据"];
+    handle_partial_cleartext -> check_buffer_empty;
+    check_buffer_empty -> reset_buffer [label="是"];
+    reset_buffer -> check_close_notify;
+    check_buffer_empty -> check_close_notify [label="否"];
+    check_close_notify -> return_amt [label="是"];
+    check_close_notify -> read_new_data [label="否"];
+    read_new_data -> adjust_buffer_space;
+    adjust_buffer_space -> construct_iovecs;
+    construct_iovecs -> calculate_read_length;
+    calculate_read_length -> stream_readv;
+    stream_readv -> check_read_zero;
+    check_read_zero -> handle_truncation [label="是"];
+    check_read_zero -> process_fragments [label="否"];
+    process_fragments -> decrypt_loop;
+    decrypt_loop -> parse_record_header;
+    parse_record_header -> check_record_length;
+    check_record_length -> decrypt_data [label="合法"];
+    decrypt_data -> handle_content_type;
+    handle_content_type -> handle_alert [label="Alert"];
+    handle_content_type -> handle_handshake [label="Handshake"];
+    handle_content_type -> handle_application_data [label="Application Data"];
+    handle_alert -> finish_return [label="close_notify"];
+    handle_handshake -> check_more_records;
+    handle_application_data -> check_more_records;
+    check_more_records -> decrypt_loop [label="有更多记录"];
+    check_more_records -> finish_return [label="无更多记录"];
+    handle_truncation -> finish_return [label="设置标志或返回错误"];
+}

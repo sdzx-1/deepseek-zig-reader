@@ -1,0 +1,81 @@
+
+digraph ZipperFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // WriteFile 子图
+    subgraph cluster_writeFile {
+        label="writeFile 流程";
+        
+        start_writeFile [label="开始 writeFile"];
+        calc_file_offset [label="计算文件偏移量 file_offset"];
+        compute_crc32 [label="计算内容 CRC32"];
+        write_local_header [label="写入本地文件头 LocalFileHeader"];
+        write_filename [label="写入文件名 opt.name"];
+        check_header_options [label="检查 header_options 是否存在？", shape=diamond];
+        handle_zip64 [label="处理 ZIP64 扩展字段"];
+        compression_method [label="选择压缩方法", shape=diamond];
+        store_compression [label="直接写入未压缩内容"];
+        deflate_compression [label="使用 Deflate 压缩内容"];
+        return_filestore [label="返回 FileStore 结构体"];
+        
+        start_writeFile -> calc_file_offset;
+        calc_file_offset -> compute_crc32;
+        compute_crc32 -> write_local_header;
+        write_local_header -> write_filename;
+        write_filename -> check_header_options;
+        
+        check_header_options -> handle_zip64 [label="存在"];
+        check_header_options -> compression_method [label="不存在"];
+        handle_zip64 -> compression_method;
+        
+        compression_method -> store_compression [label=".store"];
+        compression_method -> deflate_compression [label=".deflate"];
+        store_compression -> return_filestore;
+        deflate_compression -> return_filestore;
+    }
+
+    // WriteCentralRecord 子图
+    subgraph cluster_writeCentral {
+        label="writeCentralRecord 流程";
+        
+        start_writeCentral [label="开始 writeCentralRecord"];
+        check_first_central [label="检查 first_central_offset 是否为 null", shape=diamond];
+        set_first_offset [label="设置 first_central_offset"];
+        inc_central_count [label="central_count += 1"];
+        write_central_header [label="写入 CentralDirectoryFileHeader"];
+        write_filename_central [label="写入文件名 opt.name"];
+        update_last_central [label="更新 last_central_limit"];
+        
+        start_writeCentral -> check_first_central;
+        check_first_central -> set_first_offset [label="是"];
+        check_first_central -> inc_central_count [label="否"];
+        set_first_offset -> inc_central_count;
+        inc_central_count -> write_central_header;
+        write_central_header -> write_filename_central;
+        write_filename_central -> update_last_central;
+    }
+
+    // WriteEndRecord 子图
+    subgraph cluster_writeEnd {
+        label="writeEndRecord 流程";
+        
+        start_writeEnd [label="开始 writeEndRecord"];
+        check_zip64 [label="是否启用 ZIP64？", shape=diamond];
+        write_end64 [label="写入 EndRecord64"];
+        write_locator64 [label="写入 EndLocator64"];
+        write_end_record [label="写入常规 EndRecord"];
+        write_comment [label="写入注释（如果存在）"];
+        
+        start_writeEnd -> check_zip64;
+        check_zip64 -> write_end64 [label="是"];
+        check_zip64 -> write_end_record [label="否"];
+        write_end64 -> write_locator64;
+        write_locator64 -> write_end_record;
+        write_end_record -> write_comment;
+    }
+
+    // 主流程连接
+    writeFile -> writeCentralRecord [label="调用 writeCentralRecord"];
+    writeCentralRecord -> writeEndRecord [label="调用 writeEndRecord"];
+}

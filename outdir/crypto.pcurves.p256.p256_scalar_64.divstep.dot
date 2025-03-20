@@ -1,0 +1,35 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="开始 divstep 函数"];
+    init [label="初始化变量:\n- x1, x2 = addcarryxU64(~arg1, 1)\n- x3 = (x1 >> 63) & (arg3[0] & 1)"];
+    cmovznz1 [label="条件移动 (x3):\n- 选择 arg1/x4\n- 选择 arg2/arg3 数组元素"];
+    add_sub_chain1 [label="生成补码链:\n- x12-x20 = 1s'补数运算\n- 条件选择 arg3/x12-x20"];
+    arg45_processing [label="处理 arg4/arg5:\n- 条件移动 x27-x30\n- 计算 2*arg4 并模减 p256 参数"];
+    mod_reduce1 [label="模约减:\n- subborrowxU64 链\n- 处理借位标志"];
+    cmovznz2 [label="条件移动 (x3):\n- 选择 arg5/x62-x68"];
+    parity_check [label="奇偶检查 (x22 & 1):\n- 生成 x75-x79\n- 累加到 x22-x26"];
+    add_chain2 [label="加法链:\n- 累加 x90-x93 到 x70-x73"];
+    mod_reduce2 [label="模约减:\n- subborrowxU64 链\n- 处理借位标志 x111"];
+    final_cmov [label="最终条件移动:\n- 根据 x48/x111 选择结果"];
+    output [label="输出结果:\n- out1 = x112\n- out2[0-4] = x7-x11\n- out3[0-4] = 移位组合\n- out4/out5 选择结果"];
+
+    start -> init;
+    init -> cmovznz1;
+    cmovznz1 -> add_sub_chain1;
+    add_sub_chain1 -> arg45_processing;
+    arg45_processing -> mod_reduce1;
+    mod_reduce1 -> cmovznz2;
+    cmovznz2 -> parity_check;
+    parity_check -> add_chain2;
+    add_chain2 -> mod_reduce2;
+    mod_reduce2 -> final_cmov;
+    final_cmov -> output;
+    
+    // 条件分支示例
+    cmovznz1 -> add_sub_chain1 [label="x3 条件"];
+    mod_reduce1 -> cmovznz2 [label="借位处理"];
+    mod_reduce2 -> final_cmov [label="x111 条件"];
+}

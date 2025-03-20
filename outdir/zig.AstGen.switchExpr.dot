@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="开始处理switch表达式"];
+    check_label [label="检查switch标签重定义"];
+    first_pass [label="第一次遍历case节点\n收集特殊prong信息\n统计标量/多值case数量"];
+    check_duplicates [label="检查else/_ prong重复"];
+    validate_items [label="验证case项\n(排除字符串，检查范围)"];
+    handle_operand [label="处理操作数表达式\n记录源码位置"];
+    create_block [label="创建父块作用域\n设置break结果信息"];
+    emit_dbg_stmt [label="生成调试语句"];
+    make_switch_block [label="创建switch_block指令"];
+    handle_label [label="处理标签的continue逻辑"];
+    second_pass [label="第二次遍历case节点"];
+    handle_payload [label="处理payload捕获\n(引用/值捕获检测)"];
+    generate_items [label="生成case项表达式\n(标量/多值/范围)"];
+    build_prong [label="构建prong体\n处理标签捕获"];
+    check_break [label="检测非noreturn分支\n添加break指令"];
+    finalize_block [label="完成switch_block构造\n写入extra数据"];
+    need_rvalue [label="需要rvalue转换?"];
+    return_result [label="返回switch_block引用"];
+    return_rvalue [label="返回rvalue转换结果"];
+
+    start -> check_label;
+    check_label -> first_pass;
+    first_pass -> check_duplicates [label="发现else/_ prong"];
+    first_pass -> validate_items [label="处理普通case"];
+    check_duplicates -> validate_items [label="无冲突"];
+    validate_items -> handle_operand;
+    handle_operand -> create_block;
+    create_block -> emit_dbg_stmt;
+    emit_dbg_stmt -> make_switch_block;
+    make_switch_block -> handle_label [label="存在标签"];
+    handle_label -> second_pass;
+    make_switch_block -> second_pass [label="无标签"];
+    second_pass -> handle_payload [label="处理每个case"];
+    handle_payload -> generate_items;
+    generate_items -> build_prong;
+    build_prong -> check_break;
+    check_break -> second_pass [label="继续下一个case"];
+    second_pass -> finalize_block [label="所有case处理完成"];
+    finalize_block -> need_rvalue;
+    need_rvalue -> return_rvalue [label="是"];
+    need_rvalue -> return_result [label="否"];
+}

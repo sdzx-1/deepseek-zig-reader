@@ -1,0 +1,45 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 builtinCall"];
+    check_builtin_exists [label="检查内置函数是否存在"];
+    error_invalid_builtin [label="返回错误: 无效的内置函数"];
+    check_param_count [label="检查参数数量是否符合要求"];
+    error_param_count [label="返回参数数量错误"];
+    check_scope [label="检查是否在合法作用域内"];
+    error_scope [label="返回作用域错误"];
+    switch_tag [label="根据 info.tag 分发处理"];
+    handle_branch_hint [label="处理 @branchHint"];
+    handle_import [label="处理 @import"];
+    handle_compile_log [label="处理 @compileLog"];
+    handle_field [label="处理 @field"];
+    handle_other_cases [label="处理其他内置函数..."];
+    return_result [label="返回结果"];
+    end [label="结束"];
+
+    start -> check_builtin_exists;
+    check_builtin_exists -> error_invalid_builtin [label="不存在"];
+    check_builtin_exists -> check_param_count [label="存在"];
+    check_param_count -> error_param_count [label="参数数量不匹配"];
+    check_param_count -> check_scope [label="参数正确"];
+    check_scope -> error_scope [label="非法作用域"];
+    check_scope -> switch_tag [label="作用域合法"];
+    switch_tag -> handle_branch_hint [label=".branch_hint"];
+    switch_tag -> handle_import [label=".import"];
+    switch_tag -> handle_compile_log [label=".compile_log"];
+    switch_tag -> handle_field [label=".field"];
+    switch_tag -> handle_other_cases [label="其他标签"];
+    handle_branch_hint -> return_result;
+    handle_import -> return_result;
+    handle_compile_log -> return_result;
+    handle_field -> return_result;
+    handle_other_cases -> return_result;
+    return_result -> end;
+
+    // 错误路径直接返回
+    error_invalid_builtin -> end;
+    error_param_count -> end;
+    error_scope -> end;
+}

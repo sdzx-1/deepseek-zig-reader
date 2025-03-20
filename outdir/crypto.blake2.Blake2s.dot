@@ -1,0 +1,28 @@
+
+digraph Blake2sFlow {
+    node [shape=rectangle, style=rounded];
+    rankdir=TB;
+
+    init [label="初始化 (init)\n- 设置初始向量IV\n- 处理密钥/盐/上下文\n- 异或操作调整参数"];
+    hash [label="哈希入口 (hash)\n调用 init → update → final"];
+    update [label="更新数据 (update)\n- 处理缓存数据\n- 分块处理输入\n- 保存剩余到缓存"];
+    final [label="最终处理 (final)\n- 填充零字节\n- 执行最后一轮\n- 转换字节序输出"];
+    round [label="轮函数 (round)\n- 消息调度\n- 压缩函数处理\n- 更新状态寄存器"];
+
+    {rank=same; init hash}
+
+    hash -> init [label="创建实例"];
+    init -> update [label="存在密钥时"];
+    hash -> update [label="处理输入数据"];
+    update -> round [label="每64字节块"];
+    update -> update [label="循环处理完整块"];
+    hash -> final [label="完成所有数据"];
+    final -> round [label="最后一块数据"];
+    round -> final [label="更新状态"];
+    final -> "输出摘要" [label="小端序转换"];
+
+    edge [style=dashed];
+    init -> "IV/参数配置" [label="初始向量调整"];
+    update -> "缓存管理" [label="部分块处理"];
+    round -> "压缩函数细节" [label="16次轮操作"];
+}

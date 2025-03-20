@@ -1,0 +1,57 @@
+
+digraph linuxLookupName {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 linuxLookupName"];
+    check_opt_name [label="检查 opt_name 是否存在?"];
+    handle_name [label="处理名称解析"];
+    clear_canon [label="清空 canon 列表"];
+    try_parse_addr [label="尝试解析地址"];
+    parse_success [label="解析成功?"];
+    handle_numrichost [label="返回 name_err"];
+    check_hosts [label="尝试从 hosts 文件解析"];
+    check_empty_addrs [label="addrs 是否为空?"];
+    handle_localhost [label="检查是否为 localhost\n添加回环地址"];
+    dns_search [label="进行 DNS 搜索"];
+    handle_null [label="处理空值情况\n调用 linuxLookupNameFromNull"];
+    check_addrs_empty [label="addrs 为空?"];
+    error_unknown_host [label="返回 error.UnknownHostName"];
+    check_sort_need [label="地址数量>1\n且非全IPv4?"];
+    generate_sortkey [label="为每个地址生成排序键"];
+    sort_addrs [label="排序地址列表"];
+    end [label="结束"];
+
+    start -> check_opt_name;
+
+    check_opt_name -> handle_name [label="存在"];
+    check_opt_name -> handle_null [label="不存在"];
+
+    handle_name -> clear_canon;
+    clear_canon -> try_parse_addr;
+    try_parse_addr -> parse_success;
+    parse_success -> check_hosts [label="失败"];
+    parse_success -> add_addr [label="成功"];
+    add_addr [label="将地址加入 addrs"];
+    add_addr -> check_addrs_empty;
+
+    parse_success -> handle_numrichost [label="失败且 flags.NUMERICHOST"];
+    handle_numrichost -> error_unknown_host;
+
+    check_hosts -> check_empty_addrs;
+    check_empty_addrs -> handle_localhost [label="是"];
+    check_empty_addrs -> dns_search [label="否"];
+    handle_localhost -> dns_search;
+    dns_search -> check_addrs_empty;
+
+    handle_null -> check_addrs_empty;
+
+    check_addrs_empty -> error_unknown_host [label="是"];
+    check_addrs_empty -> check_sort_need [label="否"];
+
+    check_sort_need -> generate_sortkey [label="需要排序"];
+    check_sort_need -> end [label="不需要排序"];
+
+    generate_sortkey -> sort_addrs;
+    sort_addrs -> end;
+}

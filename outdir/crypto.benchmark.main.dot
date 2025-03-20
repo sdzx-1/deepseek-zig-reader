@@ -1,0 +1,70 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    init_arena [label="初始化 ArenaAllocator"];
+    get_args [label="解析命令行参数"];
+    args_loop [label="i=1\n循环处理参数"];
+    check_mode [label="参数是 --mode?"];
+    print_mode [label="输出模式并退出"];
+    check_seed [label="参数是 --seed?"];
+    parse_seed [label="解析种子值\n初始化 PRNG"];
+    check_filter [label="参数是 --filter?"];
+    set_filter [label="设置过滤器值"];
+    check_help [label="参数是 --help?"];
+    call_usage [label="显示帮助并退出"];
+    invalid_arg [label="显示帮助\n退出(1)"];
+    end_args [label="参数处理完成"];
+
+    subgraph cluster_benchmarks {
+        label="运行基准测试";
+        style=filled;
+        color=lightgrey;
+
+        hashes [label="遍历哈希算法\n计算吞吐量"];
+        macs [label="遍历 MAC 算法\n计算吞吐量"];
+        exchanges [label="遍历密钥交换\n计算每秒次数"];
+        signatures [label="遍历签名算法\n计算每秒次数"];
+        verifications [label="遍历签名验证\n计算每秒次数"];
+        batch_verifications [label="批量签名验证\n计算每秒次数"];
+        aeads [label="遍历 AEAD 算法\n计算吞吐量"];
+        aes [label="遍历 AES 算法\n计算每秒操作"];
+        aes8 [label="遍历 AES-8 算法\n计算每秒操作"];
+        pwhashes [label="遍历密码哈希\n计算秒/操作"];
+        kems [label="遍历 KEM 算法\n封装/解封/密钥生成"];
+    }
+
+    start -> init_arena -> get_args -> args_loop;
+
+    args_loop -> check_mode;
+    check_mode -> print_mode [label="是"];
+    check_mode -> check_seed [label="否"];
+
+    check_seed -> parse_seed [label="是"];
+    check_seed -> check_filter [label="否"];
+    parse_seed -> args_loop;
+
+    check_filter -> set_filter [label="是"];
+    check_filter -> check_help [label="否"];
+    set_filter -> args_loop;
+
+    check_help -> call_usage [label="是"];
+    check_help -> invalid_arg [label="其他参数"];
+    call_usage -> end_args;
+    invalid_arg -> end_args;
+
+    args_loop -> args_loop [label="i++" style=dotted];
+    end_args -> hashes;
+
+    hashes -> macs -> exchanges -> signatures -> verifications ->
+    batch_verifications -> aeads -> aes -> aes8 -> pwhashes -> kems [weight=2];
+    
+    kems -> end [label="所有测试完成"];
+    print_mode -> end;
+    call_usage -> end;
+    invalid_arg -> end;
+    
+    end [label="退出程序"];
+}

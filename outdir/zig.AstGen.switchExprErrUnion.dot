@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10]
+    edge [fontname="Courier", fontsize=10]
+
+    start [label="开始 switchExprErrUnion"]
+    parse_node_ty [label="根据 node_ty 解析节点类型\n（.@\"catch\" 或 .@\"if\"）"]
+    check_switch_cases [label="遍历所有 switch case\n统计 scalar/multi/inline 数量\n检测 else 分支冲突"]
+    handle_errors [label="处理错误情况\n- 多个 else 分支\n- 禁止的 _ 标识符"]
+    gen_operand [label="生成操作数 (raw_operand) 的 ZIR 指令"]
+    create_switch_block [label="创建 switch_block_err_union 指令"]
+    process_non_error [label="处理非错误分支\n（catch 或 if 的 then 部分）"]
+    handle_err_capture [label="生成错误捕获变量\nerr_inst 和 err_name"]
+    loop_cases [label="循环处理每个 case"]
+    check_case_type [shape=diamond, label="case 类型？"]
+    process_scalar [label="处理标量 case\n生成单个 item 表达式"]
+    process_multi [label="处理多值 case\n生成 items/ranges 列表"]
+    process_else [label="处理 else 分支"]
+    generate_case_body [label="生成 case 代码体\n处理错误跟踪\n添加 break 指令"]
+    finalize_switch [label="组装 ZIR 指令到 extra 数组"]
+    return_result [shape=diamond, label="需要右值？"]
+    rvalue_return [label="返回 rvalue 结果"]
+    direct_return [label="直接返回 switch_block"]
+
+    start -> parse_node_ty
+    parse_node_ty -> check_switch_cases
+    check_switch_cases -> handle_errors [label="检测到错误时"]
+    check_switch_cases -> gen_operand [label="无错误时"]
+    gen_operand -> create_switch_block
+    create_switch_block -> process_non_error
+    process_non_error -> handle_err_capture
+    handle_err_capture -> loop_cases
+
+    loop_cases -> check_case_type
+    check_case_type -> process_scalar [label="标量 case"]
+    check_case_type -> process_multi [label="多值 case"]
+    check_case_type -> process_else [label="else 分支"]
+    process_scalar -> generate_case_body
+    process_multi -> generate_case_body
+    process_else -> generate_case_body
+    generate_case_body -> loop_cases [label="继续下一个 case"]
+
+    loop_cases -> finalize_switch [label="所有 case 处理完成"]
+    finalize_switch -> return_result
+    return_result -> rvalue_return [label="是"]
+    return_result -> direct_return [label="否"]
+}

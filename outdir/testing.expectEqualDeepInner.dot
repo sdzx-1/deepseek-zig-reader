@@ -1,0 +1,79 @@
+
+digraph ExpectEqualDeepInner {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start expectEqualDeepInner(T, expected, actual)", shape=ellipse];
+    check_type [label="Check @typeInfo(actual)"];
+    start -> check_type;
+
+    // 类型分支
+    check_type -> opaque_error [label="noreturn, opaque,\nframe, anyframe"];
+    opaque_error [label="@compileError(...)", shape=box, color=red];
+    
+    check_type -> return_void [label="undefined, null, void"];
+    return_void [label="return", shape=box];
+    
+    check_type -> compare_type [label="type"];
+    compare_type [label="actual == expected?\n打印类型错误", shape=diamond];
+    compare_type -> return_error [label="No"];
+    compare_type -> return_void [label="Yes"];
+    
+    check_type -> scalar_compare [label="bool/int/float/enum..."];
+    scalar_compare [label="actual == expected?\n打印值错误", shape=diamond];
+    scalar_compare -> return_error [label="No"];
+    scalar_compare -> return_void [label="Yes"];
+    
+    check_type -> pointer_handling [label="pointer"];
+    pointer_handling [label="检查指针类型", shape=diamond];
+    pointer_handling -> c_ptr_compare [label="C/many指针"];
+    c_ptr_compare [label="直接比较地址\n打印指针错误", shape=diamond];
+    c_ptr_compare -> return_error [label="No"];
+    
+    pointer_handling -> one_ptr_recurse [label="one指针"];
+    one_ptr_recurse [label="递归比较内容\nexpectEqualDeep(*ptr)", shape=box];
+    
+    pointer_handling -> slice_compare [label="slice指针"];
+    slice_compare [label="比较长度和每个元素", shape=box];
+    slice_compare -> return_error [label="长度不匹配"];
+    slice_compare -> element_loop [label="逐个元素递归"];
+    
+    check_type -> array_compare [label="array"];
+    array_compare [label="比较长度和每个元素", shape=box];
+    array_compare -> return_error [label="长度不匹配"];
+    array_compare -> element_loop [label="逐个元素递归"];
+    
+    check_type -> struct_compare [label="struct"];
+    struct_compare [label="遍历所有字段递归比较", shape=box];
+    struct_compare -> field_error [label="字段不匹配"];
+    field_error [label="打印字段错误", shape=box];
+    
+    check_type -> union_compare [label="union"];
+    union_compare [label="比较tag和payload", shape=box];
+    union_compare -> return_error [label="tag不匹配"];
+    union_compare -> payload_compare [label="递归比较payload"];
+    
+    check_type -> optional_compare [label="optional"];
+    optional_compare [label="比较Some/None状态", shape=diamond];
+    optional_compare -> return_error [label="状态不匹配"];
+    optional_compare -> payload_compare [label="递归比较payload"];
+    
+    check_type -> error_union_compare [label="error_union"];
+    error_union_compare [label="比较error/payload", shape=diamond];
+    error_union_compare -> return_error [label="类型不匹配"];
+    error_union_compare -> payload_compare [label="递归比较"];
+    
+    // 公共错误处理
+    return_error [label="打印错误信息\nreturn error.TestExpectedEqual", shape=box, color=red];
+    
+    // 公共元素循环
+    element_loop [label="循环索引i=0到len-1\n递归比较每个元素", shape=box];
+    element_loop -> element_error [label="元素不匹配"];
+    element_error [label="打印索引错误", shape=box];
+    element_error -> return_error;
+    
+    // 递归连接点
+    payload_compare [label="递归调用expectEqualDeep", shape=box];
+    payload_compare -> return_error [label="失败"];
+    payload_compare -> return_void [label="成功"];
+}

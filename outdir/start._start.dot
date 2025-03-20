@@ -1,0 +1,43 @@
+
+digraph _start_flow {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="入口点 _start()"];
+    check_plan9_x86_64 [label="检查 native_os == .plan9\n且 native_arch == .x86_64", shape=diamond];
+    set_tos [label="设置 std.os.plan9.tos\n通过内联汇编"];
+    check_unwind_tables [label="builtin.unwind_tables != .none\n或 !builtin.strip_debug_info", shape=diamond];
+    insert_cfi [label="插入架构特定的 CFI 指令"];
+    riscv_special_case [label="RISC-V 特殊处理\n设置 __global_pointer$"];
+    arch_switch [label="根据 native_arch 选择汇编路径", shape=diamond];
+    x86_64_code [label="执行 x86_64 汇编代码\n清零寄存器\n对齐栈\n调用 posixCallMainAndExit"];
+    x86_code [label="执行 x86 汇编代码\n清零寄存器\n对齐栈\n调用 posixCallMainAndExit"];
+    aarch64_code [label="执行 AArch64 汇编代码\n清零寄存器\n对齐栈\n调用 posixCallMainAndExit"];
+    // 其他架构节点（此处简化为一个节点，实际需扩展）
+    other_arch_code [label="执行其他架构特定的汇编代码"];
+    call_posix [label="调用 posixCallMainAndExit\n程序退出"];
+
+    start -> check_plan9_x86_64;
+    check_plan9_x86_64 -> set_tos [label="是"];
+    check_plan9_x86_64 -> check_unwind_tables [label="否"];
+    set_tos -> check_unwind_tables;
+
+    check_unwind_tables -> insert_cfi [label="条件满足"];
+    check_unwind_tables -> riscv_special_case [label="条件不满足"];
+
+    insert_cfi -> riscv_special_case;
+    riscv_special_case -> arch_switch;
+
+    arch_switch -> x86_64_code [label="x86_64"];
+    arch_switch -> x86_code [label="x86"];
+    arch_switch -> aarch64_code [label="aarch64/aarch64_be"];
+    arch_switch -> other_arch_code [label="其他架构"];
+    
+    x86_64_code -> call_posix;
+    x86_code -> call_posix;
+    aarch64_code -> call_posix;
+    other_arch_code -> call_posix;
+    
+    call_posix -> exit [label="noreturn"];
+    exit [shape=point];
+}

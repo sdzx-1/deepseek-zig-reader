@@ -1,0 +1,51 @@
+
+digraph FnDeclInnerFlow {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始处理函数声明"];
+    check_keywords [label="检查noinline/inline关键字"];
+    handle_return_type [label="处理返回类型\n检查推断错误"];
+    init_params [label="初始化参数列表"];
+    process_params [label="遍历处理每个参数"];
+    param_type_check [label="检查参数类型\n(comptime/anytype/varargs)"];
+    handle_param_name [label="处理参数名称\n检测命名冲突"];
+    create_param_inst [label="创建参数指令"];
+    update_scope [label="更新作用域"];
+    params_done [label="参数处理完成"];
+    prepare_ret_gz [label="准备返回类型子块(ret_gz)"];
+    handle_return_expression [label="处理返回类型表达式"];
+    restore_cursor [label="恢复源码游标"];
+    prepare_cc_gz [label="准备调用约定子块(cc_gz)"];
+    handle_callconv [label="处理调用约定表达式"];
+    prepare_body_gz [label="准备函数体子块(body_gz)"];
+    process_function_body [label="处理函数体内容"];
+    check_noreturn [label="检查是否需要隐式返回"];
+    add_implicit_return [label="添加隐式返回指令"];
+    build_func_inst [label="构建函数指令(func_inst)"];
+    finish [label="函数声明处理完成"];
+
+    start -> check_keywords;
+    check_keywords -> handle_return_type;
+    handle_return_type -> init_params;
+    init_params -> process_params;
+
+    process_params -> param_type_check [label="遍历参数"];
+    param_type_check -> handle_param_name;
+    handle_param_name -> create_param_inst;
+    create_param_inst -> update_scope;
+    update_scope -> process_params [label="继续下一个参数"];
+    process_params -> params_done [label="所有参数处理完毕"];
+
+    params_done -> prepare_ret_gz;
+    prepare_ret_gz -> handle_return_expression;
+    handle_return_expression -> restore_cursor;
+    restore_cursor -> prepare_cc_gz;
+    prepare_cc_gz -> handle_callconv;
+    handle_callconv -> prepare_body_gz;
+    prepare_body_gz -> process_function_body;
+    process_function_body -> check_noreturn;
+    check_noreturn -> add_implicit_return [label="需要隐式返回"];
+    check_noreturn -> build_func_inst [label="已有noreturn"];
+    add_implicit_return -> build_func_inst;
+    build_func_inst -> finish;
+}

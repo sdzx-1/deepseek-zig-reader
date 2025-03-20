@@ -1,0 +1,65 @@
+
+digraph DepTokenizer {
+    rankdir=LR;
+    node [shape=rectangle];
+
+    // 初始节点
+    Start [label="开始 next()", shape=ellipse];
+    End [label="返回 Token/错误/null", shape=ellipse];
+
+    // 主循环
+    subgraph cluster_main {
+        label="主循环: while (self.index < self.bytes.len)";
+        LoopStart [label="处理当前字符", shape=diamond];
+        LoopEnd [label="更新 self.index", shape=box];
+
+        // 状态分支
+        LoopStart -> StateLHS [label="当前状态是 .lhs"];
+        LoopStart -> StateTarget [label="当前状态是 .target"];
+        LoopStart -> StateTargetReverseSolidus [label="当前状态是 .target_reverse_solidus"];
+        LoopStart -> StateTargetDollarSign [label="当前状态是 .target_dollar_sign"];
+        LoopStart -> StateTargetColon [label="当前状态是 .target_colon"];
+        LoopStart -> StateTargetColonReverseSolidus [label="当前状态是 .target_colon_reverse_solidus"];
+        LoopStart -> StateRHS [label="当前状态是 .rhs"];
+        LoopStart -> StateRHSContinuation [label="当前状态是 .rhs_continuation"];
+        LoopStart -> StateRHSContinuationLinefeed [label="当前状态是 .rhs_continuation_linefeed"];
+        LoopStart -> StatePrereqQuote [label="当前状态是 .prereq_quote"];
+        LoopStart -> StatePrereq [label="当前状态是 .prereq"];
+        LoopStart -> StatePrereqContinuation [label="当前状态是 .prereq_continuation"];
+        LoopStart -> StatePrereqContinuationLinefeed [label="当前状态是 .prereq_continuation_linefeed"];
+    }
+
+    // 状态处理逻辑
+    StateLHS -> HandleLHSSpace [label="字符是 \\t/\\n/\\r/空格"];
+    HandleLHSSpace [label="忽略空格\nself.index += 1"];
+    StateLHS -> HandleLHSElse [label="其他字符"];
+    HandleLHSElse [label="start = self.index\n状态转 .target"];
+
+    StateTarget -> ErrorInvalidTarget [label="字符是 \\t/\\n/\\r/空格"];
+    ErrorInvalidTarget [label="返回错误\n.invalid_target", shape=octagon];
+    StateTarget -> StateTargetDollarSign [label="字符是 $"];
+    StateTarget -> StateTargetReverseSolidus [label="字符是 \\"];
+    StateTarget -> StateTargetColon [label="字符是 :"];
+    StateTarget -> LoopEnd [label="其他字符\nself.index += 1"];
+
+    // ...（其他状态分支的类似结构，此处省略以保持简洁）
+
+    // 循环结束后的处理
+    subgraph cluster_post_loop {
+        label="循环结束后处理";
+        PostLoop [label="根据最终状态处理", shape=diamond];
+        PostLoop -> ReturnNull [label="状态是 .lhs/.rhs/..."];
+        PostLoop -> ErrorIncompleteTarget [label="状态是 .target"];
+        PostLoop -> ErrorIncompleteEscape [label="状态是 .target_reverse_solidus/..."];
+        // ...（其他错误处理分支）
+    }
+
+    // 边连接
+    Start -> LoopStart;
+    HandleLHSSpace -> LoopEnd;
+    HandleLHSElse -> LoopEnd;
+    LoopEnd -> LoopStart [label="继续循环"];
+    PostLoop -> End;
+    ErrorInvalidTarget -> End;
+    // ...（其他错误和返回连接）
+}

@@ -1,0 +1,55 @@
+
+digraph AesOcbFlow {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // Encrypt Function
+    subgraph cluster_encrypt {
+        label="AES-OCB Encrypt Flow";
+        encrypt_start [label="Start Encrypt"];
+        init_aes_ctx [label="Initialize AES Encrypt Context"];
+        init_lx [label="Initialize Lx Structure"];
+        compute_offset [label="Compute Initial Offset (getOffset)"];
+        process_full_blocks [label="Process Full Blocks (Loop)"];
+        process_leftover [label="Process Leftover Bytes"];
+        compute_sum [label="Compute Sum"];
+        generate_tag [label="Generate Authentication Tag"];
+        encrypt_end [label="End Encrypt"];
+
+        encrypt_start -> init_aes_ctx -> init_lx -> compute_offset;
+        compute_offset -> process_full_blocks;
+        process_full_blocks -> process_leftover [label="If leftover bytes"];
+        process_full_blocks -> compute_sum [label="After all blocks"];
+        process_leftover -> compute_sum;
+        compute_sum -> generate_tag -> encrypt_end;
+    }
+
+    // Decrypt Function
+    subgraph cluster_decrypt {
+        label="AES-OCB Decrypt Flow";
+        decrypt_start [label="Start Decrypt"];
+        init_aes_dec_ctx [label="Initialize AES Decrypt Context"];
+        init_lx_dec [label="Initialize Lx Structure"];
+        compute_offset_dec [label="Compute Initial Offset (getOffset)"];
+        process_full_blocks_dec [label="Process Full Blocks (Loop)"];
+        process_leftover_dec [label="Process Leftover Bytes"];
+        compute_sum_dec [label="Compute Sum"];
+        verify_tag [label="Verify Authentication Tag"];
+        decrypt_success [label="Decryption Success"];
+        decrypt_fail [label="Clear Data\nReturn Error"];
+
+        decrypt_start -> init_aes_dec_ctx -> init_lx_dec -> compute_offset_dec;
+        compute_offset_dec -> process_full_blocks_dec;
+        process_full_blocks_dec -> process_leftover_dec [label="If leftover bytes"];
+        process_full_blocks_dec -> compute_sum_dec [label="After all blocks"];
+        process_leftover_dec -> compute_sum_dec;
+        compute_sum_dec -> verify_tag;
+        verify_tag -> decrypt_success [label="Tag Matches"];
+        verify_tag -> decrypt_fail [label="Tag Mismatch"];
+    }
+
+    // Common Components
+    hash_function [label="Hash Function\n(Process Associated Data)"];
+    generate_tag -> hash_function [style=dashed, color=blue];
+    verify_tag -> hash_function [style=dashed, color=blue];
+}

@@ -1,0 +1,52 @@
+
+digraph BoundedArrayFlow {
+    rankdir="LR";
+    node [shape=box, style=rounded];
+
+    // 核心方法节点
+    init [label="init(len)\n检查len是否超过buffer_capacity"];
+    resize [label="resize(new_len)\n调整内部长度"];
+    addOne [label="addOne()\n添加单个元素"];
+    addManyAsArray [label="addManyAsArray(n)\n添加多个元素（数组）"];
+    append [label="append(item)\n追加元素"];
+    pop [label="pop()\n移除并返回最后一个元素"];
+    replaceRange [label="replaceRange()\n替换指定范围的元素"];
+    orderedRemove [label="orderedRemove(i)\n移除指定元素（有序）"];
+    ensureUnusedCapacity [label="ensureUnusedCapacity(additional)\n检查剩余容量"];
+
+    // 错误节点
+    error_Overflow [label="返回error.Overflow", shape=diamond, color=red];
+
+    // 操作节点
+    create_instance [label="创建Self实例\n设置.len"];
+    set_len [label="更新.len"];
+    copy_elements [label="复制元素到缓冲区"];
+    adjust_elements [label="调整元素位置"];
+
+    // 边定义
+    init -> error_Overflow [label="len > buffer_capacity"];
+    init -> create_instance [label="成功"];
+
+    resize -> error_Overflow [label="new_len > buffer_capacity"];
+    resize -> set_len [label="成功"];
+
+    addOne -> ensureUnusedCapacity;
+    ensureUnusedCapacity -> error_Overflow [label="容量不足"];
+    ensureUnusedCapacity -> addOneAssumeCapacity [label="容量足够"];
+    addOneAssumeCapacity [label="直接添加元素（无检查）"];
+
+    append -> addOne [label="调用"];
+    append -> copy_elements [label="设置值"];
+
+    replaceRange -> copy_elements [label="等长替换"];
+    replaceRange -> adjust_elements [label="插入/删除元素"];
+
+    orderedRemove -> pop [label="末尾直接移除"];
+    orderedRemove -> adjust_elements [label="移动后续元素"];
+
+    // 其他方法关联
+    addManyAsArray -> resize [label="扩展长度"];
+    addManyAsArray -> copy_elements [label="返回未初始化区域"];
+
+    pop -> set_len [label="减少.len"];
+}

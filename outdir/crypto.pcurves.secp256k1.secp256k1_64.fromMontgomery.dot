@@ -1,0 +1,25 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start", shape=ellipse];
+    end [label="End", shape=ellipse];
+
+    process_arg0 [label="Process arg1[0]\n- Multiply x1 by 0xd838091dd2253531\n- Generate x2, x3\n- Compute x4-x11\n- Add with carry"];
+    process_arg1 [label="Process arg1[1]\n- Multiply x28 by 0xd838091dd2253531\n- Generate x36-x45\n- Add with carry"];
+    process_arg2 [label="Process arg1[2]\n- Multiply x62 by 0xd838091dd2253531\n- Generate x70-x79\n- Add with carry"];
+    process_arg3 [label="Process arg1[3]\n- Multiply x96 by 0xd838091dd2253531\n- Generate x104-x113\n- Add with carry"];
+    subtract [label="Final Subtraction\n- subborrowxU64 for x130-x138\n- Check borrow flags"];
+    cmov [label="Conditional Move\n- cmovznzU64 based on x139\n- Select x140-x143"];
+    output [label="Store Result\nout1[0..3] = x140-x143"];
+
+    start -> process_arg0;
+    process_arg0 -> process_arg1 [label="Next element"];
+    process_arg1 -> process_arg2 [label="Next element"];
+    process_arg2 -> process_arg3 [label="Next element"];
+    process_arg3 -> subtract;
+    subtract -> cmov [label="Check borrow"];
+    cmov -> output;
+    output -> end;
+}

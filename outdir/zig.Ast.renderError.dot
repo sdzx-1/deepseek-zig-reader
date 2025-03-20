@@ -1,0 +1,42 @@
+
+digraph renderErrorFlow {
+    node [shape=rectangle, fontname="Arial", style="rounded"];
+    edge [fontname="Arial"];
+
+    start [label="开始 renderError"];
+    switch_node [label="switch (parse_error.tag)", shape=diamond];
+    end_node [label="返回错误信息并结束", shape=ellipse];
+
+    start -> switch_node;
+
+    // 示例错误分支（实际需扩展所有case）
+    subgraph cluster_errors {
+        label="错误处理分支";
+        style="dashed";
+
+        case_asterisk [label="处理 .asterisk_after_ptr_deref\n返回：'.*' cannot..."];
+        case_chained [label="处理 .chained_comparison_operators\n返回：comparison..."];
+        case_decl [label="处理 .decl_between_fields\n返回：declarations not allowed..."];
+        case_expected_block [label="处理 .expected_block\n格式化返回预期块信息"];
+        case_varargs [label="处理 .varargs_nonfinal\n返回：parameter after varargs"];
+        case_expected_token [label="处理 .expected_token\n根据token生成消息"];
+        // 添加其他case节点...
+    }
+
+    switch_node -> case_asterisk [label=".asterisk_after_ptr_deref"];
+    switch_node -> case_chained [label=".chained_comparison_operators"];
+    switch_node -> case_decl [label=".decl_between_fields"];
+    switch_node -> case_expected_block [label=".expected_block"];
+    switch_node -> case_varargs [label=".varargs_nonfinal"];
+    switch_node -> case_expected_token [label=".expected_token"];
+    // 连接其他case边...
+
+    // 所有分支最终指向结束节点
+    case_asterisk -> end_node;
+    case_chained -> end_node;
+    case_decl -> end_node;
+    case_expected_block -> end_node;
+    case_varargs -> end_node;
+    case_expected_token -> end_node;
+    // 其他case连接至end_node...
+}

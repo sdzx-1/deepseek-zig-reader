@@ -1,0 +1,27 @@
+
+digraph toMontgomeryFlow {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    decompose_input [label="分解输入参数\narg1[0]-x4, arg1[1]-x1,\narg1[2]-x2, arg1[3]-x3"];
+    process_x4 [label="处理x4部分\n1. mulxU64计算x5, x6\n2. 累加进位链\n3. 模约减运算"];
+    process_x1 [label="处理x1部分\n1. mulxU64计算x35, x36\n2. 累加进位链\n3. 模约减运算"];
+    process_x2 [label="处理x2部分\n1. mulxU64计算x73, x74\n2. 累加进位链\n3. 模约减运算"];
+    process_x3 [label="处理x3部分\n1. mulxU64计算x111, x112\n2. 累加进位链\n3. 模约减运算"];
+    final_sub [label="最终减法调整\nsubborrowxU64检查溢出\n并调整模数范围"];
+    cmov_condition [label="条件选择\ncmovznzU64根据借位标志\n选择最终结果"];
+    output [label="输出结果\nout1[0]-x159, out1[1]-x160,\nout1[2]-x161, out1[3]-x162"];
+
+    start -> decompose_input;
+    decompose_input -> process_x4;
+    process_x4 -> process_x1 [label="传递中间变量"];
+    process_x1 -> process_x2 [label="传递中间变量"];
+    process_x2 -> process_x3 [label="传递中间变量"];
+    process_x3 -> final_sub;
+    final_sub -> cmov_condition;
+    cmov_condition -> output;
+    output -> end;
+}

@@ -1,0 +1,36 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start: node = start_node"];
+    loop [label="Loop"];
+    switch [label="Switch tree.nodeTag(node)"];
+    return_always [label="Return .always", shape=oval];
+    return_maybe [label="Return .maybe", shape=oval];
+    return_never [label="Return .never", shape=oval];
+    check_labeled_block [label="lbrace = tree.nodeMainToken(node)\nIs tree.tokenTag(lbrace-1) == .colon?"];
+    check_builtin [label="builtin_token = tree.nodeMainToken(node)\nbuiltin_name = tokenSlice(builtin_token)\nbuiltin_info = BuiltinFn.list.get(builtin_name)"];
+
+    start -> loop;
+    loop -> switch;
+
+    // Cases that directly return
+    switch -> return_always [label=".error_value"];
+    switch -> return_maybe [label=".asm, .identifier,\n.field_access, ..."];
+    switch -> return_never [label=".number_literal,\n.string_literal, ..."];
+    switch -> return_maybe [label=".catch, .orelse"];
+
+    // Cases that modify node and loop back
+    switch -> loop [label=".try, .await,\n.comptime, .nosuspend,\n.grouped_expression,\n.unwrap_optional"];
+
+    // Block handling
+    switch -> check_labeled_block [label=".block_two,\n.block_two_semicolon,\n.block, .block_semicolon"];
+    check_labeled_block -> return_maybe [label="Yes"];
+    check_labeled_block -> return_never [label="No"];
+
+    // Builtin call handling
+    switch -> check_builtin [label=".builtin_call*"];
+    check_builtin -> return_maybe [label="builtin_info == null"];
+    check_builtin -> return [label="Return builtin_info.eval_to_error"];
+}

@@ -1,0 +1,63 @@
+
+digraph HuffmanDecoder {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    start [label="Start HuffmanDecoder", shape=ellipse];
+    generate [label="generate()"];
+    checkCompleteness [label="checkCompleteness(lens)"];
+    init_symbols [label="Initialize symbols array"];
+    sort_symbols [label="Sort symbols by code_len and symbol"];
+    reset_lookup [label="Reset lookup table"];
+    assign_codes [label="Assign codes to symbols"];
+    fill_lookup [label="Fill lookup table or linked list"];
+    end_generate [label="End generate()", shape=ellipse];
+
+    start -> generate;
+    generate -> checkCompleteness;
+    checkCompleteness -> init_symbols [label="Passed"];
+    init_symbols -> sort_symbols;
+    sort_symbols -> reset_lookup;
+    reset_lookup -> assign_codes;
+
+    assign_codes -> fill_lookup [label="For each symbol"];
+    fill_lookup -> condition_code_bits [label="Process code"];
+    condition_code_bits [label="code_bits <= lookup_bits?", shape=diamond];
+    condition_code_bits -> fill_small [label="Yes"];
+    condition_code_bits -> fill_linked [label="No"];
+
+    fill_small [label="Fill lookup table entries"];
+    fill_linked [label="Insert into linked list"];
+    fill_small -> end_loop [label="Continue"];
+    fill_linked -> end_loop [label="Continue"];
+    end_loop [label="Next symbol"];
+    end_loop -> assign_codes [label="Loop"];
+    assign_codes -> end_generate [label="All symbols processed"];
+
+    // Error handling in checkCompleteness
+    checkCompleteness_error [label="Return error", shape=ellipse, color=red];
+    checkCompleteness -> checkCompleteness_error [label="Validation failed"];
+
+    // find() and findLinked()
+    find [label="find(code)"];
+    lookup_table [label="Check lookup table"];
+    found [label="Return symbol", shape=ellipse];
+    not_found [label="Use linked list", shape=diamond];
+    findLinked [label="findLinked(code, start)"];
+    traverse_list [label="Traverse linked list"];
+    compare_bits [label="Compare code bits"];
+    match [label="Return symbol", shape=ellipse];
+    no_match [label="Continue traversal"];
+    error [label="Error: InvalidCode", shape=ellipse, color=red];
+
+    find -> lookup_table;
+    lookup_table -> found [label="Found"];
+    lookup_table -> not_found [label="Not found"];
+    not_found -> findLinked;
+    findLinked -> traverse_list;
+    traverse_list -> compare_bits;
+    compare_bits -> match [label="Match"];
+    compare_bits -> no_match [label="No match"];
+    no_match -> traverse_list [label="Next node"];
+    traverse_list -> error [label="End of list"];
+}

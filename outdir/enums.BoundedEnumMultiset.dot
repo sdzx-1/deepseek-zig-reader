@@ -1,0 +1,67 @@
+
+digraph BoundedEnumMultiset {
+    rankdir="TB";
+    node [shape=rectangle, style="rounded"];
+
+    // 初始化相关方法
+    subgraph cluster_init {
+        label="初始化方法";
+        init [label="init(init_counts)"];
+        initEmpty [label="initEmpty()"];
+        initWithCount [label="initWithCount(c)"];
+        init -> initWithCount [label="调用"];
+        initEmpty -> initWithCount [label="调用"];
+    }
+
+    // 核心操作方法
+    subgraph cluster_operations {
+        label="操作方法";
+        addAssertSafe [label="addAssertSafe(key, c)"];
+        add [label="add(key, c)"];
+        remove [label="remove(key, c)"];
+        setCount [label="setCount(key, c)"];
+        addSetAssertSafe [label="addSetAssertSafe(other)"];
+        addSet [label="addSet(other)"];
+        removeSet [label="removeSet(other)"];
+    }
+
+    // 查询方法
+    subgraph cluster_query {
+        label="查询方法";
+        count [label="count()"];
+        contains [label="contains(key)"];
+        getCount [label="getCount(key)"];
+        eql [label="eql(other)"];
+        subsetOf [label="subsetOf(other)"];
+        supersetOf [label="supersetOf(other)"];
+    }
+
+    // 迭代器与辅助
+    iterator [label="iterator()"];
+    Entry [label="Entry"];
+    Iterator [label="Iterator"];
+
+    // 核心流程连接
+    init -> addAssertSafe [style=invis]; // 仅用于布局
+    initWithCount -> counts [label="创建EnumArray"];
+
+    // 方法间调用关系
+    addSetAssertSafe -> addAssertSafe [label="遍历字段调用"];
+    addSet -> add [label="遍历字段调用"];
+    removeSet -> remove [label="遍历字段调用"];
+    eql -> getCount [label="遍历比较"];
+    subsetOf -> getCount [label="遍历比较"];
+    supersetOf -> getCount [label="遍历比较"];
+    plusAssertSafe -> addSetAssertSafe;
+    plus -> addSet;
+    minus -> removeSet;
+
+    // 错误处理分支
+    add -> std_math_add [label="调用", shape=diamond];
+    std_math_add [label="std.math.add", shape=ellipse];
+
+    // 跨子图连接
+    {rank=same; init; initWithCount;}
+    {rank=same; add; remove;}
+    {rank=same; eql; subsetOf; supersetOf;}
+}

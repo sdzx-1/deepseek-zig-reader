@@ -1,0 +1,89 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 setName()"];
+    check_length [label="检查 name.len > max_name_len?"];
+    error_name_toolong [label="返回 error.NameTooLong", shape=ellipse];
+    create_name_terminator [label="创建 name_with_terminator\n复制name并添加空终止符"];
+    switch_os [label="根据 native_os 分支", shape=diamond];
+
+    // Linux 分支
+    subgraph cluster_linux {
+        label="native_os = linux";
+        linux_use_pthreads [label="use_pthreads?", shape=diamond];
+        linux_self_thread [label="self == pthread_self()?", shape=diamond];
+        prctl_call [label="调用 prctl(SET_NAME)"];
+        pthread_setname_np_call [label="调用 pthread_setname_np"];
+        proc_write [label="写入 /proc/self/task/.../comm 文件"];
+    }
+
+    // Windows 分支
+    subgraph cluster_windows {
+        label="native_os = windows";
+        windows_convert [label="转换 name 为 UTF-16"];
+        nt_setinfo [label="调用 NtSetInformationThread"];
+        windows_success [label="返回 SUCCESS"];
+        windows_error [label="处理错误"];
+    }
+
+    // macOS/iOS 分支
+    subgraph cluster_macos {
+        label="macos/ios/watchos...";
+        macos_self_thread [label="self == pthread_self()?", shape=diamond];
+        pthread_setname_macos [label="调用 pthread_setname_np"];
+        macos_error [label="返回 error.Unsupported"];
+    }
+
+    // Other OS branches (collapsed for brevity)
+    other_os [label="其他系统分支处理", shape=ellipse];
+    return_unsupported [label="返回 error.Unsupported", shape=ellipse];
+
+    // 通用连接
+    start -> check_length;
+    check_length -> error_name_toolong [label="是"];
+    check_length -> create_name_terminator [label="否"];
+    create_name_terminator -> switch_os;
+
+    // Linux 分支连接
+    switch_os -> linux_use_pthreads [label="linux"];
+    linux_use_pthreads -> linux_self_thread [label="是"];
+    linux_use_pthreads -> proc_write [label="否"];
+    linux_self_thread -> prctl_call [label="是"];
+    linux_self_thread -> pthread_setname_np_call [label="否"];
+    prctl_call -> check_prctl_error;
+    pthread_setname_np_call -> check_pthread_error;
+    proc_write -> file_operations;
+
+    // Windows 分支连接
+    switch_os -> windows_convert [label="windows"];
+    windows_convert -> nt_setinfo;
+    nt_setinfo -> windows_success [label="SUCCESS"];
+    nt_setinfo -> windows_error [label="其他错误"];
+
+    // macOS 分支连接
+    switch_os -> macos_self_thread [label="macos/ios..."];
+    macos_self_thread -> pthread_setname_macos [label="是"];
+    macos_self_thread -> macos_error [label="否"];
+
+    // 其他系统分支
+    switch_os -> other_os [label="其他系统"];
+    other_os -> return_unsupported;
+
+    // 错误处理节点 (示例)
+    check_prctl_error [label="处理 prctl 错误"];
+    check_pthread_error [label="处理 pthread 错误"];
+    file_operations [label="打开文件并写入名称"];
+
+    // 连接错误处理
+    prctl_call -> check_prctl_error -> return_error;
+    pthread_setname_np_call -> check_pthread_error -> return_error;
+    file_operations -> file_error_handling -> return_error;
+
+    // 最终返回节点
+    return_error [label="返回对应错误", shape=ellipse];
+    return_success [label="返回 void", shape=ellipse];
+    windows_success -> return_success;
+    pthread_setname_macos -> return_success;
+}

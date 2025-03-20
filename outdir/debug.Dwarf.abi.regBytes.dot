@@ -1,0 +1,84 @@
+
+digraph regBytes_flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 regBytes", shape=ellipse];
+    end [label="返回寄存器字节或错误", shape=ellipse];
+    check_os_windows [label="builtin.os.tag == .windows?", shape=diamond];
+    handle_windows [label="处理 Windows 分支"];
+    check_have_ucontext [label="std.debug.have_ucontext?", shape=diamond];
+    error_thread_context [label="return error.ThreadContextNotSupported", shape=box];
+    handle_non_windows [label="处理非 Windows 分支"];
+    check_cpu_arch [label="switch (builtin.cpu.arch)", shape=diamond];
+    error_unimplemented_arch [label="return error.UnimplementedArch", shape=box];
+    subgraph cluster_windows {
+        label="Windows 处理";
+        win_arch_x86 [label="x86: switch(reg_number)"];
+        win_arch_x86_64 [label="x86_64: switch(reg_number)"];
+        win_arch_aarch64 [label="aarch64: switch(reg_number)"];
+        win_error_invalid_reg [label="return error.InvalidRegister", shape=box];
+        win_error_unimplemented [label="return error.UnimplementedArch", shape=box];
+    }
+    subgraph cluster_non_windows {
+        label="非 Windows 处理";
+        nonwin_arch_x86 [label="x86: switch(os.tag)"];
+        nonwin_arch_x86_64 [label="x86_64: switch(os.tag)"];
+        nonwin_arch_arm [label="arm: switch(os.tag)"];
+        nonwin_arch_aarch64 [label="aarch64: switch(os.tag)"];
+        os_linux_x86 [label="Linux/NetBSD/Solaris: switch(reg_number)"];
+        os_linux_x86_64 [label="Linux/Solaris/Illumos: switch(reg_number)"];
+        os_freebsd_x86_64 [label="FreeBSD: switch(reg_number)"];
+        os_openbsd_x86_64 [label="OpenBSD: switch(reg_number)"];
+        os_macos_x86_64 [label="macOS/iOS: switch(reg_number)"];
+        reg_context_check [label="reg_context required? (reg_number=4/5)", shape=diamond];
+        error_reg_context [label="return error.RegisterContextRequired", shape=box];
+        error_invalid_reg [label="return error.InvalidRegister", shape=box];
+        error_unimplemented_os [label="return error.UnimplementedOs", shape=box];
+    }
+
+    start -> check_os_windows;
+    check_os_windows -> handle_windows [label="是"];
+    check_os_windows -> check_have_ucontext [label="否"];
+    check_have_ucontext -> handle_non_windows [label="是"];
+    check_have_ucontext -> error_thread_context [label="否"];
+    handle_windows -> check_cpu_arch;
+    check_cpu_arch -> win_arch_x86 [label=".x86"];
+    check_cpu_arch -> win_arch_x86_64 [label=".x86_64"];
+    check_cpu_arch -> win_arch_aarch64 [label=".aarch64"];
+    check_cpu_arch -> win_error_unimplemented [label="其他"];
+    win_arch_x86 -> win_error_invalid_reg [label="默认"];
+    win_arch_x86_64 -> win_error_invalid_reg [label="默认"];
+    win_arch_aarch64 -> win_error_invalid_reg [label="默认"];
+    handle_non_windows -> check_cpu_arch;
+    check_cpu_arch -> nonwin_arch_x86 [label=".x86"];
+    check_cpu_arch -> nonwin_arch_x86_64 [label=".x86_64"];
+    check_cpu_arch -> nonwin_arch_arm [label=".arm"];
+    check_cpu_arch -> nonwin_arch_aarch64 [label=".aarch64"];
+    check_cpu_arch -> error_unimplemented_arch [label="其他"];
+    nonwin_arch_x86 -> os_linux_x86 [label="Linux/NetBSD/Solaris"];
+    nonwin_arch_x86 -> error_unimplemented_os [label="其他"];
+    os_linux_x86 -> reg_context_check [label="reg_number=4/5"];
+    reg_context_check -> error_reg_context [label="reg_context==null"];
+    reg_context_check -> error_invalid_reg [label="其他条件"];
+    nonwin_arch_x86_64 -> os_linux_x86_64 [label="Linux/Solaris/Illumos"];
+    nonwin_arch_x86_64 -> os_freebsd_x86_64 [label="FreeBSD"];
+    nonwin_arch_x86_64 -> os_openbsd_x86_64 [label="OpenBSD"];
+    nonwin_arch_x86_64 -> os_macos_x86_64 [label="macOS/iOS"];
+    nonwin_arch_x86_64 -> error_unimplemented_os [label="其他"];
+    os_linux_x86_64 -> error_invalid_reg [label="默认"];
+    os_freebsd_x86_64 -> error_invalid_reg [label="默认"];
+    os_openbsd_x86_64 -> error_invalid_reg [label="默认"];
+    os_macos_x86_64 -> error_invalid_reg [label="默认"];
+    nonwin_arch_arm -> error_unimplemented_os [label="非 Linux"];
+    nonwin_arch_aarch64 -> error_unimplemented_os [label="特定 OS 分支"];
+    handle_windows -> end;
+    handle_non_windows -> end;
+    error_thread_context -> end;
+    error_unimplemented_arch -> end;
+    error_reg_context -> end;
+    error_invalid_reg -> end;
+    error_unimplemented_os -> end;
+    win_error_invalid_reg -> end;
+    win_error_unimplemented -> end;
+}

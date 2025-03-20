@@ -1,0 +1,35 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始处理 assignDestructureMaybeDecls"];
+    emit_dbg [label="发出调试信息 (emitDbgNode)"];
+    check_redundant_comptime [label="检查冗余的 comptime 关键字"];
+    determine_scope [label="确定是否为编译时作用域 (is_comptime)"];
+    process_vars [label="遍历变量解构组件"];
+    handle_identifier [label="处理标识符 (如 _ 或变量名)"];
+    handle_var_decl [label="处理变量声明 (类型/对齐/地址空间)"];
+    check_lvalue [label="存在左值表达式？"];
+    enter_comptime_block [label="进入编译时块 (block_comptime)"];
+    resolve_inferred_allocs [label="解析推断分配和创建作用域"];
+    end [label="返回当前作用域"];
+
+    start -> emit_dbg;
+    emit_dbg -> check_redundant_comptime;
+    check_redundant_comptime -> determine_scope;
+    determine_scope -> process_vars;
+
+    process_vars -> handle_identifier [label="标识符分支"];
+    process_vars -> handle_var_decl [label="变量声明分支"];
+    process_vars -> check_lvalue [label="其他表达式分支"];
+
+    handle_identifier -> process_vars [label="继续下一个变量"];
+    handle_var_decl -> process_vars [label="继续下一个变量"];
+
+    check_lvalue -> enter_comptime_block [label="是"];
+    check_lvalue -> resolve_inferred_allocs [label="否"];
+
+    enter_comptime_block -> resolve_inferred_allocs;
+    resolve_inferred_allocs -> end;
+}

@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fillcolor="#E5F5FD", color="#2B7CE9"];
+    edge [color="#2B7CE9"];
+
+    start [label="开始 toBitcode 函数"];
+    init_bitcode [label="初始化 BitcodeWriter\n计算类型和属性的对数"];
+    write_magic [label="写入 LLVM IR Magic (32位)"];
+    identification_block [label="处理 IDENTIFICATION_BLOCK\n写入版本和生产者信息"];
+    module_block [label="进入 MODULE_BLOCK"];
+    type_block [label="处理 TYPE_BLOCK\n遍历所有类型项并写入"];
+    paramattr_group [label="处理 PARAMATTR_GROUP_BLOCK\n收集属性组"];
+    paramattr [label="处理 PARAMATTR_BLOCK\n映射属性组到函数"];
+    globals_processing [label="处理全局变量、函数、别名\n过滤被替换的全局对象"];
+    constants_block [label="处理 CONSTANTS_BLOCK\n写入所有常量值"];
+    metadata_kind [label="处理 METADATA_KIND_BLOCK\n写入固定元数据类型"];
+    metadata_block [label="处理 METADATA_BLOCK\n写入元数据字符串和复杂元数据"];
+    operand_bundle [label="处理 OPERAND_BUNDLE_TAGS_BLOCK\n写入操作数包标签"];
+    block_info [label="写入 BlockInfo 定义\n设置函数块和元数据块的缩写"];
+    function_blocks [label="处理 FUNCTION_BLOCKS\n遍历所有函数并写入指令"];
+    strtab_block [label="处理 STRTAB_BLOCK\n写入字符串表数据"];
+    return_result [label="返回生成的 Bitcode 数据"];
+
+    start -> init_bitcode;
+    init_bitcode -> write_magic;
+    write_magic -> identification_block;
+    identification_block -> module_block;
+
+    module_block -> type_block;
+    type_block -> paramattr_group;
+    paramattr_group -> paramattr;
+    paramattr -> globals_processing;
+    globals_processing -> constants_block;
+    constants_block -> metadata_kind;
+    metadata_kind -> metadata_block;
+    metadata_block -> operand_bundle;
+    operand_bundle -> block_info;
+    block_info -> function_blocks;
+    function_blocks -> strtab_block;
+    strtab_block -> return_result;
+
+    // 子流程展开示例
+    subgraph cluster_module_block {
+        label="MODULE_BLOCK 内部流程";
+        module_block -> type_block;
+        type_block -> paramattr_group;
+        paramattr_group -> paramattr;
+    }
+
+    subgraph cluster_function_processing {
+        label="函数块处理细节";
+        function_blocks -> enter_function_block [label="进入函数子块"];
+        enter_function_block -> write_metadata [label="写入函数级元数据"];
+        write_metadata -> process_instructions [label="处理所有指令"];
+        process_instructions -> value_symtab [label="写入值符号表"];
+        value_symtab -> metadata_attachment [label="附加元数据"];
+        metadata_attachment -> end_function_block [label="结束函数块"];
+    }
+}

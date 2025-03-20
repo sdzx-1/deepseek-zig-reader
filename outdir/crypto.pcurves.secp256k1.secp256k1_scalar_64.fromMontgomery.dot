@@ -1,0 +1,39 @@
+
+digraph fromMontgomery {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始\n从 arg1[0] 获取 x1"];
+    process_arg1_0 [label="处理 arg1[0]\n乘法与累加操作 (x2-x26)"];
+    process_arg1_1 [label="处理 arg1[1]\n乘法与累加操作 (x28-x60)"];
+    process_arg1_2 [label="处理 arg1[2]\n乘法与累加操作 (x62-x94)"];
+    process_arg1_3 [label="处理 arg1[3]\n乘法与累加操作 (x96-x128)"];
+    final_sub [label="模数减法调整\n(x130-x138)"];
+    cmov_adj [label="条件移动结果\n(x140-x143)"];
+    output [label="输出结果到 out1[0..3]"];
+    end [label="结束"];
+
+    start -> process_arg1_0;
+    process_arg1_0 -> process_arg1_1 [label="携带进位"];
+    process_arg1_1 -> process_arg1_2 [label="携带进位"];
+    process_arg1_2 -> process_arg1_3 [label="携带进位"];
+    process_arg1_3 -> final_sub;
+    final_sub -> cmov_adj [label="根据借位标志 x139"];
+    cmov_adj -> output;
+    output -> end;
+
+    // 详细展开第一个处理块示例
+    subgraph cluster_arg1_0 {
+        label="处理 arg1[0] 的详细步骤";
+        mul_x2_x3 [label="mulxU64(x2, x3, x1, 0x4b0dff...)"];
+        mul_x4_x5 [label="mulxU64(x4, x5, x2, 0xffffffff...)"];
+        addcarry_1 [label="addcarryxU64(x12, x13, 0x0, x11, x8)"];
+        addcarry_chain [label="... 后续进位链 (x14-x26)"];
+        mul_x2_x3 -> mul_x4_x5 -> addcarry_1 -> addcarry_chain;
+    }
+
+    // 其他处理块结构类似，用注释表示重复模式
+    edge [style=invis];
+    process_arg1_0 -> mul_x2_x3;
+    process_arg1_1 -> process_arg1_0 [style=invis];
+}

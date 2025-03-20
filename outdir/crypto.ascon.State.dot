@@ -1,0 +1,53 @@
+
+digraph AsconState {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // 初始化相关方法
+    subgraph cluster_init {
+        label="初始化方法";
+        init [label="init(initial_state)\n- 复制字节\n- 字节序交换"];
+        initFromWords [label="initFromWords(words)\n- 直接设置u64数组"];
+        initXof [label="initXof()\n- 设置XOF常量"];
+        initXofa [label="initXofa()\n- 设置XOFa常量"];
+    }
+
+    // 字节操作
+    subgraph cluster_bytes {
+        label="字节操作";
+        asBytes [label="asBytes()\n- 返回字节视图"];
+        endianSwap [label="endianSwap()\n- 全状态字节序转换"];
+        setBytes [label="setBytes(bytes)\n- 分块写入状态"];
+        addByte [label="addByte(byte, offset)\n- 按位异或单字节"];
+        addBytes [label="addBytes(bytes)\n- 分块异或数据"];
+        extractBytes [label="extractBytes(out)\n- 分块读取状态"];
+        xorBytes [label="xorBytes(out, in)\n- 带异或的输出"];
+    }
+
+    // 置换核心
+    subgraph cluster_permutation {
+        label="置换操作";
+        permuteR [label="permuteR(rounds)\n- 应用轮密钥"];
+        permute [label="permute()\n- 调用permuteR(12)"];
+        permuteRatchet [label="permuteRatchet()\n- 容量掩码处理"];
+        round [label="round(rk)\n- 非线性层\n- 线性变换\n- 循环移位"];
+    }
+
+    // 辅助方法
+    clear [label="clear()\n- 清零指定区间"];
+    secureZero [label="secureZero()\n- 安全擦除"];
+
+    // 主要调用关系
+    init -> endianSwap;
+    permuteR -> round [label="循环调用"];
+    permute -> permuteR [label="rounds=12"];
+    permuteRatchet -> permuteR [label="先置换"];
+
+    // 数据流关系
+    asBytes -> {endianSwap, setBytes, extractBytes};
+    setBytes -> addBytes -> permute;
+    addByte -> permute;
+    extractBytes -> xorBytes;
+    permuteRatchet -> {clear, secureZero} [style=dashed];
+    round -> {permuteR, permute} [style=invis];
+}

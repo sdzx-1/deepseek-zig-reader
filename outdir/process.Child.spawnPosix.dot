@@ -1,0 +1,74 @@
+
+digraph spawnPosix {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 spawnPosix"];
+    create_pipes [label="创建 stdin/stdout/stderr 管道\n(带 CLOEXEC 标志)"];
+    check_ignore [label="是否有标准流被忽略？", shape=diamond];
+    open_dev_null [label="打开 /dev/null"];
+    create_prog_pipe [label="创建进度报告管道 prog_pipe"];
+    arena_alloc [label="初始化 Arena 分配器"];
+    prepare_argv_env [label="准备 argv 和 envp 参数"];
+    create_err_pipe [label="创建错误报告管道 err_pipe"];
+    fork_process [label="调用 fork() 创建子进程", shape=diamond];
+
+    // 子进程分支
+    child_setup_io [label="子进程: 设置标准输入输出错误"];
+    child_set_cwd [label="设置工作目录"];
+    child_dup_prog_pipe [label="复制 prog_pipe 到 prog_fileno"];
+    child_set_ids [label="设置 GID/UID/PGID"];
+    child_exec [label="执行 execvpe 加载程序"];
+    child_error [label="报告错误到 err_pipe"];
+
+    // 父进程分支
+    parent_close_err_write [label="父进程: 关闭 err_pipe 写端"];
+    parent_set_fds [label="设置 stdin/stdout/stderr 文件描述符"];
+    parent_record_pid [label="记录子进程 PID"];
+    parent_close_pipe_ends [label="关闭不需要的管道端点"];
+    parent_set_progress [label="设置进度报告 IPC"];
+
+    // 错误处理节点
+    err_pipes [label="错误处理: 销毁管道", color=red];
+    defer_close_dev_null [label="延迟关闭 /dev/null", color=blue];
+    defer_destroy_prog_pipe [label="延迟销毁 prog_pipe", color=blue];
+    defer_arena_deinit [label="延迟释放 Arena 分配器", color=blue];
+    defer_err_pipe [label="延迟销毁 err_pipe", color=blue];
+
+    start -> create_pipes;
+    create_pipes -> check_ignore;
+    
+    check_ignore -> open_dev_null [label="是"];
+    check_ignore -> create_prog_pipe [label="否"];
+    open_dev_null -> create_prog_pipe;
+    
+    create_prog_pipe -> arena_alloc;
+    arena_alloc -> prepare_argv_env;
+    prepare_argv_env -> create_err_pipe;
+    create_err_pipe -> fork_process;
+
+    // 子进程分支
+    fork_process -> child_setup_io [label="子进程"];
+    child_setup_io -> child_set_cwd;
+    child_set_cwd -> child_dup_prog_pipe;
+    child_dup_prog_pipe -> child_set_ids;
+    child_set_ids -> child_exec;
+    child_exec -> child_error [label="失败时"];
+    child_error -> parent_close_err_write [style=invis]; // 保持布局连贯
+
+    // 父进程分支
+    fork_process -> parent_close_err_write [label="父进程"];
+    parent_close_err_write -> parent_set_fds;
+    parent_set_fds -> parent_record_pid;
+    parent_record_pid -> parent_close_pipe_ends;
+    parent_close_pipe_ends -> parent_set_progress;
+
+    // 错误处理连接
+    create_pipes -> err_pipes [label="失败时"];
+    create_prog_pipe -> err_pipes [label="失败时"];
+    create_err_pipe -> err_pipes [label="失败时"];
+    open_dev_null -> defer_close_dev_null [style=dotted, color=blue];
+    create_prog_pipe -> defer_destroy_prog_pipe [style=dotted, color=blue];
+    arena_alloc -> defer_arena_deinit [style=dotted, color=blue];
+    create_err_pipe -> defer_err_pipe [style=dotted, color=blue];
+}

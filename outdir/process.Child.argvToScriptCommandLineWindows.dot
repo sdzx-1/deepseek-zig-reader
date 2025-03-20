@@ -1,0 +1,44 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    init_buf [label="初始化缓冲区 buf\n容量64字节"];
+    add_cmd [label="添加基础命令\ncmd.exe /d /e:ON /v:OFF /c \""];
+    handle_script_path [label="处理脚本路径"];
+    check_separator [label="检查路径是否包含 \\ 或 /", shape=diamond];
+    add_prefix [label="添加 .\\ 前缀"];
+    encode_script [label="转码脚本路径并添加引号"];
+    loop_args [label="遍历每个参数", shape=box];
+    check_invalid_chars [label="检查参数是否包含非法字符\n(\\x00, \\r, \\n)", shape=diamond];
+    error [label="返回错误\nInvalidBatchScriptArg"];
+    check_quotes_needed [label="判断是否需要引号\n（空或末尾为\\）", shape=diamond];
+    check_special_chars [label="检查特殊字符\n确定是否需要引号", shape=diamond];
+    process_escapes [label="处理转义字符\n（\\、\"、%）"];
+    add_arg [label="添加参数到缓冲区"];
+    finalize [label="闭合外层引号\n转码为UTF-16 LE并返回"];
+    end [label="结束"];
+
+    start -> init_buf;
+    init_buf -> add_cmd;
+    add_cmd -> handle_script_path;
+    handle_script_path -> check_separator;
+
+    check_separator -> add_prefix [label="否"];
+    check_separator -> encode_script [label="是"];
+    add_prefix -> encode_script;
+    encode_script -> loop_args;
+
+    loop_args -> check_invalid_chars;
+    check_invalid_chars -> error [label="存在"];
+    check_invalid_chars -> check_quotes_needed [label="不存在"];
+    check_quotes_needed -> check_special_chars [label="否"];
+    check_quotes_needed -> add_arg [label="是"];
+    check_special_chars -> add_arg [label="需要引号"];
+    check_special_chars -> process_escapes [label="不需要"];
+    process_escapes -> add_arg;
+    add_arg -> loop_args [label="继续遍历"];
+    loop_args -> finalize [label="遍历完成"];
+    finalize -> end;
+}

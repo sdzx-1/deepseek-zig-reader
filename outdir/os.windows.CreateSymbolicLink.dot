@@ -1,0 +1,68 @@
+
+digraph CreateSymbolicLinkFlow {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 CreateSymbolicLink"];
+    open_file [label="调用 OpenFile 打开符号链接文件"];
+    error_handling [label="错误处理分支"];
+    defer_close [label="defer 关闭句柄"];
+    check_namespace [label="检查目标路径的命名空间前缀"];
+    path_processing [label="处理路径前缀/绝对路径判断"];
+    prepare_buffer [label="准备重解析数据缓冲区"];
+    fill_struct [label="填充 SYMLINK_DATA 结构"];
+    mem_copy [label="内存拷贝操作"];
+    device_ioctl [label="调用 DeviceIoControl 设置重解析点"];
+    end [label="函数返回"];
+
+    start -> open_file;
+    open_file -> error_handling [label="失败时"];
+    open_file -> defer_close [label="成功时"];
+    defer_close -> check_namespace;
+    
+    check_namespace -> path_processing;
+    path_processing -> prepare_buffer;
+    
+    prepare_buffer -> fill_struct;
+    fill_struct -> mem_copy;
+    mem_copy -> device_ioctl;
+    device_ioctl -> end;
+
+    subgraph cluster_error {
+        label="错误处理";
+        error_handling -> error_case1 [label="error.IsDir"];
+        error_handling -> error_case2 [label="error.NotDir"];
+        error_handling -> error_case3 [label="其他错误"];
+        error_case1 [label="返回 PathAlreadyExists"];
+        error_case2 [label="返回 Unexpected"];
+        error_case3 [label="原样返回错误"];
+        error_case1 -> end;
+        error_case2 -> end;
+        error_case3 -> end;
+    }
+
+    subgraph cluster_path {
+        label="路径处理逻辑";
+        path_processing -> condition1 [label="判断命名空间前缀"];
+        condition1 [shape=diamond, label="前缀类型?"];
+        condition1 -> rooted [label="none + rooted"];
+        condition1 -> relative [label="none + relative"];
+        condition1 -> nt [label="NT 前缀"];
+        
+        rooted [label="直接使用目标路径"];
+        relative [label="保持相对路径"];
+        nt [label="使用原始路径"];
+        
+        rooted -> check_absolute;
+        relative -> check_absolute;
+        nt -> check_absolute;
+        
+        check_absolute [shape=diamond, label="是否为绝对路径?"];
+        check_absolute -> add_prefix [label="否"];
+        check_absolute -> final_path [label="是"];
+        
+        add_prefix [label="添加 NT 前缀"];
+        add_prefix -> final_path;
+        final_path [label="确定最终目标路径"];
+    }
+}

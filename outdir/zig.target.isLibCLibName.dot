@@ -1,0 +1,56 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始 isLibCLibName(target, name)"];
+    ignore_case [label="设置 ignore_case = target.os.tag.isDarwin() 或 Windows"];
+    check_c [label="检查 name 是否为 'c' (忽略大小写)"];
+    return_true_c [label="返回 true", shape=ellipse];
+    check_mingw [label="target 是 MinGW?"];
+    check_mingw_libs [label="检查是否匹配 MinGW 库列表中的任意一个"];
+    return_true_mingw [label="返回 true", shape=ellipse];
+    return_false_mingw [label="返回 false", shape=ellipse];
+    check_gnu_musl [label="target.abi 是 GNU 或 Musl?"];
+    check_gnu_musl_libs [label="检查是否匹配 GNU/Musl 库列表中的任意一个"];
+    check_musl_specific [label="检查 Musl 特定库"];
+    check_musl_wasi [label="target.os.tag == WASI?\n检查 WASI 相关库"];
+    check_darwin [label="target.os.tag 是 Darwin?"];
+    check_darwin_libs [label="检查是否匹配 Darwin 库列表中的任意一个"];
+    check_macos_10_8 [label="macOS >= 10.8?\n检查是否匹配 'mx'"];
+    check_haiku [label="target.os.tag 是 Haiku?\n检查 'root' 或 'network'"];
+    check_serenity [label="target.os.tag 是 Serenity?\n检查相关库"];
+    return_false [label="返回 false", shape=ellipse];
+
+    start -> ignore_case;
+    ignore_case -> check_c;
+    check_c -> return_true_c [label="是"];
+    check_c -> check_mingw [label="否"];
+
+    check_mingw -> check_mingw_libs [label="是"];
+    check_mingw -> check_gnu_musl [label="否"];
+
+    check_mingw_libs -> return_true_mingw [label="匹配"];
+    check_mingw_libs -> return_false_mingw [label="不匹配"];
+
+    check_gnu_musl -> check_gnu_musl_libs [label="是"];
+    check_gnu_musl -> check_darwin [label="否"];
+
+    check_gnu_musl_libs -> check_musl_specific [label="继续"];
+    check_musl_specific -> check_musl_wasi [label="如果是 Musl"];
+    check_musl_wasi -> check_darwin [label="继续"];
+
+    check_darwin -> check_darwin_libs [label="是"];
+    check_darwin -> check_macos_10_8 [label="继续"];
+    check_macos_10_8 -> check_haiku [label="继续"];
+
+    check_haiku -> check_serenity [label="否"];
+    check_serenity -> return_false [label="所有条件不满足"];
+
+    // 简化的连接示意（实际需根据条件连接）
+    check_gnu_musl_libs -> check_darwin [label="未匹配"];
+    check_darwin_libs -> check_macos_10_8 [label="未匹配"];
+    check_macos_10_8 -> check_haiku [label="未匹配"];
+    check_haiku -> check_serenity [label="未匹配"];
+    check_serenity -> return_false [label="未匹配"];
+}

@@ -1,0 +1,93 @@
+
+digraph zip_iterator {
+    node [shape=rectangle, style=rounded];
+
+    // Init 函数流程
+    subgraph cluster_init {
+        label="Iterator.init";
+        init_start [label="开始初始化"];
+        init_find_end [label="查找EndRecord"];
+        init_validate_counts [label="验证记录计数"];
+        init_check_disk_numbers [label="检查磁盘号是否为0"];
+        init_validate_counts_zip64 [label="验证Zip64记录计数"];
+        init_check_zip64_need [label="是否需要处理Zip64"];
+        init_read_locator [label="读取EndLocator64"];
+        init_validate_locator [label="验证Locator签名和磁盘计数"];
+        init_read_record64 [label="读取EndRecord64"];
+        init_validate_record64 [label="验证Record64签名和大小"];
+        init_update_result [label="更新结果结构体"];
+        init_return [label="返回初始化结果"];
+
+        init_start -> init_find_end;
+        init_find_end -> init_validate_counts;
+        init_validate_counts -> init_check_disk_numbers;
+        init_check_disk_numbers -> init_validate_counts_zip64;
+        init_validate_counts_zip64 -> init_check_zip64_need;
+        init_check_zip64_need -> init_return [label="不需要Zip64"];
+        init_check_zip64_need -> init_read_locator [label="需要Zip64"];
+        init_read_locator -> init_validate_locator;
+        init_validate_locator -> init_read_record64;
+        init_read_record64 -> init_validate_record64;
+        init_validate_record64 -> init_update_result;
+        init_update_result -> init_return;
+    }
+
+    // Next 函数流程
+    subgraph cluster_next {
+        label="Iterator.next";
+        next_start [label="开始获取下一个条目"];
+        next_check_index [label="检查是否遍历完所有记录"];
+        next_read_header [label="读取CentralDirectoryFileHeader"];
+        next_validate_header [label="验证Header签名"];
+        next_update_offset [label="更新记录偏移量"];
+        next_handle_extra [label="处理Extra字段"];
+        next_return_entry [label="返回Entry结构"];
+
+        next_start -> next_check_index;
+        next_check_index -> next_read_header [label="未完成"];
+        next_check_index -> next_check_cd_size [label="已完成"];
+        next_check_cd_size [label="检查CD偏移量是否匹配"];
+        next_check_cd_size -> error_oversized [label="cd_size > offset"];
+        next_check_cd_size -> error_undersized [label="cd_size < offset"];
+        next_check_cd_size -> return_null [label="匹配"];
+        next_read_header -> next_validate_header;
+        next_validate_header -> next_update_offset;
+        next_update_offset -> next_handle_extra;
+        next_handle_extra -> next_return_entry;
+    }
+
+    // Extract 函数流程
+    subgraph cluster_extract {
+        label="Entry.extract";
+        extract_start [label="开始解压文件"];
+        extract_read_filename [label="读取文件名"];
+        extract_read_local_header [label="读取LocalFileHeader"];
+        extract_validate_local [label="验证LocalHeader签名和字段"];
+        extract_handle_extra [label="处理Extra字段"];
+        extract_check_filename [label="检查文件名合法性"];
+        extract_handle_directory [label="处理目录创建"];
+        extract_create_file [label="创建目标文件"];
+        extract_decompress [label="解压数据"];
+        extract_return_crc [label="返回CRC32"];
+
+        extract_start -> extract_read_filename;
+        extract_read_filename -> extract_read_local_header;
+        extract_read_local_header -> extract_validate_local;
+        extract_validate_local -> extract_handle_extra;
+        extract_handle_extra -> extract_check_filename;
+        extract_check_filename -> extract_handle_directory [label="是目录"];
+        extract_check_filename -> extract_create_file [label="是文件"];
+        extract_handle_directory -> extract_return_crc;
+        extract_create_file -> extract_decompress;
+        extract_decompress -> extract_return_crc;
+    }
+
+    // 错误节点
+    error_oversized [label="error.ZipCdOversized", shape=oval, color=red];
+    error_undersized [label="error.ZipCdUndersized", shape=oval, color=red];
+    return_null [label="返回null", shape=oval];
+
+    // 连接主流程
+    init_return -> next_start [ltail=cluster_init, lhead=cluster_next];
+    next_return_entry -> extract_start [ltail=cluster_next, lhead=cluster_extract];
+}

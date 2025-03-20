@@ -1,0 +1,42 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: divstep函数入口"];
+    init [label="初始化变量\n计算x1, x2 = addcarryxU64(~arg1 + 1)"];
+    compute_x3 [label="计算条件x3\n(根据x1和arg3[0]的最低有效位)"];
+    cmov_initial [label="条件移动初始值\ncmovznzU64选择x6-x11, x22-x26"];
+    compute_twos_complement [label="计算arg2的二进制补数\nx12-x21通过连续addcarryxU64"];
+    cmov_arg3 [label="条件移动arg3的值\ncmovznzU64选择x22-x26"];
+    cmov_arg4_arg5 [label="条件移动arg4和arg5的值\ncmovznzU64选择x27-x30"];
+    doubling_loop [label="双倍运算和模约减\nx31-x48通过加法和subborrowxU64"];
+    negation_block [label="计算arg4的负值\nx53-x69通过subborrowxU64和cmovznzU64"];
+    final_cmov [label="最终条件移动\ncmovznzU64选择x70-x73"];
+    parity_check [label="奇偶性检查x74\n条件清零操作x75-x79"];
+    final_add [label="最终加法链\nx80-x89通过addcarryxU64"];
+    output_processing [label="输出处理\n计算结果写入out1-out5"];
+    end [label="返回结果"];
+
+    start -> init;
+    init -> compute_x3;
+    compute_x3 -> cmov_initial;
+    cmov_initial -> compute_twos_complement;
+    compute_twos_complement -> cmov_arg3;
+    cmov_arg3 -> cmov_arg4_arg5;
+    cmov_arg4_arg5 -> doubling_loop;
+    doubling_loop -> negation_block;
+    negation_block -> final_cmov;
+    final_cmov -> parity_check;
+    parity_check -> final_add;
+    final_add -> output_processing;
+    output_processing -> end;
+
+    // 关键条件分支
+    edge [style=dashed, color=blue];
+    compute_x3 -> cmov_initial [label="x3条件判断"];
+    cmov_arg3 -> cmov_arg3 [label="循环处理数组元素"];
+    doubling_loop -> doubling_loop [label="进位链处理"];
+    negation_block -> negation_block [label="借位链处理"];
+    parity_check -> final_add [label="x74决定清零路径"];
+}

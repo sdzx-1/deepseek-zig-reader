@@ -1,0 +1,20 @@
+
+digraph {
+    node [shape=rectangle, fontname="Arial", style="rounded"];
+    edge [fontname="Arial"];
+
+    start [label="pub fn ArrayListAlignedUnmanaged(...)"];
+    check_alignment [shape=diamond, label="alignment != null?"];
+    check_alignof [shape=diamond, label="alignment == @alignOf(T)?"];
+    recursive_call [label="return ArrayListAlignedUnmanaged(T, null)"];
+    define_struct [label="定义结构体类型:\n- items\n- capacity\n- 方法集合"];
+    methods [label="结构体方法:\ninitCapacity, deinit,\nappend, insert,\npop, shrinkAndFree 等"];
+
+    start -> check_alignment;
+    check_alignment -> check_alignof [label="是"];
+    check_alignment -> define_struct [label="否"];
+    check_alignof -> recursive_call [label="是"];
+    check_alignof -> define_struct [label="否"];
+    recursive_call -> define_struct [style=dashed, label="递归调用后"];
+    define_struct -> methods [label="包含"];
+}

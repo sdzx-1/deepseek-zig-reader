@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="builtinCall 开始"];
+    check_params [label="检查参数数量是否匹配"];
+    switch_tag [label="根据 builtin 标签分支"];
+    return_false [label="返回 false"];
+    return_true [label="返回 true"];
+    handle_branch [label="处理分支逻辑"];
+
+    start -> check_params;
+    check_params -> switch_tag [label="参数数量正确"];
+    check_params -> return_false [label="参数数量错误"];
+
+    switch_tag -> handle_branch;
+
+    /* 各分支处理示例 */
+    subgraph cluster_branch_hint {
+        label="branch_hint";
+        branch_hint [label="处理 args[0]\n(ResultInfo.type_only)"];
+        branch_hint -> return_false;
+    }
+
+    subgraph cluster_frame_address {
+        label="frame_address";
+        frame_address [label="特殊处理"];
+        frame_address -> return_true;
+    }
+
+    subgraph cluster_shl_exact {
+        label="shl_exact/shr_exact";
+        shl_exact1 [label="处理 args[0]\n(ResultInfo.none)"];
+        shl_exact2 [label="处理 args[1]\n(ResultInfo.type_only)"];
+        shl_exact1 -> shl_exact2 -> return_false;
+    }
+
+    subgraph cluster_atomic_rmw {
+        label="atomic_rmw";
+        atomic_rmw1 [label="处理 args[0]\n(ResultInfo.type_only)"];
+        atomic_rmw2 [label="处理 args[1]\n(ResultInfo.none)"];
+        atomic_rmw3 [label="处理 args[2-4]\n(ResultInfo.type_only)"];
+        atomic_rmw1 -> atomic_rmw2 -> atomic_rmw3 -> return_false;
+    }
+
+    handle_branch -> {branch_hint, frame_address, shl_exact1, atomic_rmw1} [style="invis"];
+    
+    /* 连接公共出口 */
+    return_false [shape=oval];
+    return_true [shape=oval];
+    {branch_hint, shl_exact2, atomic_rmw3} -> return_false;
+    frame_address -> return_true;
+}

@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="Start divstep", shape=ellipse];
+    end [label="End divstep", shape=ellipse];
+
+    // 初始化和条件分支
+    init_vars [label="初始化变量 x1, x2"];
+    compute_x3 [label="计算 x3 = (x1 >> 63) & (arg3[0] & 1)"];
+    cmovznz_block1 [label="根据 x3 选择值\n设置 x6-x11, x22-x26, x27-x30"];
+
+    // 算术运算块
+    addcarry_subborrow_block [label="执行 addcarryxU64/subborrowxU64\n计算中间变量 x31-x68"];
+    cmovznz_block2 [label="根据 x3 选择值\n设置 x70-x73"];
+
+    // 位操作和条件分支
+    compute_x74 [label="计算 x74 = x22 & 1"];
+    cmovznz_block3 [label="根据 x74 选择值\n设置 x75-x79, x90-x93"];
+    addcarry_block2 [label="执行 addcarryxU64\n计算 x80-x88, x94-x100"];
+    subborrow_block [label="执行 subborrowxU64\n计算 x102-x110"];
+
+    // 最终结果处理
+    final_cmovznz [label="根据条件选择最终值\n设置 x112-x126"];
+    assign_outputs [label="将结果写入 out1-out5"];
+
+    // 连接节点
+    start -> init_vars;
+    init_vars -> compute_x3;
+    compute_x3 -> cmovznz_block1;
+    cmovznz_block1 -> addcarry_subborrow_block;
+    addcarry_subborrow_block -> cmovznz_block2;
+    cmovznz_block2 -> compute_x74;
+    compute_x74 -> cmovznz_block3;
+    cmovznz_block3 -> addcarry_block2;
+    addcarry_block2 -> subborrow_block;
+    subborrow_block -> final_cmovznz;
+    final_cmovznz -> assign_outputs;
+    assign_outputs -> end;
+
+    // 条件分支示例（示意性连接）
+    cmovznz_block1 -> addcarry_subborrow_block [label="条件选择"];
+    cmovznz_block2 -> compute_x74 [label="条件选择"];
+    cmovznz_block3 -> addcarry_block2 [label="条件选择"];
+    subborrow_block -> final_cmovznz [label="根据 x48, x111 选择"];
+}

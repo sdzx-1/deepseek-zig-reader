@@ -1,0 +1,91 @@
+
+digraph BitReaderFlow {
+    graph [rankdir=TB, fontname="Courier", splines=ortho];
+    node [shape=rectangle, fontname="Courier"];
+    edge [fontname="Courier"];
+
+    // Entry Point
+    start [label="Start BitReader", shape=ellipse];
+    end [label="End", shape=ellipse];
+
+    // Main Structures
+    subgraph cluster_init {
+        label="BitReader.init()";
+        init_start [label="Initialize forward_reader"];
+        init_fill [label="Call fill(1)"];
+        init_return [label="Return Self"];
+        init_start -> init_fill -> init_return;
+    }
+
+    subgraph cluster_fill {
+        label="fill(nice)";
+        fill_start [label="Check if nbits >= nice"];
+        fill_enough [label="Return", shape=diamond];
+        fill_read_bytes [label="Calculate empty_bytes"];
+        fill_read [label="Read bytes from forward_reader"];
+        fill_merge [label="Merge into bits buffer"];
+        fill_update_nbits [label="Update nbits"];
+        fill_eos_check [label="Check if nbits == 0"];
+
+        fill_start -> fill_enough [label="Yes"];
+        fill_start -> fill_read_bytes [label="No"];
+        fill_read_bytes -> fill_read;
+        fill_read -> fill_merge [label="Bytes read > 0"];
+        fill_merge -> fill_update_nbits -> fill_enough;
+        fill_read -> fill_eos_check [label="Bytes read == 0"];
+        fill_eos_check -> end [label="Yes\n(EndOfStream)"];
+        fill_eos_check -> fill_enough [label="No"];
+    }
+
+    subgraph cluster_readF {
+        label="readF(U, how)";
+        readF_start [label="Check U type"];
+        readF_u32u64_case [label="Handle U == T case"];
+        readF_switch [label="Switch on flags"];
+        readF_normal [label="Normal read\n(Fill + Shift)"];
+        readF_peek [label="Peek bits\n(No shift)"];
+        readF_buffered [label="Use buffered bits"];
+        readF_reverse [label="Reverse bits"];
+        readF_combinations [label="Handle flag combinations"];
+
+        readF_start -> readF_u32u64_case [label="U == T"];
+        readF_u32u64_case -> end;
+        readF_start -> readF_switch [label="Other U"];
+        readF_switch -> readF_normal [label="how=0"];
+        readF_switch -> readF_peek [label="peek"];
+        readF_switch -> readF_buffered [label="buffered"];
+        readF_switch -> readF_reverse [label="reverse"];
+        readF_switch -> readF_combinations [label="Combined flags"];
+    }
+
+    subgraph cluster_readFixedCode {
+        label="readFixedCode()";
+        fixed_fill [label="Fill 7+2 bits"];
+        fixed_read7 [label="Read 7 bits (reversed)"];
+        fixed_condition1 [label="code7 <= 0b0010111"];
+        fixed_case1 [label="Return code7 + 256"];
+        fixed_condition2 [label="code7 <= 0b1011111"];
+        fixed_case2 [label="Read 1 more bit\nCalculate value"];
+        fixed_condition3 [label="code7 <= 0b1100011"];
+        fixed_case3 [label="Read 1 bit\nCalculate value"];
+        fixed_case4 [label="Read 2 bits (reversed)\nCalculate value"];
+
+        fixed_fill -> fixed_read7 -> fixed_condition1;
+        fixed_condition1 -> fixed_case1 [label="Yes"];
+        fixed_condition1 -> fixed_condition2 [label="No"];
+        fixed_condition2 -> fixed_case2 [label="Yes"];
+        fixed_condition2 -> fixed_condition3 [label="No"];
+        fixed_condition3 -> fixed_case3 [label="Yes"];
+        fixed_condition3 -> fixed_case4 [label="No"];
+    }
+
+    // Global Flow
+    start -> init_start;
+    init_return -> fill_start [ltail=cluster_init];
+    fill_enough -> readF_start [ltail=cluster_fill];
+    readF_combinations -> end [label="Return value"];
+    fixed_case1 -> end;
+    fixed_case2 -> end;
+    fixed_case3 -> end;
+    fixed_case4 -> end;
+}

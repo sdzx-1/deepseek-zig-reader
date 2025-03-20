@@ -1,0 +1,120 @@
+
+digraph innerParseFromValue {
+    graph [bgcolor=transparent];
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    Start [label="Start innerParseFromValue(T, allocator, source, options)", shape=ellipse];
+    End [label="Return parsed value", shape=ellipse];
+    Error [label="Return error", shape=ellipse];
+
+    Start -> TypeSwitch;
+
+    subgraph cluster_TypeSwitch {
+        label="Switch @typeInfo(T)";
+        TypeSwitch [label="TypeSwitch", shape=diamond];
+
+        TypeSwitch -> Bool [label=".bool"];
+        TypeSwitch -> Float [label=".float/.comptime_float"];
+        TypeSwitch -> Int [label=".int/.comptime_int"];
+        TypeSwitch -> Optional [label=".optional"];
+        TypeSwitch -> Enum [label=".enum"];
+        TypeSwitch -> Union [label=".union"];
+        TypeSwitch -> Struct [label=".struct"];
+        TypeSwitch -> Array [label=".array"];
+        TypeSwitch -> Vector [label=".vector"];
+        TypeSwitch -> Pointer [label=".pointer"];
+        TypeSwitch -> Default [label="else"];
+    }
+
+    // Bool分支
+    Bool [label="Check source type"];
+    Bool -> BoolCase [label="source.bool? → return value"];
+    Bool -> Error [label="else → UnexpectedToken"];
+
+    // Float分支
+    Float [label="Check source type"];
+    Float -> FloatCaseFloat [label=".float → cast"];
+    Float -> FloatCaseInt [label=".integer → convert"];
+    Float -> FloatCaseStr [label=".number_string/.string → parse"];
+    Float -> Error [label="else → UnexpectedToken"];
+
+    // Int分支
+    Int [label="Check source type"];
+    Int -> IntCaseFloat [label=".float → validate and cast"];
+    Int -> IntCaseInt [label=".integer → validate and cast"];
+    Int -> IntCaseStr [label=".number_string/.string → parse"];
+    Int -> Error [label="else → UnexpectedToken"];
+
+    // Optional分支
+    Optional [label="Check source"];
+    Optional -> NullCase [label="source.null → return null"];
+    Optional -> RecurseOptional [label="else → recurse"];
+    RecurseOptional [label="Recurse with optional child type"];
+
+    // Enum分支
+    Enum [label="Check custom parser"];
+    Enum -> CustomEnumParser [label="has jsonParseFromValue? → call"];
+    Enum -> EnumDefault [label="else check source type"];
+    EnumDefault -> EnumInt [label=".integer → intToEnum"];
+    EnumDefault -> EnumStr [label=".number_string/.string → sliceToEnum"];
+    EnumDefault -> Error [label="else → UnexpectedToken"];
+
+    // Union分支
+    Union [label="Check custom parser"];
+    Union -> CustomUnionParser [label="has jsonParseFromValue? → call"];
+    Union -> UnionDefault [label="else check source.object"];
+    UnionDefault -> UnionFieldMatch [label="match field → init union"];
+    UnionDefault -> Error [label="else → UnknownField"];
+
+    // Struct分支
+    Struct [label="Check if tuple"];
+    Struct -> TupleCase [label="is_tuple? → parse array"];
+    Struct -> CustomStructParser [label="has jsonParseFromValue? → call"];
+    Struct -> ObjectCase [label="parse object fields"];
+    ObjectCase -> FillDefaults [label="fill default values"];
+
+    // Array分支
+    Array [label="Check source type"];
+    Array -> ArrayCaseArray [label=".array → parse elements"];
+    Array -> ArrayCaseString [label=".string → fixed-length string"];
+    Array -> Error [label="else → UnexpectedToken"];
+
+    // Vector分支
+    Vector [label="Check source type"];
+    Vector -> VectorCaseArray [label=".array → parse elements"];
+    Vector -> Error [label="else → UnexpectedToken"];
+
+    // Pointer分支
+    Pointer [label="Check pointer type"];
+    Pointer -> PointerSingle [label=".one → alloc and parse"];
+    Pointer -> PointerSlice [label=".slice → alloc slice"];
+    Pointer -> Error [label="else → compile error"];
+
+    // 默认错误分支
+    Default -> Error [label="@compileError"];
+
+    // 公共连接
+    BoolCase -> End;
+    FloatCaseFloat -> End;
+    FloatCaseInt -> End;
+    FloatCaseStr -> End;
+    IntCaseFloat -> End;
+    IntCaseInt -> End;
+    IntCaseStr -> End;
+    NullCase -> End;
+    RecurseOptional -> End;
+    CustomEnumParser -> End;
+    EnumInt -> End;
+    EnumStr -> End;
+    CustomUnionParser -> End;
+    UnionFieldMatch -> End;
+    TupleCase -> End;
+    CustomStructParser -> End;
+    FillDefaults -> End;
+    ArrayCaseArray -> End;
+    ArrayCaseString -> End;
+    VectorCaseArray -> End;
+    PointerSingle -> End;
+    PointerSlice -> End;
+}

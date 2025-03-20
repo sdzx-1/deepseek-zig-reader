@@ -1,0 +1,28 @@
+
+digraph detectNativeFeatures {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    detect_basic [label="调用cpuid(0,0)\n获取max_level"];
+    detect_leaf1 [label="调用cpuid(1,0)\n设置基本特性(cx8, cmov, sse等)"];
+    check_xsave_avx [label="检查XSAVE和AVX支持"];
+    handle_avx512 [label="根据OS处理AVX512保存状态"];
+    detect_extended [label="调用cpuid(0x80000000)\n处理扩展特性(sahf, lzcnt等)"];
+    check_ext_level [label="max_ext_level >= 0x80000008?\n设置内存特性(clzero, wbnoinvd)"];
+    handle_level7 [label="max_level >= 0x7\n设置高级特性(fsgsbase, avx2, avx512等)"];
+    handle_leaf7_1 [label="处理cpuid(0x7,0x1)\n设置avx512bf16"];
+    handle_levelD [label="max_level >= 0xD && has_avx_save\n设置XSAVE选项"];
+    handle_level14 [label="max_level >= 0x14\n设置ptwrite"];
+    end [label="结束"];
+
+    start -> detect_basic -> detect_leaf1 -> check_xsave_avx;
+    check_xsave_avx -> handle_avx512 -> detect_extended;
+    detect_extended -> check_ext_level;
+    check_ext_level -> handle_level7 [label="是"];
+    check_ext_level -> handle_level7 [label="否"];
+    handle_level7 -> handle_leaf7_1 [label="has_leaf_7_1"];
+    handle_level7 -> handle_levelD;
+    handle_leaf7_1 -> handle_levelD;
+    handle_levelD -> handle_level14;
+    handle_level14 -> end;
+}

@@ -1,0 +1,48 @@
+
+digraph block_sort_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 block 函数"];
+    check_len [label="检查 items.len"];
+    len_less_4 [label="items.len < 4?"];
+    handle_len3 [label="处理长度3的插入排序"];
+    handle_len2 [label="处理长度2的交换"];
+    return_small [label="返回"];
+    len_ge8 [label="items.len >= 8?"];
+    init_iterator [label="初始化迭代器 Iterator"];
+    sort_network [label="使用排序网络处理4-8长度的块"];
+    merge_phase [label="进入归并排序阶段"];
+    check_cache [label="检查块大小是否适合缓存"];
+    merge_with_cache [label="使用缓存合并块"];
+    merge_in_place [label="原地合并逻辑"];
+    handle_buffers [label="处理内部缓冲区"];
+    redistribute_buffers [label="重分布缓冲区数据"];
+    next_level [label="进入下一归并层级"];
+    end [label="结束"];
+
+    start -> check_len;
+    check_len -> len_less_4 [label="是"];
+    check_len -> len_ge8 [label="否"];
+
+    len_less_4 -> handle_len3 [label="长度3"];
+    handle_len3 -> return_small;
+    len_less_4 -> handle_len2 [label="长度2"];
+    handle_len2 -> return_small;
+    return_small -> end;
+
+    len_ge8 -> init_iterator;
+    init_iterator -> sort_network;
+    sort_network -> merge_phase;
+
+    merge_phase -> check_cache;
+    check_cache -> merge_with_cache [label="块大小 <= 缓存"];
+    check_cache -> merge_in_place [label="块大小 > 缓存"];
+
+    merge_with_cache -> handle_buffers;
+    merge_in_place -> handle_buffers;
+
+    handle_buffers -> redistribute_buffers;
+    redistribute_buffers -> next_level;
+    next_level -> check_cache [label="继续合并"];
+    next_level -> end [label="完成所有层级"];
+}

@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 make 函数"];
+    read_source [label="读取源文件内容\n(src_path.root_dir.handle.readFileAllocOptions)"];
+    traverse_checks [label="遍历 check_object.checks.items"];
+    check_kind [label="检查 chk.kind", shape=diamond];
+    compute_compare [label="执行计算比较\n(res = act.computeCmp)"];
+    check_res [label="比较结果 res 为真？", shape=diamond];
+    parse_obj [label="根据 obj_format 调用解析器\n(MachODumper/ElfDumper/WasmDumper)"];
+    process_output [label="处理解析后的输出\n(按行分割输出内容)"];
+    traverse_actions [label="遍历 chk.actions.items"];
+    action_tag [label="检查 act.tag", shape=diamond];
+    exact_match [label="查找精确匹配行\n(act.exact)"];
+    contains_check [label="查找包含匹配行\n(act.contains)"];
+    not_present_check [label="检查不存在行\n(act.notPresent)"];
+    extract_var [label="提取变量\n(act.extract)"];
+    fail [label="调用 step.fail 返回错误", color=red];
+
+    start -> read_source;
+    read_source -> traverse_checks;
+
+    traverse_checks -> check_kind;
+    check_kind -> compute_compare [label=".compute_compare"];
+    check_kind -> parse_obj [label="其他格式"];
+
+    compute_compare -> check_res;
+    check_res -> fail [label="否"];
+    check_res -> traverse_checks [label="是"];
+
+    parse_obj -> process_output;
+    process_output -> traverse_actions;
+
+    traverse_actions -> action_tag;
+    action_tag -> exact_match [label=".exact"];
+    action_tag -> contains_check [label=".contains"];
+    action_tag -> not_present_check [label=".not_present"];
+    action_tag -> extract_var [label=".extract"];
+
+    exact_match -> fail [label="未找到"];
+    exact_match -> traverse_actions [label="找到"];
+
+    contains_check -> fail [label="未找到"];
+    contains_check -> traverse_actions [label="找到"];
+
+    not_present_check -> fail [label="找到"];
+    not_present_check -> traverse_actions [label="未找到"];
+
+    extract_var -> fail [label="未找到"];
+    extract_var -> traverse_actions [label="找到并更新vars"];
+
+    traverse_actions -> traverse_checks [label="所有action处理完成"];
+    traverse_checks -> end [label="所有check处理完成"];
+    fail -> end;
+
+    end [label="函数结束"];
+}

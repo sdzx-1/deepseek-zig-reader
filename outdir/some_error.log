@@ -1,0 +1,49 @@
+enums.EnumSet.dot
+----------err-----------------
+Error: enums.EnumSet.dot: syntax error in line 47 near '.'
+
+----------out-----------------
+
+------------------------------
+zig.llvm.Builder.printUnbuffered.dot
+----------err-----------------
+Warning: Orthogonal edges do not currently handle edge labels. Try using xlabels.
+
+----------out-----------------
+
+------------------------------
+zig.render.renderMember.dot
+----------err-----------------
+Error: zig.render.renderMember.dot: syntax error in line 49 near '->'
+
+----------out-----------------
+
+------------------------------
+zig.AstGen.localVarRef.dot
+----------err-----------------
+Error: zig.AstGen.localVarRef.dot: syntax error in line 76 near '->'
+
+----------out-----------------
+
+------------------------------
+meta.trailer_flags.TrailerFlags.dot
+----------err-----------------
+Error: meta.trailer_flags.TrailerFlags.dot: syntax error in line 39 near '.'
+
+----------out-----------------
+
+------------------------------
+crypto.ff.Uint.dot
+----------err-----------------
+Warning: Orthogonal edges do not currently handle edge labels. Try using xlabels.
+
+----------out-----------------
+
+------------------------------
+compress.flate.bit_reader.BitReader.dot
+----------err-----------------
+Warning: Orthogonal edges do not currently handle edge labels. Try using xlabels.
+
+----------out-----------------
+
+------------------------------

@@ -1,0 +1,57 @@
+
+digraph TarWriterFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 入口节点
+    Writer [label="Writer结构体初始化\n(block_size, empty_block, Options)"];
+    
+    // 主要方法节点
+    setRoot [label="setRoot方法\n设置根目录前缀"];
+    writeDir [label="writeDir方法\n写入目录"];
+    writeFile [label="writeFile方法\n写入文件"];
+    writeFileStream [label="writeFileStream方法\n流式写入文件"];
+    writeFileBytes [label="writeFileBytes方法\n字节缓冲写入文件"];
+    writeLink [label="writeLink方法\n写入符号链接"];
+    writeEntry [label="writeEntry方法\n处理文件系统条目"];
+    finish [label="finish方法\n写入结束块"];
+
+    // 内部函数节点
+    writeHeader [label="writeHeader方法\n构造并写入Header"];
+    setPath [label="setPath方法\n处理路径长度"];
+    writeExtendedHeader [label="writeExtendedHeader方法\n写入GNU扩展头"];
+    writePadding [label="writePadding方法\n填充数据块"];
+    mtimeNow [label="mtimeNow方法\n获取当前时间"];
+
+    // 结构关系
+    Writer -> {setRoot writeDir writeFile writeFileStream writeFileBytes writeLink writeEntry finish};
+
+    // 方法调用流程
+    setRoot -> writeDir [label="路径非空时"];
+    writeDir -> writeHeader;
+    writeFile -> {writeHeader, writePadding};
+    writeFileStream -> {writeHeader, writePadding};
+    writeFileBytes -> {writeHeader, writePadding};
+    writeLink -> writeHeader;
+    writeEntry -> {writeDir, writeFile, writeLink} [label="根据条目类型"];
+    
+    // Header处理流程
+    writeHeader -> {setPath, mtimeNow, writeExtendedHeader};
+    setPath -> writeExtendedHeader [label="路径过长时"];
+    writeHeader -> Header [label="设置类型/大小/mtime/mode"];
+
+    // 数据写入流程
+    writeFile -> underlying_writer [label="写入文件内容"];
+    writeFileStream -> counting_reader [label="流式传输"];
+    writeFileBytes -> underlying_writer [label="直接写缓冲区"];
+    writeExtendedHeader -> underlying_writer [label="写扩展头内容"];
+    writePadding -> empty_block [label="填充对齐块"];
+
+    // 结束流程
+    finish -> empty_block [label="写入两个空块"];
+
+    // 内部工具方法
+    mtimeNow -> std_time [label="获取时间戳"];
+    setPath -> Header [label="设置基础路径"];
+    writeExtendedHeader -> Header [label="构造扩展头"];
+}

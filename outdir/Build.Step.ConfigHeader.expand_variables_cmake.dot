@@ -1,0 +1,105 @@
+
+digraph flowchart {
+    node [shape=ellipse] start end;
+    node [shape=rectangle] process;
+    node [shape=diamond] decision;
+
+    start -> init_vars [label="Start"];
+    init_vars [label="Initialize variables:\nresult, valid_varname_chars,\nopen_var, curr=0, source_offset=0,\nvar_stack"];
+    init_vars -> loop_cond;
+
+    loop_cond [label="curr < contents.len?"];
+    loop_cond -> process_char [label="Yes"];
+    loop_cond -> post_loop [label="No"];
+
+    process_char -> check_char_type;
+
+    check_char_type [label="Check contents[curr]"];
+    check_char_type -> case_at [label="@"];
+    check_char_type -> case_dollar [label="$"];
+    check_char_type -> case_brace [label="}"];
+    check_char_type -> default_case [label="Other"];
+
+    case_at [label="Handle @VAR@ pattern"];
+    case_at -> find_close_at [label="Check next character"];
+    find_close_at [label="Find closing @"];
+    find_close_at -> valid_varname [label="Found"];
+    find_close_at -> preserve_literal [label="Not found"];
+
+    valid_varname [label="Validate characters"];
+    valid_varname -> get_value [label="Valid"];
+    valid_varname -> preserve_literal [label="Invalid"];
+
+    get_value [label="Lookup key in values"];
+    get_value -> append_value [label="Exists"];
+    get_value -> error_missing [label="Missing"];
+
+    append_value [label="Append value to result"];
+    append_value -> update_offsets;
+
+    preserve_literal [label="Preserve @ as literal"];
+    preserve_literal -> continue_loop;
+
+    case_dollar [label="Handle ${VAR} pattern"];
+    case_dollar -> check_open_brace [label="Check next is {"];
+    check_open_brace -> append_open_var [label="Yes"];
+    check_open_brace -> preserve_literal_dollar [label="No"];
+
+    append_open_var [label="Append ${ to result"];
+    append_open_var -> push_stack;
+
+    push_stack [label="Push position to var_stack"];
+    push_stack -> continue_loop;
+
+    preserve_literal_dollar [label="Preserve $ as literal"];
+    preserve_literal_dollar -> continue_loop;
+
+    case_brace [label="Handle } closure"];
+    case_brace -> check_stack [label="Check var_stack not empty"];
+    check_stack -> pop_stack [label="Not empty"];
+    check_stack -> preserve_brace [label="Empty"];
+
+    pop_stack [label="Pop position from stack"];
+    pop_stack -> validate_key [label="Get key from result"];
+    validate_key -> lookup_value [label="Key exists"];
+    validate_key -> error_missing_key [label="Empty key"];
+
+    lookup_value [label="Lookup value in values"];
+    lookup_value -> replace_value [label="Found"];
+    lookup_value -> error_missing_value [label="Missing"];
+
+    replace_value [label="Replace ${VAR} with value"];
+    replace_value -> update_source_offset;
+
+    preserve_brace [label="Preserve } as literal"];
+    preserve_brace -> continue_loop;
+
+    default_case [label="Check var_stack state"];
+    default_case -> check_valid_char [label="In variable context"];
+    check_valid_char [label="Character in valid_varname_chars?"];
+    check_valid_char -> error_invalid_char [label="No"];
+    check_valid_char -> continue_loop [label="Yes"];
+
+    error_missing [label="Return error.MissingValue"];
+    error_missing_key [label="Return error.MissingKey"];
+    error_missing_value [label="Return error.MissingValue"];
+    error_invalid_char [label="Return error.InvalidCharacter"];
+
+    update_offsets [label="Update curr and source_offset"];
+    update_offsets -> continue_loop;
+
+    update_source_offset [label="Update source_offset"];
+    update_source_offset -> continue_loop;
+
+    continue_loop [label="curr += 1"];
+    continue_loop -> loop_cond;
+
+    post_loop [label="Append remaining content"];
+    post_loop -> return_result;
+
+    return_result [label="Return result.toOwnedSlice()"];
+    return_result -> end;
+
+    start [shape=ellipse, label="Start"];
+    end [shape=ellipse, label="End"];
+}

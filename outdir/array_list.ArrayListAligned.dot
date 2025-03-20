@@ -1,0 +1,72 @@
+
+digraph ArrayListAligned {
+    node [shape=rectangle, style=filled, fillcolor=lightblue];
+
+    // 主函数入口
+    ArrayListAligned [label="pub fn ArrayListAligned(T, alignment)", shape=ellipse, fillcolor=salmon];
+    CheckAlignment [label="检查对齐参数"];
+
+    // 结构体定义
+    DefineStruct [label="定义结构体 Self"];
+    Methods [label="结构体方法"];
+
+    // 核心方法
+    Init [label="init(gpa: Allocator)"];
+    InitCapacity [label="initCapacity(gpa, num)"];
+    Deinit [label="deinit()"];
+    FromOwnedSlice [label="fromOwnedSlice(gpa, slice)"];
+    ToOwnedSlice [label="toOwnedSlice()"];
+    Append [label="append(item)"];
+    Insert [label="insert(i, item)"];
+    Pop [label="pop()"];
+    EnsureCapacity [label="ensureTotalCapacity(new_capacity)"];
+    EnsureUnusedCapacity [label="ensureUnusedCapacity(additional_count)"];
+
+    // 子流程
+    AddOne [label="addOne()"];
+    AddManyAt [label="addManyAt(index, count)"];
+    RemapCheck [label="检查内存重映射", shape=diamond];
+    AllocNewMemory [label="分配新内存并复制旧数据"];
+
+    // 关系定义
+    ArrayListAligned -> CheckAlignment;
+    CheckAlignment -> DefineStruct [label="对齐有效"];
+    CheckAlignment -> ArrayListAligned [label="递归调用"];
+
+    DefineStruct -> Methods;
+
+    Methods -> Init;
+    Methods -> InitCapacity;
+    Methods -> Deinit;
+    Methods -> FromOwnedSlice;
+    Methods -> ToOwnedSlice;
+    Methods -> Append;
+    Methods -> Insert;
+    Methods -> Pop;
+    Methods -> EnsureCapacity;
+    Methods -> EnsureUnusedCapacity;
+
+    Append -> EnsureUnusedCapacity [label="需要扩容时"];
+    Append -> AddOne [label="添加元素"];
+    
+    EnsureUnusedCapacity -> EnsureCapacity;
+    EnsureCapacity -> RemapCheck [label="容量不足时"];
+    RemapCheck -> AllocNewMemory [label="重映射失败"];
+    RemapCheck -> UpdatePointers [label="重映射成功"];
+
+    Insert -> AddManyAt [label="插入位置处理"];
+    AddManyAt -> EnsureCapacity [label="需要扩容时"];
+    AddManyAt -> MemCopy [label="内存搬移"];
+
+    ToOwnedSlice -> ClearAndFree [label="清理旧数据"];
+
+    // 辅助节点
+    UpdatePointers [label="更新指针和容量"];
+    MemCopy [label="内存拷贝操作"];
+    ClearAndFree [label="clearAndFree()"];
+
+    // 样式调整
+    {rank=same; Init; InitCapacity}
+    {rank=same; Append; Insert}
+    {rank=same; EnsureCapacity; EnsureUnusedCapacity}
+}

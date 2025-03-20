@@ -1,0 +1,75 @@
+
+digraph renderMember {
+    node [shape=rectangle, fontname="Courier", fontsize="10"];
+    edge [fontname="Courier", fontsize="10"];
+
+    start [label="Start renderMember"];
+    end [label="End renderMember"];
+    check_omit [label="Check if decl is omitted"];
+    render_doc [label="Render doc comments"];
+    switch_tag [label="Switch (tree.nodeTag(decl))"];
+    fn_decl [label="Case .fn_decl"];
+    handle_fn_proto [label="Handle fn_proto variants"];
+    check_callconv [label="Check inline callconv"];
+    render_fn_proto [label="Render fn_proto expression"];
+    gut_functions [label="Check gut_functions flag"];
+    unused_vars [label="Process unused_var_decls"];
+    render_body [label="Render function body"];
+    other_cases [label="Other cases (.fn_proto_*, .usingnamespace, etc)"];
+    var_decls [label="Handle var declarations"];
+    test_decl [label="Handle test_decl"];
+    container_fields [label="Handle container fields"];
+    comptime_case [label="Handle comptime"];
+
+    start -> check_omit;
+    check_omit -> render_doc [label="Not omitted"];
+    check_omit -> end [label="Omitted"];
+    render_doc -> switch_tag;
+
+    switch_tag -> fn_decl [label=".fn_decl"];
+    switch_tag -> other_cases [label=".fn_proto_*"];
+    switch_tag -> other_cases [label=".usingnamespace"];
+    switch_tag -> var_decls [label=".global_var_decl etc"];
+    switch_tag -> test_decl [label=".test_decl"];
+    switch_tag -> container_fields [label=".container_field*"];
+    switch_tag -> comptime_case [label=".comptime"];
+
+    fn_decl -> handle_fn_proto;
+    handle_fn_proto -> check_callconv;
+    check_callconv -> render_fn_proto [label="Add inline if needed"];
+    render_fn_proto -> gut_functions;
+
+    gut_functions -> ais_push [label="true"];
+    gut_functions -> unused_vars [label="false"];
+    ais_push [label="Push indent, render lbrace"];
+    ais_push -> discard_params;
+    discard_params [label="Discard all params"];
+    discard_params -> write_trap [label="Add @trap()"];
+    write_trap -> render_rbrace;
+    render_rbrace [label="Render rbrace"] -> end;
+
+    unused_vars -> ais_push2 [label="true"];
+    ais_push2 [label="Push indent, render lbrace"];
+    ais_push2 -> process_params;
+    process_params [label="Process parameters"];
+    process_params -> finish_block;
+    finish_block [label="Finish render block"] -> end;
+
+    unused_vars -> render_body [label="false"];
+    render_body -> end;
+
+    other_cases -> render_expr [label="Render expression"];
+    render_expr -> render_semicolon [label="Render semicolon"];
+    render_semicolon -> end;
+
+    var_decls -> renderVarDecl [label="Render var decl"];
+    renderVarDecl -> end;
+
+    test_decl -> render_test [label="Render test decl"];
+    render_test -> end;
+
+    container_fields -> renderContainerField [label="Render field"];
+    renderContainerField -> end;
+
+    comptime_case -> render_expr [label="Render comptime expr"];
+}

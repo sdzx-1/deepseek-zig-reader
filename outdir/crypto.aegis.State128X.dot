@@ -1,0 +1,59 @@
+
+digraph State128X {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+    edge [arrowhead=vee];
+
+    // 主要函数节点
+    init [label="初始化 State\n(init 方法)"];
+    update [label="更新状态\n(update 方法)"];
+    absorb [label="吸收数据\n(absorb 方法)"];
+    enc [label="加密数据\n(enc 方法)"];
+    dec [label="解密数据\n(dec 方法)"];
+    decLast [label="解密最后块\n(decLast 方法)"];
+    finalize [label="生成认证标签\n(finalize 方法)"];
+    finalizeMac [label="生成 MAC 标签\n(finalizeMac 方法)"];
+
+    // 条件分支和循环
+    subgraph cluster_init {
+        label="初始化流程";
+        init_c1c2 [label="定义常量 c1, c2\n构造初始 blocks"];
+        check_degree [shape=diamond, label="degree > 1?"];
+        context_block [label="生成 context_block\n循环更新 state 10 次"];
+        default_loop [label="直接循环更新 state 10 次"];
+
+        init -> init_c1c2;
+        init_c1c2 -> check_degree;
+        check_degree -> context_block [label="是"];
+        check_degree -> default_loop [label="否"];
+        context_block -> update [label="调用 update"];
+        default_loop -> update [label="调用 update"];
+    }
+
+    // update 方法的内部流程
+    subgraph cluster_update {
+        label="update 方法内部";
+        rotate_blocks [label="循环右移 blocks\n(7 到 0 的加密操作)"];
+        xor_d1d2 [label="blocks[0] ^= d1\nblocks[4] ^= d2"];
+
+        update -> rotate_blocks -> xor_d1d2;
+    }
+
+    // 方法调用关系
+    absorb -> update;
+    enc -> update;
+    dec -> update;
+    decLast -> update;
+
+    finalize -> update [label="循环调用 7 次"];
+    finalizeMac -> update [label="循环调用 7 次"];
+
+    // 主流程连接
+    init -> absorb [ltail=cluster_init];
+    absorb -> enc [label="处理数据"];
+    absorb -> dec [label="处理数据"];
+    dec -> decLast [label="处理末尾块"];
+    enc -> finalize [label="完成加密后"];
+    dec -> finalize [label="完成解密后"];
+    finalize -> finalizeMac [label="可选分支"];
+}

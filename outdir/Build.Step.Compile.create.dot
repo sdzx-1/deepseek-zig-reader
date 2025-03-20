@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    check_name [label="检查name是否包含路径分隔符"];
+    panic_invalid_name [label="panic: 无效的name", shape=box];
+    adjust_name [label="调整name_adjusted\n（处理test名称重复）"];
+    resolve_target [label="解析目标平台信息"];
+    generate_step_name [label="生成step_name"];
+    generate_out_filename [label="生成out_filename"];
+    create_compile [label="创建并初始化compile对象"];
+    check_zig_lib [label="是否有zig_lib_dir?"];
+    add_zig_lib [label="设置zig_lib_dir\n并添加依赖"];
+    check_test_runner [label="是否有test_runner?"];
+    add_test_runner [label="设置test_runner\n并添加依赖"];
+    check_manifest [label="目标平台是COFF格式?"];
+    add_manifest [label="设置win32_manifest\n并添加依赖"];
+    handle_lib_kind [label="处理库类型文件名"];
+    end [label="返回compile对象", shape=ellipse];
+
+    start -> check_name;
+    check_name -> panic_invalid_name [label="包含/或\\"];
+    check_name -> adjust_name [label="不包含"];
+    adjust_name -> resolve_target;
+    resolve_target -> generate_step_name;
+    generate_step_name -> generate_out_filename;
+    generate_out_filename -> create_compile;
+    create_compile -> check_zig_lib;
+    
+    check_zig_lib -> add_zig_lib [label="是"];
+    check_zig_lib -> check_test_runner [label="否"];
+    add_zig_lib -> check_test_runner;
+    
+    check_test_runner -> add_test_runner [label="是"];
+    check_test_runner -> check_manifest [label="否"];
+    add_test_runner -> check_manifest;
+    
+    check_manifest -> add_manifest [label="是"];
+    check_manifest -> handle_lib_kind [label="否"];
+    add_manifest -> handle_lib_kind;
+    
+    handle_lib_kind -> end;
+    panic_invalid_name -> end [style="dashed"];
+}

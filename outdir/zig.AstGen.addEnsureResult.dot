@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start addEnsureResult"];
+    check_toIndex [label="maybe_unused_result.toIndex() exists?" shape=diamond];
+    handle_call [label="处理 .call/.field_call:\n设置 flags.ensure_result_used = true"];
+    handle_builtin_call [label="处理 .builtin_call:\n设置 flags.ensure_result_used = true"];
+    handle_extended [label="处理 .extended 子操作码:\n部分返回 true"];
+    handle_noreturn [label="处理 noreturn 指令:\n设置 noreturn_src_node"];
+    handle_void [label="处理 void 指令:\n返回 true"];
+    check_elide [label="elide_check?" shape=diamond];
+    add_ensure [label="添加 ensure_result_used 指令"];
+    return [label="返回 noreturn_src_node"];
+
+    start -> check_toIndex;
+
+    // toIndex() 存在时的处理分支
+    check_toIndex -> handle_call [label="是 (匹配 call/field_call)"];
+    check_toIndex -> handle_builtin_call [label="是 (匹配 builtin_call)"];
+    check_toIndex -> handle_extended [label="是 (匹配 extended)"];
+    check_toIndex -> handle_noreturn [label="是 (noreturn 指令)"];
+    check_toIndex -> handle_void [label="是 (void 指令)"];
+    check_toIndex -> check_elide [label="是 (其他情况)"];
+
+    // toIndex() 不存在时的处理分支
+    check_toIndex -> handle_unreachable [label="否 (处理 unreachable_value)"];
+    check_toIndex -> handle_void_value [label="否 (处理 void_value)"];
+
+    handle_unreachable [label="设置 noreturn_src_node"];
+    handle_void_value [label="直接返回 true"];
+
+    // 合并处理路径
+    handle_call -> check_elide;
+    handle_builtin_call -> check_elide;
+    handle_extended -> check_elide;
+    handle_noreturn -> check_elide;
+    handle_void -> check_elide;
+    handle_unreachable -> check_elide;
+    handle_void_value -> check_elide;
+
+    check_elide -> add_ensure [label="否"];
+    check_elide -> return [label="是"];
+
+    add_ensure -> return;
+}

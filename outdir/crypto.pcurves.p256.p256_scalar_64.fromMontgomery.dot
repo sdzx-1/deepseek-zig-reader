@@ -1,0 +1,35 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始"];
+    process_arg0 [label="处理arg1[0]\n- 乘法x1与常数\n- 分解高位低位\n- 处理进位"];
+    process_arg1 [label="处理arg1[1]\n- 乘法x26与常数\n- 分解高位低位\n- 处理进位"];
+    process_arg2 [label="处理arg1[2]\n- 乘法x56与常数\n- 分解高位低位\n- 处理进位"];
+    process_arg3 [label="处理arg1[3]\n- 乘法x86与常数\n- 分解高位低位\n- 处理进位"];
+    final_subtractions [label="最终减法调整\n- 四次带借位减法\n- 生成x117到x123"];
+    condition_check [label="条件判断\n- 检查借位x126\n- 使用cmovznzU64选择结果"];
+    store_result [label="存储结果到out1\n- out1[0]到out1[3]"];
+    end [label="结束"];
+
+    start -> process_arg0;
+    process_arg0 -> process_arg1;
+    process_arg1 -> process_arg2;
+    process_arg2 -> process_arg3;
+    process_arg3 -> final_subtractions;
+    final_subtractions -> condition_check;
+    condition_check -> store_result;
+    store_result -> end;
+
+    // 内部操作示例（可折叠）
+    subgraph cluster_arg0 {
+        label="处理arg1[0]细节";
+        mul_arg0 [label="mulxU64分解乘机"];
+        addcarry_arg0 [label="addcarryxU64处理进位"];
+        process_arg0 -> mul_arg0 [style=invis];
+        mul_arg0 -> addcarry_arg0 [style=invis];
+    }
+
+    // 类似子图可添加其他处理步骤...
+}

@@ -1,0 +1,38 @@
+
+digraph mul_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    decompose_args [label="分解输入参数\n将arg1分解为x1, x2, x3, x4"];
+    process_x4 [label="处理x4与arg2的乘积\nmulxU64乘法，累加进位，模约简"];
+    process_x1 [label="处理x1与arg2的乘积\nmulxU64乘法，累加进位，模约简"];
+    process_x2 [label="处理x2与arg2的乘积\nmulxU64乘法，累加进位，模约简"];
+    process_x3 [label="处理x3与arg2的乘积\nmulxU64乘法，累加进位，模约简"];
+    final_adjustment [label="最终减法调整\nsubborrowxU64处理借位，条件移动结果"];
+    store_result [label="存储结果到out1数组"];
+    end [label="结束"];
+
+    start -> decompose_args;
+    decompose_args -> process_x4;
+    process_x4 -> process_x1;
+    process_x1 -> process_x2;
+    process_x2 -> process_x3;
+    process_x3 -> final_adjustment;
+    final_adjustment -> store_result;
+    store_result -> end;
+
+    // 详细子流程示例（以process_x4为例）
+    subgraph cluster_x4 {
+        label="处理x4细节";
+        style=dashed;
+        
+        x4_mul_arg2 [label="x4 * arg2[0..3]\n四次mulxU64操作"];
+        x4_add_carries [label="累加进位\naddcarryxU64处理中间结果"];
+        x4_mod_reduce [label="模约简\n乘0xd838091dd2253531并调整"];
+
+        x4_mul_arg2 -> x4_add_carries;
+        x4_add_carries -> x4_mod_reduce;
+    }
+
+    process_x4 -> x4_mul_arg2 [lhead=cluster_x4];
+}

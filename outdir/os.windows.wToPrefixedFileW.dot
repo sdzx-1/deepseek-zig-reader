@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    check_namespace [label="检查路径前缀类型\n(getNamespacePrefix)"];
+    nt_verbatim [label="处理.nt/.verbatim路径"];
+    local_fake [label="处理.local_device/.fake_verbatim路径"];
+    none_case [label="处理.none路径"];
+    check_path_type [label="检查路径类型\n(getUnprefixedPathType)"];
+    handle_relative [label="尝试处理相对路径\n(normalizePath)"];
+    check_relative_success [label="是否成功处理？"];
+    handle_absolute [label="构造绝对NT路径"];
+    handle_unc [label="处理UNC路径\n替换为\\??\\UNC"];
+    call_rtl [label="调用RtlGetFullPathName_U"];
+    check_rtl_result [label="检查结果长度"];
+    handle_error [label="返回错误\n(BadPathName/NameTooLong)"];
+    finalize_path [label="填充路径前缀\n并返回PathSpace"];
+    end [label="返回PathSpace"];
+
+    start -> check_namespace;
+    check_namespace -> nt_verbatim [label=".nt/.verbatim"];
+    check_namespace -> local_fake [label=".local_device/.fake_verbatim"];
+    check_namespace -> none_case [label=".none"];
+
+    nt_verbatim -> finalize_path [label="复制路径并添加NT前缀"];
+    local_fake -> call_rtl [label="获取完整路径"];
+    call_rtl -> check_rtl_result;
+    check_rtl_result -> handle_error [label="长度=0或溢出"];
+    check_rtl_result -> finalize_path [label="替换为NT前缀"];
+
+    none_case -> check_path_type;
+    check_path_type -> handle_relative [label="relative"];
+    check_path_type -> handle_absolute [label="absolute/root_local_device"];
+    check_path_type -> handle_unc [label="unc_absolute"];
+
+    handle_relative -> check_relative_success;
+    check_relative_success -> finalize_path [label="成功"];
+    check_relative_success -> handle_absolute [label="失败（TooManyParentDirs）"];
+
+    handle_absolute -> call_rtl [label="可能需要拼接目录句柄路径"];
+    handle_unc -> call_rtl [label="特殊偏移处理"];
+    handle_absolute -> finalize_path [label="填充NT前缀"];
+    handle_unc -> finalize_path [label="插入UNC标识"];
+
+    finalize_path -> end;
+    handle_error -> end;
+}

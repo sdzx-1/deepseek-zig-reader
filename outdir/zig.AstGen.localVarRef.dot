@@ -1,0 +1,87 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start localVarRef"];
+    init_vars [label="Initialize variables:\n- name_str_index = astgen.identAsString(ident_token)\n- s = scope\n- found_already = null"];
+    loop_start [label="Loop: s = current scope", shape=diamond];
+    
+    // Scope type checks
+    check_scope_type [label="Check s.tag", shape=diamond];
+    local_val_case [label="Case .local_val"];
+    local_ptr_case [label="Case .local_ptr"];
+    gen_zir_case [label="Case .gen_zir"];
+    defer_case [label="Case .defer_normal/.defer_error"];
+    namespace_case [label="Case .namespace"];
+    top_case [label="Case .top (break loop)"];
+
+    // LocalVal handling
+    local_val_check [label="local_val.name == name_str_index?", shape=diamond];
+    handle_local_val_match [label="Update used/discarded flags\nCheck num_namespaces_out\nReturn value_inst"];
+    local_val_next [label="s = local_val.parent"];
+
+    // LocalPtr handling
+    local_ptr_check [label="local_ptr.name == name_str_index?", shape=diamond];
+    handle_local_ptr_match [label="Update used/discarded flags\nCheck num_namespaces_out\nHandle ri.rl cases"];
+    local_ptr_next [label="s = local_ptr.parent"];
+
+    // Namespace handling
+    namespace_decl_check [label="ns.decls.get(name_str_index)", shape=diamond];
+    handle_namespace_match [label="Check ambiguous refs\nUpdate found_already\nnum_namespaces_out++"];
+    namespace_next [label="s = ns.parent"];
+
+    // Post-loop logic
+    check_found [label="found_already == null?", shape=diamond];
+    undeclared_error [label="Return error:\n'use of undeclared identifier'"];
+    handle_found [label="Check found_namespaces_out\nHandle ri.rl cases\nReturn decl_ref/decl_val"];
+
+    // Edge connections
+    start -> init_vars;
+    init_vars -> loop_start;
+    
+    loop_start -> check_scope_type;
+    
+    check_scope_type -> local_val_case [label=".local_val"];
+    check_scope_type -> local_ptr_case [label=".local_ptr"];
+    check_scope_type -> gen_zir_case [label=".gen_zir"];
+    check_scope_type -> defer_case [label=".defer_*"];
+    check_scope_type -> namespace_case [label=".namespace"];
+    check_scope_type -> top_case [label=".top"];
+    
+    // LocalVal flow
+    local_val_case -> local_val_check;
+    local_val_check -> handle_local_val_match [label="Yes"];
+    local_val_check -> local_val_next [label="No"];
+    handle_local_val_match -> end [label="Return"];
+    local_val_next -> loop_start;
+    
+    // LocalPtr flow
+    local_ptr_case -> local_ptr_check;
+    local_ptr_check -> handle_local_ptr_match [label="Yes"];
+    local_ptr_check -> local_ptr_next [label="No"];
+    handle_local_ptr_match -> end [label="Return"];
+    local_ptr_next -> loop_start;
+    
+    // Namespace flow
+    namespace_case -> namespace_decl_check;
+    namespace_decl_check -> handle_namespace_match [label="Found"];
+    namespace_decl_check -> namespace_next [label="Not found"];
+    handle_namespace_match -> namespace_next;
+    namespace_next -> loop_start;
+    
+    // Other scope types
+    gen_zir_case -> gen_zir_next [label="s = parent"];
+    defer_case -> defer_next [label="s = parent"];
+    gen_zir_next [label="s = parent"] -> loop_start;
+    defer_next [label="s = parent"] -> loop_start;
+    top_case -> check_found;
+    
+    // Post-loop
+    check_found -> undeclared_error [label="Yes"];
+    check_found -> handle_found [label="No"];
+    undeclared_error -> end;
+    handle_found -> end [label="Return"];
+
+    end [label="End"];
+}

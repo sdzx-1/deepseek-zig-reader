@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始", shape=ellipse];
+    extract_input [label="提取输入元素\nx1=arg1[1], x2=arg1[2], x3=arg1[3], x4=arg1[0]"];
+    process_x4 [label="处理x4:\n- 四次mulxU64乘法\n- 三次addcarryxU64进位加法"];
+    montgomery_reduction_1 [label="蒙哥马利约减 (x11):\n- 三次mulxU64乘法\n- 四次addcarryxU64进位加法"];
+    process_x1 [label="处理x1:\n- 四次mulxU64乘法\n- 三次addcarryxU64进位加法"];
+    combine_1 [label="与x4结果合并:\n- 四次addcarryxU64进位加法"];
+    montgomery_reduction_2 [label="蒙哥马利约减 (x51):\n- 三次mulxU64乘法\n- 四次addcarryxU64进位加法"];
+    process_x2 [label="处理x2:\n- 四次mulxU64乘法\n- 三次addcarryxU64进位加法"];
+    combine_2 [label="与之前结果合并:\n- 四次addcarryxU64进位加法"];
+    montgomery_reduction_3 [label="蒙哥马利约减 (x91):\n- 三次mulxU64乘法\n- 四次addcarryxU64进位加法"];
+    process_x3 [label="处理x3:\n- 四次mulxU64乘法\n- 三次addcarryxU64进位加法"];
+    combine_3 [label="与之前结果合并:\n- 四次addcarryxU64进位加法"];
+    montgomery_reduction_4 [label="蒙哥马利约减 (x131):\n- 三次mulxU64乘法\n- 四次addcarryxU64进位加法"];
+    final_sub [label="最终减法调整:\n- 五次subborrowxU64借位减法"];
+    cmov_decision [label="条件移动选择结果:\n- 四次cmovznzU64根据x166标志"];
+    store_result [label="存储结果到out1[0..3]"];
+    end [label="结束", shape=ellipse];
+
+    start -> extract_input;
+    extract_input -> process_x4;
+    process_x4 -> montgomery_reduction_1;
+    montgomery_reduction_1 -> process_x1;
+    process_x1 -> combine_1;
+    combine_1 -> montgomery_reduction_2;
+    montgomery_reduction_2 -> process_x2;
+    process_x2 -> combine_2;
+    combine_2 -> montgomery_reduction_3;
+    montgomery_reduction_3 -> process_x3;
+    process_x3 -> combine_3;
+    combine_3 -> montgomery_reduction_4;
+    montgomery_reduction_4 -> final_sub;
+    final_sub -> cmov_decision;
+    cmov_decision -> store_result;
+    store_result -> end;
+
+    // 关键路径交叉连接
+    montgomery_reduction_1 -> process_x1 [xlabel="x11参数传递"];
+    montgomery_reduction_2 -> process_x2 [xlabel="x51参数传递"];
+    montgomery_reduction_3 -> process_x3 [xlabel="x91参数传递"];
+    final_sub -> cmov_decision [xlabel="x166标志传递"];
+}

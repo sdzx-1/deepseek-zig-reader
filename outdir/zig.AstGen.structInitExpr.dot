@@ -1,0 +1,50 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start structInitExpr", shape=ellipse];
+    check_type_expr_none [label="struct_init.ast.type_expr == .none?"];
+    handle_anon_empty [label="处理匿名空初始化\n根据ri.rl分支"];
+    check_array_type [label="尝试解析为数组类型\n(is_inferred_array_len?)"];
+    handle_array_empty [label="生成空数组初始化"];
+    check_fields_empty [label="struct_init.ast.fields.len == 0?"];
+    check_duplicate_names [label="检查字段名重复"];
+    any_duplicate [label="发现重复字段名?"];
+    report_duplicates [label="生成重复字段错误"];
+    handle_typed_init [label="处理带类型表达式初始化"];
+    check_ri_rl [label="根据ri.rl分支处理"];
+    handle_discard [label="丢弃模式处理"];
+    handle_ref [label="生成引用"];
+    handle_ptr [label="处理指针存储"];
+    end [label="Return/Error", shape=ellipse];
+
+    start -> check_type_expr_none;
+
+    check_type_expr_none -> handle_anon_empty [label="Yes"];
+    check_type_expr_none -> check_array_type [label="No"];
+
+    handle_anon_empty -> check_ri_rl;
+
+    check_array_type -> handle_array_empty [label="推断长度"];
+    check_array_type -> check_fields_empty [label="非推断长度"];
+
+    check_fields_empty -> handle_array_empty [label="Yes"];
+    check_fields_empty -> check_duplicate_names [label="No"];
+
+    check_duplicate_names -> any_duplicate;
+    any_duplicate -> report_duplicates [label="Yes"];
+    any_duplicate -> handle_typed_init [label="No"];
+
+    handle_typed_init -> check_ri_rl;
+    check_ri_rl -> handle_discard [label="discard"];
+    check_ri_rl -> handle_ref [label="ref"];
+    check_ri_rl -> handle_ptr [label="ptr"];
+    check_ri_rl -> end [label="其他分支"];
+
+    report_duplicates -> end;
+    handle_array_empty -> end;
+    handle_discard -> end;
+    handle_ref -> end;
+    handle_ptr -> end;
+}

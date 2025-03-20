@@ -1,0 +1,30 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    init [label="初始化x1 = arg1[0]"];
+    process_element_0 [label="处理arg1[0]\n- mulxU64计算x2-x14\n- 进位链加法x15-x38"];
+    process_element_1 [label="处理arg1[1]\n- mulxU64计算x52-x64\n- 进位链加法x66-x88"];
+    process_element_2 [label="处理arg1[2]\n- mulxU64计算x102-x114\n- 进位链加法x116-x138"];
+    process_element_3 [label="处理arg1[3]\n- mulxU64计算x152-x164\n- 进位链加法x166-x188"];
+    process_element_4 [label="处理arg1[4]\n- mulxU64计算x202-x214\n- 进位链加法x216-x238"];
+    process_element_5 [label="处理arg1[5]\n- mulxU64计算x252-x264\n- 进位链加法x266-x288"];
+    subtract_modulus [label="模数减法调整\n- subborrowxU64 x290-x300\n- 计算借位x303"];
+    cmov_operations [label="条件选择结果\n- cmovznzU64 x304-x309"];
+    store_result [label="存储结果到out1[0-5]"];
+    end [label="结束"];
+
+    start -> init;
+    init -> process_element_0;
+    process_element_0 -> process_element_1 [label="处理完arg1[0]"];
+    process_element_1 -> process_element_2 [label="处理完arg1[1]"];
+    process_element_2 -> process_element_3 [label="处理完arg1[2]"];
+    process_element_3 -> process_element_4 [label="处理完arg1[3]"];
+    process_element_4 -> process_element_5 [label="处理完arg1[4]"];
+    process_element_5 -> subtract_modulus [label="处理完所有元素"];
+    subtract_modulus -> cmov_operations [label="借位判断"];
+    cmov_operations -> store_result;
+    store_result -> end;
+}

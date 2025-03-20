@@ -1,0 +1,72 @@
+
+digraph BitReaderFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // Entry points
+    readBitsNoEof [label="readBitsNoEof(T, num)"];
+    readBits [label="readBits(T, num, out_bits)"];
+    readBitsTuple [label="readBitsTuple(T, num)"];
+    removeBits [label="removeBits(num)"];
+    alignToByte [label="alignToByte()"];
+
+    // Subgraph for readBitsTuple
+    subgraph cluster_readBitsTuple {
+        label="readBitsTuple 流程";
+        
+        start_rt [label="开始"];
+        check_buffer [label="num ≤ self.count?"];
+        return_buffer_bits [label="调用 removeBits(num)\n返回 (bits, num)"];
+        init_out [label="初始化 out 和 out_count"];
+        read_full_bytes [label="循环读取 full_bytes_left 个字节"];
+        handle_endian_full [label="处理大端/小端字节序"];
+        read_final_byte [label="读取最后一个字节"];
+        handle_endian_final [label="处理大端/小端剩余位"];
+        update_buffer [label="更新 self.bits 和 self.count"];
+        return_result [label="返回 (out, num)"];
+
+        start_rt -> check_buffer;
+        check_buffer -> return_buffer_bits [label="是"];
+        check_buffer -> init_out [label="否"];
+        init_out -> read_full_bytes;
+        read_full_bytes -> handle_endian_full [label="读取每个字节"];
+        handle_endian_full -> read_full_bytes [label="继续循环"];
+        read_full_bytes -> read_final_byte [label="循环结束"];
+        read_final_byte -> handle_endian_final;
+        handle_endian_final -> update_buffer;
+        update_buffer -> return_result;
+    }
+
+    // Subgraph for removeBits
+    subgraph cluster_removeBits {
+        label="removeBits 流程";
+        
+        start_rb [label="开始"];
+        check_num_8 [label="num == 8?"];
+        reset_buffer [label="self.count = 0\n返回 self.bits"];
+        calculate_keep [label="keep = self.count - num"];
+        extract_bits [label="根据字节序提取位"];
+        update_bits [label="更新 self.bits 和 self.count"];
+        return_bits [label="返回提取的位"];
+
+        start_rb -> check_num_8;
+        check_num_8 -> reset_buffer [label="是"];
+        check_num_8 -> calculate_keep [label="否"];
+        calculate_keep -> extract_bits;
+        extract_bits -> update_bits;
+        update_bits -> return_bits;
+    }
+
+    // AlignToByte
+    alignToByte -> "self.bits = 0\nself.count = 0";
+
+    // 方法调用关系
+    readBitsNoEof -> readBitsTuple;
+    readBits -> readBitsTuple;
+    readBitsTuple -> removeBits [label="调用"];
+    readBitsTuple -> "reader.readByte()" [label="读取字节"];
+    handle_endian_full -> "reader.readByte()" [label="可能发生错误"];
+    read_final_byte -> "reader.readByte()" [label="可能发生错误"];
+    "reader.readByte()" -> "错误处理节点" [label="错误分支"];
+    "错误处理节点" -> "返回已读取的位数" [label="EndOfStream"];
+}

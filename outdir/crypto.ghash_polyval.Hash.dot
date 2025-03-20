@@ -1,0 +1,67 @@
+
+digraph G {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // 主要节点
+    Start [label="开始"];
+    Init [label="初始化 Hash 结构体\n(init/initForBlockCount)"];
+    Update [label="处理输入数据\n(update)"];
+    ProcessBlocks [label="处理数据块\n(blocks)"];
+    Pad [label="填充数据\n(pad)"];
+    Final [label="生成最终结果\n(final)"];
+    End [label="结束"];
+
+    // 内部方法节点
+    Init -> ReadKey [label="读取密钥"];
+    ReadKey -> ShiftKey [label="shift_key为真"];
+    ShiftKey -> PrecomputeH [label="预计算h^x"];
+    PrecomputeH -> InitComplete [label="初始化完成"];
+
+    Update -> CheckLeftover [label="处理残留数据"];
+    CheckLeftover -> AccumulateData [label="有残留数据"];
+    AccumulateData -> ProcessFullBlocks [label="凑满块"];
+    ProcessFullBlocks -> ProcessBlocks;
+
+    Update -> ProcessRemaining [label="处理剩余数据"];
+    ProcessRemaining -> StoreLeftover [label="存储未满块数据"];
+
+    ProcessBlocks -> AggregatedReduction [label="选择聚合级别\n(16/8/4/2 blocks)"];
+    AggregatedReduction -> CLMUL [label="执行CLMUL运算"];
+    CLMUL -> Reduce [label="多项式归约"];
+    Reduce -> UpdateAccumulator [label="更新累加器"];
+
+    Final -> Pad;
+    Pad -> ProcessFinalBlock [label="处理填充块"];
+    ProcessFinalBlock -> WriteOutput [label="写入MAC结果"];
+    WriteOutput -> SecureZero [label="清空敏感数据"];
+
+    // 连接主流程
+    Start -> Init;
+    Init -> Update;
+    Update -> Final;
+    Final -> End;
+
+    // 条件分支样式
+    edge [color=blue, fontcolor=blue];
+    ShiftKey -> InitComplete [label="shift_key为假"];
+    CheckLeftover -> ProcessRemaining [label="无残留数据"];
+    
+    edge [color=red, fontcolor=red];
+    CLMUL -> ChooseAlgorithm [label="根据CPU架构选择算法"];
+    ChooseAlgorithm -> PCLMUL [label="x86 with PCLMUL"];
+    ChooseAlgorithm -> PMULL [label="ARM with PMULL"];
+    ChooseAlgorithm -> Software [label="软件实现"];
+    
+    // 子图分组
+    subgraph cluster_internal {
+        label="核心运算逻辑";
+        CLMUL; Reduce; AggregatedReduction; 
+        PCLMUL; PMULL; Software;
+    }
+
+    subgraph cluster_dataflow {
+        label="数据流控制";
+        ProcessBlocks; CheckLeftover; ProcessRemaining;
+    }
+}

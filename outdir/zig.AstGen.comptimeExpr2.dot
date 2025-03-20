@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", style=filled, fillcolor=lightblue];
+    edge [fontname="Courier"];
+
+    start [label="Start comptimeExpr2"];
+    check_comptime [label="gz.is_comptime?"];
+    return_expr [label="Return expr(gz, scope, ri, node)"];
+    analyze_node [label="Switch tree.nodeTag(node)"];
+    handle_identifier [label="Call identifier(...)"];
+    handle_trivial [label="Return expr(gz, scope, ri, node)"];
+    handle_blocks [label="Process block nodes"];
+    create_ty_only_ri [label="Create ty_only_ri"];
+    labeled_block [label="Call labeledBlockExpr(...)"];
+    rvalue_block [label="Return rvalue(gz, ri, block_ref)"];
+    default_case [label="Create block_comptime"];
+    make_subblock [label="block_scope = gz.makeSubBlock(scope)"];
+    block_inst [label="block_inst = makeBlockInst(.block_comptime)"];
+    set_ty_ri [label="Create ty_only_ri for block"];
+    full_body [label="block_result = fullBodyExpr(...)"];
+    add_break [label="Add break instruction"];
+    set_body [label="setBlockComptimeBody(block_inst)"];
+    append_inst [label="Append block_inst to instructions"];
+    return_rvalue [label="Return rvalue(gz, ri, block_inst)"];
+
+    start -> check_comptime;
+    check_comptime -> return_expr [label="Yes"];
+    check_comptime -> analyze_node [label="No"];
+    
+    analyze_node -> handle_identifier [label=".identifier"];
+    analyze_node -> handle_trivial [label="Trivial types"];
+    analyze_node -> handle_blocks [label="Block types"];
+    analyze_node -> default_case [label="Else"];
+
+    handle_blocks -> create_ty_only_ri;
+    create_ty_only_ri -> labeled_block;
+    labeled_block -> rvalue_block;
+
+    default_case -> make_subblock;
+    make_subblock -> block_inst;
+    block_inst -> set_ty_ri;
+    set_ty_ri -> full_body;
+    full_body -> add_break [label="If not noreturn"];
+    add_break -> set_body;
+    set_body -> append_inst;
+    append_inst -> return_rvalue;
+}

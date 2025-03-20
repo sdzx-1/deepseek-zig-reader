@@ -1,0 +1,45 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start expr()", shape=ellipse];
+    get_tree [label="const tree = astrl.tree"];
+    switch_node_tag [label="switch (tree.nodeTag(node))", shape=diamond];
+    unreachable [label="Unreachable (root, switch_case, etc.)"];
+    handle_errdefer [label="Handle .errdefer\nRecurse on child node\nReturn false"];
+    handle_defer [label="Handle .defer\nRecurse on child node\nReturn false"];
+    handle_var_decl [label="Handle var decls\nCheck init_ri\nRecurse on type/init nodes\nReturn false"];
+    handle_assign [label="Handle assignments\nRecurse on lhs/rhs\nReturn false"];
+    handle_control_flow [label="Handle if/while/for\nProcess conditions\nCreate new blocks\nCheck consumes_res_ptr"];
+    handle_call [label="Handle function calls\nProcess params\nCheck async/result location"];
+    handle_return [label="Handle return\nCheck ret_val_consumes_rl\nUpdate nodes_need_rl"];
+    handle_containers [label="Handle containers/structs\nRecurse on fields\nCheck result location"];
+    handle_leaves [label="Handle leaf nodes\n(identifiers, literals)\nReturn false"];
+    end [label="Return bool", shape=ellipse];
+
+    start -> get_tree;
+    get_tree -> switch_node_tag;
+
+    switch_node_tag -> unreachable [label=".root, .switch_case..."];
+    switch_node_tag -> handle_errdefer [label=".errdefer"];
+    switch_node_tag -> handle_defer [label=".defer"];
+    switch_node_tag -> handle_var_decl [label=".global_var_decl etc."];
+    switch_node_tag -> handle_assign [label=".assign, .shl etc."];
+    switch_node_tag -> handle_control_flow [label=".if, .while, .for"];
+    switch_node_tag -> handle_call [label=".call, .builtin_call"];
+    switch_node_tag -> handle_return [label=".return"];
+    switch_node_tag -> handle_containers [label=".container_decl, .struct_init"];
+    switch_node_tag -> handle_leaves [label=".identifier, .number_literal etc."];
+
+    handle_errdefer -> end;
+    handle_defer -> end;
+    handle_var_decl -> end;
+    handle_assign -> end;
+    handle_control_flow -> end [label="Check block.consumes_res_ptr"];
+    handle_call -> end [label="Check async/result location"];
+    handle_return -> end [label="Update nodes_need_rl if needed"];
+    handle_containers -> end [label="Check ri.have_type"];
+    handle_leaves -> end;
+    unreachable -> end;
+}

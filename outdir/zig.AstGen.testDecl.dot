@@ -1,0 +1,53 @@
+
+digraph testDecl_flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start testDecl"];
+    init_vars [label="Initialize tree, old_hasher\nSetup src_hasher with source data"];
+    decl_inst [label="Create declaration instruction (gz.makeDeclaration)"];
+    advance_cursor [label="Advance source cursor to node"];
+    setup_dummy_gz [label="Create dummy_gz sub-block"];
+    decl_block [label="Initialize decl_block (comptime block)"];
+    process_test_name [label="Process test_name_token"];
+    check_token_type [label="Check token type\n.string_literal/.identifier/else"];
+    string_literal_case [label="Validate string literal\nCheck for null bytes and empty name"];
+    identifier_case [label="Validate identifier\nCheck for '_' and primitive names"];
+    scope_loop [label="Loop through scopes\nCheck for existing declarations"];
+    error_handling [label="Error handling paths\n(failTok, errNote)"];
+    setup_fn_block [label="Initialize fn_block (function body)"];
+    process_body [label="Process function body with fullBodyExpr"];
+    add_implicit_return [label="Add implicit return if needed"];
+    create_func_inst [label="Create func_inst with parameters"];
+    finalize_decl [label="Finalize declaration with setDeclaration"];
+    end [label="End"];
+
+    start -> init_vars;
+    init_vars -> decl_inst;
+    decl_inst -> advance_cursor;
+    advance_cursor -> setup_dummy_gz;
+    setup_dummy_gz -> decl_block;
+    decl_block -> process_test_name;
+    process_test_name -> check_token_type;
+
+    check_token_type -> string_literal_case [label=".string_literal"];
+    check_token_type -> identifier_case [label=".identifier"];
+    check_token_type -> finalize_decl [label="else"];
+
+    string_literal_case -> error_handling [label="Invalid name"];
+    string_literal_case -> scope_loop [label="Valid name"];
+
+    identifier_case -> error_handling [label="Invalid (e.g. '_')"];
+    identifier_case -> scope_loop [label="Valid identifier"];
+
+    scope_loop -> error_handling [label="Conflict found"];
+    scope_loop -> setup_fn_block [label="No conflict"];
+
+    setup_fn_block -> process_body;
+    process_body -> add_implicit_return;
+    add_implicit_return -> create_func_inst;
+    create_func_inst -> finalize_decl;
+    finalize_decl -> end;
+
+    error_handling -> end [label="Return error"];
+}

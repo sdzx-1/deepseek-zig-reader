@@ -1,0 +1,41 @@
+
+digraph BitcodeWriter {
+    rankdir="TB";
+    node [shape=rectangle, style="rounded"];
+
+    start [label="Start BitcodeWriter"];
+    init [label="Initialize BitcodeWriter\n- Allocate buffer\n- Set widths"];
+    write_bits [label="writeBits:\n- Handle bit_buffer\n- Flush when full"];
+    write_vbr [label="writeVBR:\n- Split value into chunks\n- Add continue bits"];
+    write_char6 [label="write6BitChar:\n- Convert char to 6 bits"];
+    write_blob [label="writeBlob:\n- Align to 32 bits\n- Copy bytes with padding"];
+    align_32 [label="alignTo32:\n- Flush remaining bits"];
+    enter_block [label="enterTopBlock:\n- Write block header\n- Reserve size slot"];
+    define_abbrev [label="defineAbbrev:\n- Encode operation types"];
+    write_abbrev [label="writeAbbrevAdapted:\n- Emit abbrev ID\n- Serialize fields"];
+    end_block [label="BlockWriter.end():\n- Write terminator\n- Backfill block size"];
+    deinit [label="deinit:\n- Free buffer"];
+    end [label="End"];
+
+    start -> init;
+    init -> write_bits;
+    init -> write_vbr;
+    init -> write_char6;
+    init -> write_blob;
+    init -> align_32;
+    init -> enter_block;
+
+    write_bits -> align_32 [label="Buffer full"];
+    write_vbr -> write_bits [label="Chunk writes"];
+    enter_block -> define_abbrev [label="Predefine abbrevs"];
+    enter_block -> write_abbrev [label="Write data"];
+    write_abbrev -> end_block;
+    define_abbrev -> end_block;
+    end_block -> align_32;
+    align_32 -> end_block;
+    enter_block -> end_block [label="Block operations complete"];
+    end_block -> deinit;
+    write_blob -> align_32;
+    write_char6 -> write_bits;
+    deinit -> end;
+}

@@ -1,0 +1,38 @@
+
+digraph divstep_flow {
+    rankdir=TB;
+    node [shape=box, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    step1 [label="计算初始条件\nx1 = ~arg1 + 1\nx3 = (x1 >> 63) & (arg3[0] & 1)"];
+    step2 [label="根据 x3 选择变量:\n- x6 = arg1 或 x4\n- x7-x11 = arg2 或 arg3"];
+    step3 [label="计算 arg2 的补码:\nx12-x20 = ~arg2 + 1"];
+    step4 [label="根据 x3 选择 x22-x26:\narg3 或其补码"];
+    step5 [label="处理 arg4/arg5:\n翻倍并模减调整"];
+    step6 [label="计算 arg4 的补码\n并选择到 x70-x73"];
+    step7 [label="根据 x74 选择清零\nx75-x79 或保留原值"];
+    step8 [label="加法运算并\n模减调整"];
+    step9 [label="根据 x48/x111\n选择最终结果"];
+    step10 [label="计算 x112\n并赋值输出参数"];
+
+    start -> step1;
+    step1 -> step2;
+    step2 -> step3;
+    step3 -> step4;
+    step4 -> step5;
+    step5 -> step6;
+    step6 -> step7;
+    step7 -> step8;
+    step8 -> step9;
+    step9 -> step10;
+    step10 -> end;
+
+    // 添加条件注释
+    step2 -> step3 [xlabel="条件移动", style=dashed];
+    step4 -> step5 [xlabel="条件选择", style=dashed];
+    step7 -> step8 [xlabel="条件清零", style=dashed];
+    step9 -> step10 [xlabel="条件选择结果", style=dashed];
+}

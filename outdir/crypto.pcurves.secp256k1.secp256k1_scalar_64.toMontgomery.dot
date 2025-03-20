@@ -1,0 +1,24 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始"];
+    init [label="分解输入参数arg1到x1, x2, x3, x4"];
+    process_x4 [label="处理x4:\n- 多步乘法和进位加法\n- 生成中间结果x5到x43"];
+    process_x1 [label="处理x1:\n- 结合x4的中间结果\n- 多步乘法和进位加法\n- 生成中间结果x59到x92"];
+    process_x2 [label="处理x2:\n- 结合之前结果\n- 多步乘法和进位加法\n- 生成中间结果x107到x140"];
+    process_x3 [label="处理x3:\n- 结合之前结果\n- 多步乘法和进位加法\n- 生成中间结果x155到x188"];
+    modular_reduction [label="模约减处理:\n- 减法操作检查溢出\n- 条件移动调整结果x199到x202"];
+    store_result [label="存储结果到out1[0..3]"];
+    end [label="结束"];
+
+    start -> init;
+    init -> process_x4;
+    process_x4 -> process_x1;
+    process_x1 -> process_x2;
+    process_x2 -> process_x3;
+    process_x3 -> modular_reduction;
+    modular_reduction -> store_result;
+    store_result -> end;
+}

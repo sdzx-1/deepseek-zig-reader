@@ -1,0 +1,22 @@
+
+digraph fromMontgomeryFlow {
+    node [shape=rectangle];
+    start [label="开始"];
+    process_arg1_0 [label="处理 arg1[0]\n乘法与进位加法"];
+    process_arg1_1 [label="处理 arg1[1]\n乘法与进位加法"];
+    process_arg1_2 [label="处理 arg1[2]\n乘法与进位加法"];
+    process_arg1_3 [label="处理 arg1[3]\n乘法与进位加法"];
+    compute_sub [label="执行四次减法\n计算借位标志 x86"];
+    cond_select [label="根据 x86 选择结果\n(cmovznzU64)"];
+    store [label="存储结果到 out1[0..3]"];
+    end [label="结束"];
+
+    start -> process_arg1_0;
+    process_arg1_0 -> process_arg1_1;
+    process_arg1_1 -> process_arg1_2;
+    process_arg1_2 -> process_arg1_3;
+    process_arg1_3 -> compute_sub;
+    compute_sub -> cond_select;
+    cond_select -> store;
+    store -> end;
+}

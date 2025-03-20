@@ -1,0 +1,69 @@
+
+digraph HuffmanEncoderGenerate {
+    node [shape=rectangle, style=rounded];
+    start [label="开始 generate(freq, max_bits)"];
+    init_list [label="初始化 list 为 freq_cache 的子切片"];
+    count_non_zero [label="统计非零频率节点 count"];
+    handle_small_cases [label="count <= 2?" shape=diamond];
+    assign_simple_codes [label="为每个节点分配 1 位编码"];
+    sort_by_freq [label="按频率排序得到 lfs"];
+    compute_bit_counts [label="调用 bitCounts 计算位分布"];
+    assign_encoding [label="调用 assignEncodingAndSize 分配编码"];
+    end [label="结束"];
+
+    start -> init_list;
+    init_list -> count_non_zero;
+    count_non_zero -> handle_small_cases;
+    handle_small_cases -> assign_simple_codes [label="是"];
+    handle_small_cases -> sort_by_freq [label="否"];
+    assign_simple_codes -> end;
+    sort_by_freq -> compute_bit_counts;
+    compute_bit_counts -> assign_encoding;
+    assign_encoding -> end;
+
+    subgraph cluster_bitCounts {
+        label="bitCounts 函数";
+        bc_start [label="开始 bitCounts(list, max_bits)"];
+        validate_max_bits [label="断言 max_bits < 16"];
+        init_levels [label="初始化层级信息 levels 和 leaf_counts"];
+        process_levels [label="循环处理每个层级"];
+        update_leaf_counts [label="更新层级频率和叶节点计数"];
+        check_completion [label="完成所有层级处理？" shape=diamond];
+        calculate_bit_count [label="计算最终位分布 bit_count"];
+        bc_end [label="返回 bit_count"];
+
+        bc_start -> validate_max_bits;
+        validate_max_bits -> init_levels;
+        init_levels -> process_levels;
+        process_levels -> update_leaf_counts;
+        update_leaf_counts -> check_completion;
+        check_completion -> process_levels [label="否"];
+        check_completion -> calculate_bit_count [label="是"];
+        calculate_bit_count -> bc_end;
+    }
+
+    compute_bit_counts -> bc_start [lhead=cluster_bitCounts];
+    bc_end -> assign_encoding [ltail=cluster_bitCounts];
+
+    subgraph cluster_assignEncoding {
+        label="assignEncodingAndSize 函数";
+        ae_start [label="开始 assignEncodingAndSize(bit_count, list)"];
+        init_code [label="初始化 code = 0"];
+        loop_bits [label="遍历每个位长 n"];
+        reverse_code [label="反转位序生成编码"];
+        sort_by_literal [label="按字面值排序当前块"];
+        assign_codes [label="分配编码给每个节点"];
+        ae_end [label="结束"];
+
+        ae_start -> init_code;
+        init_code -> loop_bits;
+        loop_bits -> reverse_code [label="处理每个位长"];
+        reverse_code -> sort_by_literal;
+        sort_by_literal -> assign_codes;
+        assign_codes -> loop_bits;
+        loop_bits -> ae_end [label="完成所有位长"];
+    }
+
+    assign_encoding -> ae_start [lhead=cluster_assignEncoding];
+    ae_end -> end [ltail=cluster_assignEncoding];
+}

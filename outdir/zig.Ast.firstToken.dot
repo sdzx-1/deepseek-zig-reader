@@ -1,0 +1,53 @@
+
+digraph firstToken {
+    graph [bgcolor=transparent];
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+
+    start [label="start(firstToken)"];
+    loop [label="while (true)"];
+    switch_node [label="switch(tree.nodeTag(n))"];
+    return_root [label="return 0"];
+    return_main [label="return tree.nodeMainToken(n) - end_offset"];
+    return_main_adj [label="return tree.nodeMainToken(n)-1-end_offset"];
+    update_n [label="n = ... (update node)"];
+    handle_fn_decl [label="处理函数声明逻辑"];
+    handle_usingnamespace [label="处理usingnamespace"];
+    handle_container_field [label="处理container_field"];
+    handle_global_var [label="处理变量声明"];
+    handle_block [label="处理块结构"];
+    handle_container_decl [label="处理容器声明"];
+    handle_switch_case [label="处理switch case"];
+    handle_while_for [label="处理while/for循环"];
+    return_other [label="其他返回情况"];
+
+    start -> loop;
+    loop -> switch_node;
+
+    switch_node -> return_root [label=".root"];
+    switch_node -> return_main [label="第一组标签"];
+    switch_node -> return_main_adj [label="第二组标签"];
+    switch_node -> update_n [label="第三组标签"];
+    switch_node -> handle_fn_decl [label=".fn_decl相关"];
+    switch_node -> handle_usingnamespace [label=".usingnamespace"];
+    switch_node -> handle_container_field [label="container_field"];
+    switch_node -> handle_global_var [label="var_decl相关"];
+    switch_node -> handle_block [label="block相关"];
+    switch_node -> handle_container_decl [label="container_decl相关"];
+    switch_node -> handle_switch_case [label="switch_case相关"];
+    switch_node -> handle_while_for [label="while/for循环"];
+    switch_node -> return_other [label="其他返回分支"];
+
+    update_n -> loop [label="继续循环"];
+    
+    handle_fn_decl -> loop [label="回溯关键字后返回"];
+    handle_usingnamespace -> loop [label="调整end_offset后返回"];
+    handle_container_field -> loop [label="调整end_offset后返回"];
+    handle_global_var -> loop [label="回溯关键字后返回"];
+    handle_block -> loop [label="处理标签后返回"];
+    handle_container_decl -> loop [label="处理修饰符后返回"];
+    handle_switch_case -> loop [label="处理case后可能返回"];
+    handle_while_for -> loop [label="处理inline和标签后返回"];
+    
+    return_root, return_main, return_main_adj, return_other -> end;
+    end [label="返回TokenIndex"];
+}

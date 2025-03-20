@@ -1,0 +1,52 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 renderAsm"];
+    end [label="结束", shape=ellipse];
+
+    subgraph cluster_main {
+        label="处理内联汇编渲染流程";
+        start -> check_volatile [label="渲染'asm'标记"];
+        check_volatile [label="volatile_token是否存在?"];
+        check_volatile -> volatile_yes [label="是"];
+        check_volatile -> volatile_no [label="否"];
+        volatile_yes [label="渲染volatile和左括号"];
+        volatile_no [label="直接渲染左括号"];
+        
+        volatile_yes -> check_empty_items;
+        volatile_no -> check_empty_items;
+
+        check_empty_items [label="asm_node.ast.items.len == 0?"];
+        check_empty_items -> empty_handling [label="是"];
+        check_empty_items -> non_empty_handling [label="否"];
+
+        empty_handling [label="处理空项"];
+        empty_handling -> check_first_clobber;
+        check_first_clobber [label="first_clobber是否存在?"];
+        check_first_clobber -> clobber_case [label="是"];
+        check_first_clobber -> no_clobber_case [label="否"];
+        
+        clobber_case [label="渲染模板和三冒号\n循环处理clobbers"];
+        no_clobber_case [label="直接渲染模板和右括号"];
+        clobber_case -> end_clobber [label="遇到右括号时结束"];
+        no_clobber_case -> end_empty [label="渲染右括号"];
+        end_clobber -> end;
+        end_empty -> end;
+
+        non_empty_handling [label="处理非空项"];
+        non_empty_handling -> process_outputs;
+        process_outputs [label="处理输出部分(outputs)\n循环渲染每个输出项"];
+        process_outputs -> process_inputs;
+        process_inputs [label="处理输入部分(inputs)\n循环渲染每个输入项"];
+        process_inputs -> process_clobbers;
+        process_clobbers [label="处理clobbers部分\n循环渲染每个clobber项"];
+        process_clobbers -> end_non_empty [label="渲染右括号"];
+        end_non_empty -> end;
+    }
+
+    // 连接空项处理的结束路径
+    end_clobber -> end [style=invis];
+    end_empty -> end [style=invis];
+}

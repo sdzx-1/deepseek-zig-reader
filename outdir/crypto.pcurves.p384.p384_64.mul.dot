@@ -1,0 +1,75 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始"];
+    decompose_args [label="分解参数\n从arg1提取x1-x6"];
+    init_vars [label="初始化变量"];
+    process_x6 [label="处理x6（arg1[0]）与arg2的乘法"];
+    add_carries_x6 [label="累加进位处理"];
+    montgomery_reduce_x6 [label="Montgomery约减"];
+    process_x1 [label="处理x1（arg1[1]）与arg2的乘法"];
+    add_carries_x1 [label="累加进位处理"];
+    montgomery_reduce_x1 [label="Montgomery约减"];
+    process_x2 [label="处理x2（arg1[2]）与arg2的乘法"];
+    add_carries_x2 [label="累加进位处理"];
+    montgomery_reduce_x2 [label="Montgomery约减"];
+    process_x3 [label="处理x3（arg1[3]）与arg2的乘法"];
+    add_carries_x3 [label="累加进位处理"];
+    montgomery_reduce_x3 [label="Montgomery约减"];
+    process_x4 [label="处理x4（arg1[4]）与arg2的乘法"];
+    add_carries_x4 [label="累加进位处理"];
+    montgomery_reduce_x4 [label="Montgomery约减"];
+    process_x5 [label="处理x5（arg1[5]）与arg2的乘法"];
+    add_carries_x5 [label="累加进位处理"];
+    montgomery_reduce_x5 [label="Montgomery约减"];
+    final_adjust [label="最终模调整\n(subborrowxU64 + cmovznzU64)"];
+    output [label="存储结果到out1"];
+
+    start -> decompose_args;
+    decompose_args -> init_vars;
+    init_vars -> process_x6;
+    
+    process_x6 -> add_carries_x6;
+    add_carries_x6 -> montgomery_reduce_x6;
+    
+    montgomery_reduce_x6 -> process_x1;
+    process_x1 -> add_carries_x1;
+    add_carries_x1 -> montgomery_reduce_x1;
+    
+    montgomery_reduce_x1 -> process_x2;
+    process_x2 -> add_carries_x2;
+    add_carries_x2 -> montgomery_reduce_x2;
+    
+    montgomery_reduce_x2 -> process_x3;
+    process_x3 -> add_carries_x3;
+    add_carries_x3 -> montgomery_reduce_x3;
+    
+    montgomery_reduce_x3 -> process_x4;
+    process_x4 -> add_carries_x4;
+    add_carries_x4 -> montgomery_reduce_x4;
+    
+    montgomery_reduce_x4 -> process_x5;
+    process_x5 -> add_carries_x5;
+    add_carries_x5 -> montgomery_reduce_x5;
+    
+    montgomery_reduce_x5 -> final_adjust;
+    final_adjust -> output;
+    
+    // 子步骤展开示例（以process_x6为例）
+    subgraph cluster_x6 {
+        label="处理x6的详细步骤";
+        style=dashed;
+        mul_arg2_5 [label="x6 * arg2[5]\n(mulxU64生成x7, x8)"];
+        mul_arg2_4 [label="x6 * arg2[4]\n(mulxU64生成x9, x10)"];
+        mul_arg2_3 [label="x6 * arg2[3]\n(mulxU64生成x11, x12)"];
+        mul_arg2_2 [label="x6 * arg2[2]\n(mulxU64生成x13, x14)"];
+        mul_arg2_1 [label="x6 * arg2[1]\n(mulxU64生成x15, x16)"];
+        mul_arg2_0 [label="x6 * arg2[0]\n(mulxU64生成x17, x18)"];
+        
+        mul_arg2_5 -> mul_arg2_4 -> mul_arg2_3 -> mul_arg2_2 -> mul_arg2_1 -> mul_arg2_0;
+    }
+    
+    process_x6 -> mul_arg2_5 [lhead=cluster_x6];
+}

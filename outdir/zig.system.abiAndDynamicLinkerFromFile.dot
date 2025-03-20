@@ -1,0 +1,44 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier New", style=filled, fillcolor=lightblue];
+    edge [fontname="Courier New"];
+
+    start [label="开始", shape=ellipse];
+    end [label="返回结果", shape=ellipse];
+    error [label="返回错误", shape=ellipse];
+
+    read_elf_header [label="读取ELF头\n验证魔数/字节序/版本/类别"];
+    process_ph [label="处理程序头(phnum次循环)"];
+    check_ph_type [label="当前程序头类型？", shape=diamond];
+    handle_pt_interp [label="提取PT_INTERP路径\n设置动态链接器和ABI"];
+    handle_pt_dynamic [label="查找DT_RUNPATH\n记录rpath_offset"];
+    process_sh [label="处理节头(shnum次循环)\n查找.dynstr节"];
+    parse_rpath [label="解析rpath\n寻找glibc版本"];
+    try_dl_dir [label="尝试动态链接器所在目录"];
+    try_symlink [label="解析动态链接器符号链接"];
+    fallback_path [label="硬编码路径查找glibc"];
+    setup_result [label="设置结果参数"];
+
+    start -> read_elf_header;
+    read_elf_header -> error [label="校验失败"];
+    read_elf_header -> process_ph [label="校验成功"];
+
+    process_ph -> check_ph_type;
+    check_ph_type -> handle_pt_interp [label="PT_INTERP"];
+    check_ph_type -> handle_pt_dynamic [label="PT_DYNAMIC"];
+    check_ph_type -> process_ph [label="其他类型\n继续循环"];
+    handle_pt_interp -> process_ph [label="继续下一个程序头"];
+    handle_pt_dynamic -> process_ph [label="继续下一个程序头"];
+
+    process_ph -> process_sh [label="所有程序头处理完毕"];
+    process_sh -> parse_rpath [label="找到.dynstr节"];
+    parse_rpath -> setup_result [label="找到glibc版本"];
+    parse_rpath -> try_dl_dir [label="未找到"];
+
+    try_dl_dir -> try_symlink [label="仍失败"];
+    try_symlink -> fallback_path [label="仍失败"];
+    fallback_path -> setup_result [label="找到或最终失败"];
+
+    setup_result -> end;
+    error -> end;
+}

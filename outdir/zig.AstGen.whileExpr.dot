@@ -1,0 +1,57 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始处理whileExpr"];
+    check_label [label="检查循环标签是否存在"];
+    check_inline [label="检查内联关键字\n处理comptime冲突"];
+    create_loop_block [label="创建loop_block\n(Zir指令: loop/block_inline)"];
+    handle_cond [label="处理条件表达式"];
+    cond_payload_check [label="条件是否有错误或有效负载?" shape=diamond];
+    gen_cond_inst [label="生成条件指令\n(is_non_err/is_non_null等)"];
+    create_condbr [label="创建条件分支指令\n(condbr/condbr_inline)"];
+    then_scope [label="进入then_scope"];
+    handle_payload [label="处理有效负载\n创建局部变量/dbg_var"];
+    handle_cont [label="处理continue块\n生成continue_block"];
+    process_then [label="处理then分支代码"];
+    check_cont_noreturn [label="continue块是否以noreturn结尾?" shape=diamond];
+    add_break_cont [label="添加break到continue_block"];
+    else_scope [label="进入else_scope"];
+    process_else [label="处理else分支代码"];
+    check_label_used [label="检查循环标签是否被使用"];
+    set_condbr_payload [label="设置条件分支payload"];
+    final_result [label="生成最终结果\n处理rvalue/ensure_result_used"];
+    end [label="返回结果"];
+
+    start -> check_label;
+    check_label -> check_inline;
+    check_inline -> create_loop_block;
+    create_loop_block -> handle_cond;
+    
+    handle_cond -> cond_payload_check;
+    cond_payload_check -> gen_cond_inst [label="是"];
+    cond_payload_check -> gen_cond_inst [label="否"];
+    gen_cond_inst -> create_condbr;
+    
+    create_condbr -> then_scope [label="条件为真"];
+    create_condbr -> else_scope [label="条件为假"];
+    
+    then_scope -> handle_payload;
+    handle_payload -> handle_cont;
+    handle_cont -> process_then;
+    process_then -> check_cont_noreturn;
+    check_cont_noreturn -> add_break_cont [label="否"];
+    check_cont_noreturn -> end [label="是"];
+    add_break_cont -> else_scope [style=invis];
+    
+    else_scope -> process_else;
+    process_else -> check_label_used;
+    check_label_used -> set_condbr_payload;
+    set_condbr_payload -> final_result;
+    final_result -> end;
+    
+    // 隐式连接点
+    {rank=same; then_scope else_scope}
+    {rank=same; check_cont_noreturn add_break_cont}
+}

@@ -1,0 +1,55 @@
+
+digraph Salsa20Flow {
+    node [shape=rectangle, style=rounded];
+
+    // 入口节点
+    start [label="SalsaVecImpl(rounds)", shape=ellipse];
+    end [label="返回结构体", shape=ellipse];
+
+    // 子函数定义
+    subgraph cluster_main {
+        label="SalsaVecImpl 结构体方法";
+        initContext [label="initContext(key, d)\n初始化上下文"];
+        salsaCore [label="salsaCore(x, input, feedback)\n核心混淆逻辑"];
+        hashToBytes [label="hashToBytes(out, x)\n向量转字节"];
+        salsaXor [label="salsaXor(out, in, key, d)\n加解密主流程"];
+        hsalsa [label="hsalsa(input, key)\n生成哈希"];
+
+        // 内部调用关系
+        salsaXor -> initContext;
+        salsaXor -> salsaCore [label="每64字节块"];
+        salsaXor -> hashToBytes;
+        salsaXor -> "处理尾部数据" [label="if 数据不足64字节"];
+
+        hsalsa -> initContext;
+        hsalsa -> salsaCore [label="feedback=false"];
+        hsalsa -> "提取特定字段生成哈希";
+    }
+
+    // 控制流
+    start -> initContext [style=invis];
+    start -> salsaCore [style=invis];
+    start -> salsaXor [style=invis];
+    start -> hsalsa [style=invis];
+
+    // salsaCore 内部流程
+    subgraph cluster_core {
+        label="salsaCore 内部";
+        core_start [label="输入重组\n创建diag0-diag3"];
+        rounds_loop [label="循环 rounds/2 次\n进行四轮混淆操作"];
+        feedback_check [label="if feedback=true\n叠加初始值"];
+        shuffle_output [label="重组输出到x向量"];
+
+        core_start -> rounds_loop;
+        rounds_loop -> feedback_check;
+        feedback_check -> shuffle_output;
+    }
+
+    salsaCore -> core_start [ltail=salsaCore];
+
+    // 连接出口
+    initContext -> end [style=invis];
+    salsaCore -> end [style=invis];
+    salsaXor -> end [style=invis];
+    hsalsa -> end [style=invis];
+}

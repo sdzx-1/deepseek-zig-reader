@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 renderContainerDecl"];
+    check_layout_token [label="检查 container_decl.layout_token 是否存在"];
+    render_layout_token [label="调用 renderToken 渲染 layout_token"];
+    determine_container_type [label="根据主令牌确定容器类型\n(enum/struct/other)"];
+    handle_enum_case [label="处理 enum_token 分支"];
+    handle_union_arg [label="处理带有参数的 union 情况"];
+    handle_no_arg [label="处理无参数情况"];
+    find_lbrace [label="确定左大括号位置"];
+    check_empty_members [label="检查成员列表是否为空"];
+    render_empty_container [label="渲染空容器\n处理文档注释"];
+    check_src_trailing_comma [label="检查原始代码是否有尾部逗号"];
+    one_line_conditions [label="检查单行渲染条件\n(注释/多行字符串/文档注释/非字段成员)"];
+    render_one_line [label="单行渲染所有成员"];
+    push_indent [label="进入缩进模式"];
+    render_members_multiline [label="多行渲染成员\n处理逗号和文档注释"];
+    render_rbrace [label="渲染右大括号并返回"];
+
+    start -> check_layout_token;
+    check_layout_token -> render_layout_token [label="存在"];
+    check_layout_token -> determine_container_type [label="不存在"];
+    render_layout_token -> determine_container_type;
+
+    determine_container_type -> handle_enum_case [label="enum"];
+    determine_container_type -> handle_union_arg [label="union带参数"];
+    determine_container_type -> handle_no_arg [label="其他情况"];
+
+    handle_enum_case -> find_lbrace;
+    handle_union_arg -> find_lbrace;
+    handle_no_arg -> find_lbrace;
+
+    find_lbrace -> check_empty_members;
+    
+    check_empty_members -> render_empty_container [label="空"];
+    check_empty_members -> check_src_trailing_comma [label="非空"];
+    
+    render_empty_container -> render_rbrace;
+    
+    check_src_trailing_comma -> one_line_conditions [label="无尾部逗号"];
+    check_src_trailing_comma -> push_indent [label="有尾部逗号"];
+    
+    one_line_conditions -> render_one_line [label="满足所有条件"];
+    one_line_conditions -> push_indent [label="任一条件不满足"];
+    
+    render_one_line -> render_rbrace;
+    
+    push_indent -> render_members_multiline;
+    render_members_multiline -> render_rbrace;
+    
+    render_rbrace [shape=ellipse];
+}

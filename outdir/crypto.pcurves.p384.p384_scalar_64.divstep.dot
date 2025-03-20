@@ -1,0 +1,41 @@
+
+digraph divstep_flowchart {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    compute_initial [label="计算初始条件\nx1 = (~arg1) + 1\nx3 = (x1 >> 63) & (arg3[0] & 1)"];
+    select_operands [label="根据x3选择操作数\ncmovznzU64选择x6-x13\n和x28-x34的值"];
+    compute_complements [label="计算arg2的补码\nx14-x26 = ~arg2 + 1"];
+    process_arg4_arg5 [label="处理arg4和arg5\n双倍运算和模减法\n(使用0xecec...等模数)"];
+    adjust_values [label="条件调整中间值\n根据x104/x66/x157\n选择x105-x178"];
+    final_shift [label="右移操作和位组合\n生成x160-x166"];
+    output_assignment [label="输出赋值到out1-out5"];
+
+    start -> compute_initial;
+    compute_initial -> select_operands;
+    select_operands -> compute_complements;
+    compute_complements -> process_arg4_arg5;
+    process_arg4_arg5 -> adjust_values;
+    adjust_values -> final_shift;
+    final_shift -> output_assignment;
+    output_assignment -> end;
+
+    // 关键条件分支示意
+    subgraph cluster_conditions {
+        label="主要条件分支";
+        style=dashed;
+        
+        condition_x3 [label="条件x3", shape=diamond];
+        condition_x104 [label="条件x104\n(x28 & 1)", shape=diamond];
+        condition_x66 [label="条件x66\n(模减法借位)", shape=diamond];
+        condition_x157 [label="条件x157\n(最终借位)", shape=diamond];
+    }
+
+    select_operands -> condition_x3 [style=invis];
+    adjust_values -> condition_x104 [style=invis];
+    adjust_values -> condition_x66 [style=invis];
+    adjust_values -> condition_x157 [style=invis];
+}

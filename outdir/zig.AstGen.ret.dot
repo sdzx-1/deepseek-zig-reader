@@ -1,0 +1,61 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start ret()", shape=ellipse];
+    check_fn_block [label="astgen.fn_block == null?"];
+    error_outside_func [label="Return error:\n'return' outside function scope", shape=box];
+    check_any_defer [label="gz.any_defer_node exists?"];
+    error_defer_return [label="Return error:\ncannot return from defer", shape=box];
+    emit_debug_info [label="Emit debug line/column"];
+    save_ret_lc [label="Save ret_lc (line/column)"];
+    check_operand_node [label="operand_node exists?"];
+    handle_void_return [label="Generate void return:\ngenDefers(normal_only)\naddRestoreErrRetIndex\naddUnNode(.ret_node)"];
+    check_error_value [label="operand_node is .error_value?"];
+    handle_error_return [label="Handle error return:\ngenDefers(both_sans_err/both)\nemitDbgStmt\naddStrTok/ret_err_value"];
+    setup_ri [label="Setup ResultInfo\n(ptr or coerced_ty)"];
+    eval_operand [label="Evaluate operand\nreachableExpr()"];
+    check_error_behavior [label="nodeMayEvalToError() result?", shape=diamond];
+    handle_never_error [label="Never error:\ngenDefers(normal_only)\naddRestoreErrRetIndex\naddRet"];
+    handle_always_error [label="Always error:\ngenDefers(both)\naddRet"];
+    handle_maybe_error [label="Maybe error:\nCheck defer_counts\nCreate condbr"];
+    condbr_then [label="then_scope:\ngenDefers(normal_only)\naddRestoreErrRetIndex\naddRet"];
+    condbr_else [label="else_scope:\ngenDefers(both)\naddRet"];
+    merge_condbr [label="Merge condbr paths"];
+    end [label="Return unreachable_value", shape=ellipse];
+
+    start -> check_fn_block;
+    check_fn_block -> error_outside_func [label="Yes"];
+    check_fn_block -> check_any_defer [label="No"];
+    check_any_defer -> error_defer_return [label="Yes"];
+    check_any_defer -> emit_debug_info [label="No"];
+    emit_debug_info -> save_ret_lc;
+    save_ret_lc -> check_operand_node;
+    
+    check_operand_node -> handle_void_return [label="No"];
+    check_operand_node -> check_error_value [label="Yes"];
+    
+    handle_void_return -> end;
+    
+    check_error_value -> handle_error_return [label="Yes"];
+    check_error_value -> setup_ri [label="No"];
+    
+    handle_error_return -> end;
+    
+    setup_ri -> eval_operand;
+    eval_operand -> check_error_behavior;
+    
+    check_error_behavior -> handle_never_error [label=".never"];
+    check_error_behavior -> handle_always_error [label=".always"];
+    check_error_behavior -> handle_maybe_error [label=".maybe"];
+    
+    handle_never_error -> end;
+    handle_always_error -> end;
+    
+    handle_maybe_error -> condbr_then;
+    handle_maybe_error -> condbr_else;
+    condbr_then -> merge_condbr;
+    condbr_else -> merge_condbr;
+    merge_condbr -> end;
+}

@@ -1,0 +1,78 @@
+
+digraph sendfile_flowchart {
+    node [shape=rectangle, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="Start"];
+    end [label="Return total_written"];
+
+    subgraph cluster_headers {
+        label="Headers Handling";
+        headers_check [label="headers.len != 0?"];
+        headers_writev [label="Write headers via writev()\nUpdate total_written"];
+        headers_check -> headers_writev [label="Yes"];
+        headers_check -> header_done_false [label="No"];
+        header_done_false [label="header_done = false"];
+    }
+
+    start -> headers_check;
+
+    subgraph cluster_os_switch {
+        label="OS-specific Handling";
+        os_switch [label="Switch (native_os)"];
+        linux [label="Linux:\nUse sendfile64/sendfile\nHandle errors and retries"];
+        freebsd [label="FreeBSD:\nUse sendfile with hdtr\nHandle errors and retries"];
+        macos [label="macOS/iOS/etc:\nUse sendfile with hdtr\nHandle errors and retries"];
+        fallback [label="Other OS:\nFallback to read/write"];
+
+        os_switch -> linux [label=".linux"];
+        os_switch -> freebsd [label=".freebsd"];
+        os_switch -> macos [label=".macos/.ios/etc"];
+        os_switch -> fallback [label="default"];
+    }
+
+    headers_writev -> os_switch;
+    header_done_false -> os_switch;
+
+    subgraph cluster_fallback {
+        label="Fallback Read/Write";
+        rw_block [label="Read data via pread()\nWrite via write()\nUpdate total_written"];
+        check_in_len [label="in_len == 0?"];
+        check_in_len -> rw_block [label="No"];
+        check_in_len -> break_rw [label="Yes"];
+        break_rw [label="Break loop"];
+    }
+
+    linux -> trailers_check [label="Fallback if EINVAL"];
+    freebsd -> trailers_check [label="Fallback if ENOSYS/EINVAL"];
+    macos -> trailers_check [label="Fallback if ENOSYS"];
+    fallback -> trailers_check;
+
+    subgraph cluster_trailers {
+        label="Trailers Handling";
+        trailers_check [label="trailers.len != 0?"];
+        trailers_writev [label="Write trailers via writev()\nUpdate total_written"];
+        trailers_check -> trailers_writev [label="Yes"];
+        trailers_check -> end [label="No"];
+    }
+
+    trailers_writev -> end;
+
+    subgraph cluster_error_handling {
+        label="Error Handling (Simplified)";
+        error_check [label="Check errno"];
+        handle_errors [label="Handle specific errors\n(e.g., WouldBlock, BrokenPipe)"];
+        error_check -> handle_errors;
+    }
+
+    linux -> error_check [label="On error"];
+    freebsd -> error_check [label="On error"];
+    macos -> error_check [label="On error"];
+    handle_errors -> end [label="Return error if unrecoverable"];
+    handle_errors -> os_switch [label="Retry if possible"];
+
+    edge [style=dashed];
+    headers_writev -> error_check;
+    trailers_writev -> error_check;
+    rw_block -> error_check;
+}

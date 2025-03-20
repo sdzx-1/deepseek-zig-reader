@@ -1,0 +1,83 @@
+
+digraph flowchart {
+    node [shape=rectangle fontname="Courier" fontsize=12];
+    edge [fontname="Courier" fontsize=10];
+
+    start [label="renderContainerField开始"];
+    check_container [label="检查container类型\n转换非元组字段" shape=diamond];
+    set_quote [label="设置quote行为"];
+    check_comptime_token [label="field.comptime_token存在?" shape=diamond];
+    render_comptime [label="渲染comptime token"];
+    check_type_value [label="ast.type_expr和ast.value_expr\n状态检查" shape=diamond];
+    
+    case1 [label="type_expr和value_expr都为none"];
+    case1_align_check [label="align_expr存在?" shape=diamond];
+    case1_render_align [label="渲染名称、align表达式和括号"];
+    case1_render_name [label="渲染名称并返回"];
+    
+    case2 [label="有type_expr无value_expr"];
+    case2_render_name_colon [label="渲染名称和冒号"];
+    case2_align_check [label="align_expr存在?" shape=diamond];
+    case2_render_align [label="渲染align表达式并返回"];
+    case2_render_type [label="渲染类型表达式并返回"];
+    
+    case3 [label="无type_expr有value_expr"];
+    case3_render_name [label="渲染名称"];
+    case3_align_check [label="align_expr存在?" shape=diamond];
+    case3_render_align [label="渲染align表达式"];
+    case3_render_value [label="渲染等号和值表达式并返回"];
+    
+    case4 [label="同时有type和value"];
+    case4_render_name_colon [label="渲染名称和冒号"];
+    case4_render_type [label="渲染类型表达式"];
+    case4_align_check [label="align_expr存在?" shape=diamond];
+    case4_render_align [label="渲染align表达式"];
+    case4_handle_equals [label="处理等号缩进和换行"];
+    case4_render_value [label="渲染值表达式并返回"];
+
+    start -> check_container;
+    check_container -> set_quote;
+    set_quote -> check_comptime_token;
+    
+    check_comptime_token -> render_comptime [label="是"];
+    check_comptime_token -> check_type_value [label="否"];
+    render_comptime -> check_type_value;
+    
+    check_type_value -> case1 [label="type/value均无"];
+    check_type_value -> case2 [label="有type无value"];
+    check_type_value -> case3 [label="无type有value"];
+    check_type_value -> case4 [label="type/value都有"];
+    
+    case1 -> case1_align_check;
+    case1_align_check -> case1_render_align [label="是"];
+    case1_align_check -> case1_render_name [label="否"];
+    
+    case2 -> case2_render_name_colon;
+    case2_render_name_colon -> case2_align_check;
+    case2_align_check -> case2_render_align [label="是"];
+    case2_align_check -> case2_render_type [label="否"];
+    
+    case3 -> case3_render_name;
+    case3_render_name -> case3_align_check;
+    case3_align_check -> case3_render_align [label="是"];
+    case3_align_check -> case3_render_value [label="否"];
+    case3_render_align -> case3_render_value;
+    
+    case4 -> case4_render_name_colon;
+    case4_render_name_colon -> case4_render_type;
+    case4_render_type -> case4_align_check;
+    case4_align_check -> case4_render_align [label="是"];
+    case4_align_check -> case4_handle_equals [label="否"];
+    case4_render_align -> case4_handle_equals;
+    case4_handle_equals -> case4_render_value;
+
+    // Return paths
+    case1_render_align -> end;
+    case1_render_name -> end;
+    case2_render_align -> end;
+    case2_render_type -> end;
+    case3_render_value -> end;
+    case4_render_value -> end;
+
+    end [shape=oval label="函数返回"];
+}

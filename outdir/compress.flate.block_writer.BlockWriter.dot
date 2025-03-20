@@ -1,0 +1,48 @@
+
+digraph BlockWriterFlow {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 write()"];
+    index_tokens [label="indexTokens()\n统计literal/distance频率"];
+    check_storable [label="计算stored_size\n判断是否适合存储"];
+    is_storable [label="storable?" shape=diamond];
+    calc_fixed [label="计算固定编码大小 fixedSize()"];
+    generate_codegen [label="generateCodegen()\n生成动态编码"];
+    calc_dynamic [label="计算动态编码大小 dynamicSize()"];
+    compare_sizes [label="比较存储/固定/动态大小\n选择最优方案" shape=diamond];
+    write_stored [label="storedBlock()\n写入存储块"];
+    write_fixed [label="fixedHeader()\n写入固定头"];
+    write_dynamic [label="dynamicHeader()\n写入动态头"];
+    write_tokens [label="writeTokens()\n写入token数据"];
+    end [label="结束"];
+
+    start -> index_tokens;
+    index_tokens -> check_storable;
+    check_storable -> is_storable;
+    
+    is_storable -> write_stored [label="是"];
+    is_storable -> calc_fixed [label="否"];
+    
+    calc_fixed -> generate_codegen;
+    generate_codegen -> calc_dynamic;
+    calc_dynamic -> compare_sizes;
+    
+    compare_sizes -> write_stored [label="存储最优"];
+    compare_sizes -> write_fixed [label="固定最优"];
+    compare_sizes -> write_dynamic [label="动态最优"];
+    
+    write_stored -> end;
+    write_fixed -> write_tokens;
+    write_dynamic -> write_tokens;
+    write_tokens -> end;
+
+    subgraph cluster_helpers {
+        label="辅助函数";
+        color=blue;
+        generate_codegen_sub [label="generateCodegen() 流程"];
+        dynamic_header_sub [label="dynamicHeader() 流程"];
+    }
+
+    generate_codegen_sub -> dynamic_header_sub [style=invis];
+}

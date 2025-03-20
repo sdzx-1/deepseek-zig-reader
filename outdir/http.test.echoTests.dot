@@ -1,0 +1,26 @@
+
+digraph G {
+    rankdir=TB;
+    node [shape=rectangle];
+
+    start [label="开始"];
+    content_length [label="发送Content-Length请求"];
+    check_conn1 [label="检查连接保持活跃"];
+    chunked_request [label="发送Chunked请求"];
+    check_conn2 [label="检查连接保持活跃"];
+    client_fetch [label="使用Client.fetch发送请求"];
+    expect_100 [label="测试Expect: 100-continue头"];
+    expect_garbage [label="测试无效Expect头（garbage）"];
+    end_request [label="发送/end请求"];
+    end [label="结束"];
+
+    start -> content_length;
+    content_length -> check_conn1;
+    check_conn1 -> chunked_request;
+    chunked_request -> check_conn2;
+    check_conn2 -> client_fetch;
+    client_fetch -> expect_100;
+    expect_100 -> expect_garbage;
+    expect_garbage -> end_request;
+    end_request -> end;
+}

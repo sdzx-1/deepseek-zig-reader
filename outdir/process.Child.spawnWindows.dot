@@ -1,0 +1,36 @@
+
+digraph spawnWindowsFlow {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 spawnWindows"];
+    security_attr [label="设置安全属性 saAttr"];
+    check_ignore [label="检查是否有标准流被忽略", shape=diamond];
+    open_nul [label="打开NUL设备"];
+    create_pipes [label="根据stdin/stdout/stderr行为创建管道"];
+    setup_startinfo [label="配置STARTUPINFOW结构"];
+    prepare_env [label="准备环境变量和路径"];
+    create_process [label="尝试创建进程"];
+    handle_path_search [label="处理PATH环境变量搜索", shape=diamond];
+    path_search_loop [label="循环搜索PATH中的目录"];
+    set_file_handles [label="设置子进程文件句柄"];
+    cleanup_resources [label="清理临时资源"];
+    error_handling [label="错误处理分支"];
+    end [label="返回进程信息"];
+
+    start -> security_attr;
+    security_attr -> check_ignore;
+    check_ignore -> open_nul [label="有忽略的流"];
+    check_ignore -> create_pipes [label="无忽略的流"];
+    open_nul -> create_pipes;
+    create_pipes -> setup_startinfo;
+    setup_startinfo -> prepare_env;
+    prepare_env -> create_process;
+    create_process -> handle_path_search [label="失败"];
+    handle_path_search -> path_search_loop [label="需要搜索PATH"];
+    path_search_loop -> create_process [label="继续尝试"];
+    handle_path_search -> error_handling [label="不搜索PATH"];
+    create_process -> set_file_handles [label="成功"];
+    set_file_handles -> cleanup_resources;
+    cleanup_resources -> end;
+    error_handling -> cleanup_resources;
+}

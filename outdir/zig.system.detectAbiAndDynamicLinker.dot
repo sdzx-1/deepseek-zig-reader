@@ -1,0 +1,44 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 detectAbiAndDynamicLinker"];
+    check_conditions [label="检查条件：\n- native_target_has_ld\n- have_all_info\n- os_is_non_native\n- is_solarish\n- is_darwin"];
+    return_default_early [label="返回 defaultAbiAndDynamicLinker"];
+    check_abi_musl [label="query.abi 是否存在且为 musl？"];
+    build_abi_list [label="构建所有可能的 ABI 列表"];
+    handle_ld_kind [label="根据动态链接器类型处理：\n- .none\n- .arch_os\n- .arch_os_abi（遍历 ABI）"];
+    try_open_env [label="尝试打开 /usr/bin/env 或 /bin/env"];
+    read_file_content [label="读取文件内容前 4 字节"];
+    check_elf_magic [label="内容是否以 ELF MAGIC 开头？"];
+    check_shebang [label="内容是否以 #! 开头？"];
+    parse_shebang [label="解析 shebang 路径，更新 file_name"];
+    open_elf_file [label="确认 ELF 文件"];
+    call_abi_from_file [label="调用 abiAndDynamicLinkerFromFile"];
+    handle_errors [label="处理错误，记录警告"];
+    return_default_fallback [label="返回 defaultAbiAndDynamicLinker"];
+    end [label="结束"];
+
+    start -> check_conditions;
+    check_conditions -> return_default_early [label="条件满足"];
+    check_conditions -> check_abi_musl [label="条件不满足"];
+    check_abi_musl -> return_default_early [label="是 musl"];
+    check_abi_musl -> build_abi_list [label="不是 musl"];
+    build_abi_list -> handle_ld_kind;
+    handle_ld_kind -> try_open_env [label="处理完动态链接器类型"];
+    try_open_env -> read_file_content [label="文件打开成功"];
+    try_open_env -> return_default_fallback [label="文件打开失败"];
+    read_file_content -> check_elf_magic;
+    check_elf_magic -> open_elf_file [label="是 ELF"];
+    check_elf_magic -> check_shebang [label="不是 ELF"];
+    check_shebang -> parse_shebang [label="有 shebang"];
+    check_shebang -> return_default_fallback [label="无 shebang/ELF"];
+    parse_shebang -> try_open_env [label="递归解析路径"];
+    open_elf_file -> call_abi_from_file;
+    call_abi_from_file -> end [label="成功"];
+    call_abi_from_file -> handle_errors [label="出错"];
+    handle_errors -> return_default_fallback;
+    return_default_early -> end;
+    return_default_fallback -> end;
+}

@@ -1,0 +1,66 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 ifExpr"];
+    check_do_err_trace [label="检查 do_err_trace"];
+    setup_block_ri [label="设置 block_ri"];
+    create_block_scope [label="创建 block_scope"];
+    process_cond [label="处理条件表达式"];
+    create_condbr [label="创建 condbr 指令"];
+    create_block_inst [label="创建 block 指令"];
+    setup_then_scope [label="初始化 then_scope"];
+    handle_then_payload [label="处理 then 分支 payload/错误令牌"];
+    process_then_expr [label="处理 then 表达式"];
+    check_then_termination [label="检查 then 是否终止"];
+    setup_else_scope [label="初始化 else_scope"];
+    handle_else_payload [label="处理 else 分支错误令牌"];
+    process_else_expr [label="处理 else 表达式或默认值"];
+    check_else_termination [label="检查 else 是否终止"];
+    set_condbr_payload [label="设置 condbr 的 payload"];
+    decide_return [label="决定返回 block 或 rvalue"];
+    end [label="返回结果"];
+
+    start -> check_do_err_trace;
+    check_do_err_trace -> setup_block_ri;
+    setup_block_ri -> create_block_scope;
+    create_block_scope -> process_cond;
+    
+    process_cond -> create_condbr;
+    create_condbr -> create_block_inst;
+    create_block_inst -> setup_then_scope;
+    
+    setup_then_scope -> handle_then_payload;
+    handle_then_payload -> process_then_expr;
+    process_then_expr -> check_then_termination;
+    check_then_termination -> setup_else_scope [label="then 未终止"];
+    
+    setup_else_scope -> handle_else_payload;
+    handle_else_payload -> process_else_expr;
+    process_else_expr -> check_else_termination;
+    check_else_termination -> set_condbr_payload;
+    
+    set_condbr_payload -> decide_return;
+    decide_return -> end;
+
+    // 条件分支路径
+    process_cond -> handle_error_union [label="有 error_token"];
+    process_cond -> handle_optional [label="有 payload_token"];
+    process_cond -> handle_normal_cond [label="普通条件"];
+    
+    handle_error_union -> create_condbr;
+    handle_optional -> create_condbr;
+    handle_normal_cond -> create_condbr;
+
+    // then/else 分支细节
+    handle_then_payload -> skip_then_payload [label="payload 是 _"];
+    skip_then_payload -> process_then_expr;
+
+    handle_else_payload -> skip_else_payload [label="error_token 是 _"];
+    skip_else_payload -> process_else_expr;
+
+    // 异常路径（简化为普通流程）
+    check_then_termination -> set_condbr_payload [label="then 终止"];
+    check_else_termination -> set_condbr_payload [label="else 终止"];
+}

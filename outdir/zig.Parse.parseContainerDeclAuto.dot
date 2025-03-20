@@ -1,0 +1,92 @@
+
+digraph parseContainerDeclAuto {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="Start"];
+    get_main_token [label="main_token = p.nextToken()"];
+    switch_token [label="Switch p.tokenTag(main_token)", shape=diamond];
+    
+    // Main token branches
+    keyword_opaque [label=".keyword_opaque"];
+    keyword_struct_enum [label=".keyword_struct / .keyword_enum"];
+    keyword_union [label=".keyword_union", shape=diamond];
+    else_case [label="Other tokens\n(p.tok_i -= 1; return error)", shape=box];
+    
+    // Struct/Enum branch
+    check_lparen_se [label="p.eatToken(.l_paren)?", shape=diamond];
+    parse_expr_se [label="Parse expr\nExpect .r_paren"];
+    arg_expr_se_null [label="arg_expr = null"];
+    
+    // Union branch
+    check_lparen_union [label="p.eatToken(.l_paren)?", shape=diamond];
+    check_enum [label="p.eatToken(.keyword_enum)?", shape=diamond];
+    check_lparen_enum [label="p.eatToken(.l_paren)?", shape=diamond];
+    parse_enum_tag [label="Parse enum_tag_expr\nExpect .r_paren x2"];
+    parse_union_members [label="Parse members\nBuild tagged_union_enum_tag node"];
+    parse_union_two [label="Check members.len <=2\nBuild tagged_union_two node"];
+    parse_union_general [label="Build tagged_union node"];
+    parse_union_expr [label="Parse expr\nExpect .r_paren"];
+    arg_expr_union_null [label="arg_expr = null"];
+    
+    // Common path
+    expect_lbrace [label="Expect .l_brace"];
+    parse_members [label="Parse container members"];
+    expect_rbrace [label="Expect .r_brace"];
+    check_arg_expr [label="arg_expr == null?", shape=diamond];
+    check_members_len [label="members.len <= 2?", shape=diamond];
+    build_two_node [label="Build container_decl_two node"];
+    build_general_node [label="Build container_decl node"];
+    build_arg_node [label="Build container_decl_arg node"];
+    
+    // Edge connections
+    start -> get_main_token;
+    get_main_token -> switch_token;
+    
+    // Main switch branches
+    switch_token -> keyword_opaque [label=".keyword_opaque"];
+    switch_token -> keyword_struct_enum [label=".keyword_struct/.enum"];
+    switch_token -> keyword_union [label=".keyword_union"];
+    switch_token -> else_case [label="else"];
+    
+    // Struct/Enum path
+    keyword_struct_enum -> check_lparen_se;
+    check_lparen_se -> parse_expr_se [label="Yes"];
+    parse_expr_se -> arg_expr_se_null;
+    check_lparen_se -> arg_expr_se_null [label="No"];
+    arg_expr_se_null -> expect_lbrace;
+    
+    // Union path
+    keyword_union -> check_lparen_union;
+    check_lparen_union -> check_enum [label="Yes"];
+    check_lparen_union -> arg_expr_union_null [label="No"];
+    arg_expr_union_null -> expect_lbrace;
+    
+    check_enum -> check_lparen_enum [label="Yes"];
+    check_enum -> parse_union_expr [label="No"];
+    parse_union_expr -> arg_expr_union_null;
+    
+    check_lparen_enum -> parse_enum_tag [label="Yes"];
+    parse_enum_tag -> parse_union_members;
+    parse_union_members -> expect_lbrace [style=invis]; // 实际会直接返回
+    
+    check_enum -> parse_union_two [label="No (post .r_paren)"];
+    parse_union_two -> parse_union_general [label="members.len > 2"];
+    parse_union_two -> expect_lbrace [style=invis];
+    
+    // Common path after token handling
+    keyword_opaque -> expect_lbrace;
+    expect_lbrace -> parse_members;
+    parse_members -> expect_rbrace;
+    expect_rbrace -> check_arg_expr;
+    
+    check_arg_expr -> check_members_len [label="Yes"];
+    check_arg_expr -> build_arg_node [label="No"];
+    
+    check_members_len -> build_two_node [label="Yes"];
+    check_members_len -> build_general_node [label="No"];
+    
+    // Edge styling for clarity
+    {rank=same; keyword_opaque; keyword_struct_enum; keyword_union}
+    {rank=same; check_lparen_se; check_lparen_union}
+}

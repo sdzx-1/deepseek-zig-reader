@@ -1,0 +1,110 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="getFdPath(fd, out_buffer)"];
+    check_target [label="检查编译目标支持", shape=diamond];
+    compile_error [label="@compileError(...)"];
+    switch_os [label="switch (native_os)", shape=diamond];
+    
+    start -> check_target;
+    
+    check_target -> compile_error [label="不支持"];
+    check_target -> switch_os [label="支持"];
+
+    // Windows分支
+    win_block [label=
+        "Windows分支:\n"+
+        "1. 分配宽字符缓冲区\n"+
+        "2. 调用GetFinalPathNameByHandle\n"+
+        "3. 转换UTF16到UTF8\n"+
+        "4. 返回结果"
+    ];
+    
+    // macOS/iOS分支
+    mac_block [label=
+        "macOS/iOS分支:\n"+
+        "1. 用memset清零缓冲区\n"+
+        "2. 调用fcntl(F.GETPATH)\n"+
+        "3. 错误处理:\n"+
+        "   - BADF → FileNotFound\n"+
+        "   - NOSPC → NameTooLong\n"+
+        "4. 查找null终止符\n"+
+        "5. 返回结果"
+    ];
+
+    // Linux分支
+    linux_block [label=
+        "Linux/Serenity分支:\n"+
+        "1. 构造/proc/self/fd路径\n"+
+        "2. 调用readlink\n"+
+        "3. 错误处理\n"+
+        "4. 返回结果"
+    ];
+
+    // Solaris分支
+    solaris_block [label=
+        "Solaris分支:\n"+
+        "1. 构造/proc/self/path路径\n"+
+        "2. 调用readlink\n"+
+        "3. 错误处理\n"+
+        "4. 返回结果"
+    ];
+
+    // FreeBSD分支
+    freebsd_block [label=
+        "FreeBSD分支:\n"+
+        "1. 版本检查 (≥13.0)\n"+
+        "   a. 使用kinfo_file结构\n"+
+        "   b. 调用fcntl(F.KINFO)\n"+
+        "   c. 拷贝路径\n"+
+        "2. 旧版本:\n"+
+        "   a. 调用sysctl获取信息\n"+
+        "   b. 遍历查找匹配fd\n"+
+        "   c. 拷贝路径\n"+
+        "3. 返回结果"
+    ];
+
+    // DragonFly分支
+    dragonfly_block [label=
+        "DragonFly分支:\n"+
+        "1. 调用fcntl(F.GETPATH)\n"+
+        "2. 错误处理\n"+
+        "3. 返回结果"
+    ];
+
+    // NetBSD分支
+    netbsd_block [label=
+        "NetBSD分支:\n"+
+        "1. 调用fcntl(F.GETPATH)\n"+
+        "2. 详细错误处理\n"+
+        "3. 返回结果"
+    ];
+
+    end [label="返回路径或错误"];
+
+    switch_os -> win_block [label=".windows"];
+    switch_os -> mac_block [label=".macos/.ios等"];
+    switch_os -> linux_block [label=".linux/.serenity"];
+    switch_os -> solaris_block [label=".solaris/.illumos"];
+    switch_os -> freebsd_block [label=".freebsd"];
+    switch_os -> dragonfly_block [label=".dragonfly"];
+    switch_os -> netbsd_block [label=".netbsd"];
+
+    win_block -> end;
+    mac_block -> end;
+    linux_block -> end;
+    solaris_block -> end;
+    freebsd_block -> end;
+    dragonfly_block -> end;
+    netbsd_block -> end;
+
+    // 错误处理连接
+    mac_block -> end [label="错误路径"];
+    linux_block -> end [label="错误路径"];
+    solaris_block -> end [label="错误路径"];
+    freebsd_block -> end [label="错误路径"];
+    dragonfly_block -> end [label="错误路径"];
+    netbsd_block -> end [label="错误路径"];
+}

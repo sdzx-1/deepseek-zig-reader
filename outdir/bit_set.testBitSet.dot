@@ -1,0 +1,48 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 testBitSet(a, b, len)", shape=ellipse];
+    check_capacity [label="检查 a.capacity() 和 b.capacity() 等于 len"];
+    set_bits [label="循环设置 a 和 b 的位值\na[i] = (i&1==0)\nb[i] = (i&2==0)"];
+    check_count [label="验证 a.count() 和 b.count() 符合预期"];
+    iterator_forward [label="正向迭代器测试\na 的偶数位按顺序迭代"];
+    toggle_all [label="a.toggleAll()\n验证迭代器显示奇数位"];
+    iterator_unset [label="b 的反向未设置位迭代测试"];
+    check_bits [label="验证所有位的状态\na[i] = (i&1!=0)\nb[i] = (i&2==0)"];
+    union_operation [label="a.setUnion(b)\n验证并集结果"];
+    toggle_set [label="a.toggleSet(b)\n验证异或结果"];
+    intersection [label="a.setIntersection(b)\n验证交集结果"];
+    self_toggle [label="a.toggleSet(a)\n验证全部取消"];
+    test_bits [label="测试 test_bits 数组的设置/切换操作"];
+    range_tests [label="测试范围设置操作\n(包括边界条件)"];
+    end [label="结束", shape=ellipse];
+
+    start -> check_capacity;
+    check_capacity -> set_bits;
+    set_bits -> check_count;
+    check_count -> iterator_forward;
+    iterator_forward -> toggle_all;
+    toggle_all -> iterator_unset;
+    iterator_unset -> check_bits;
+    check_bits -> union_operation;
+    union_operation -> toggle_set;
+    toggle_set -> intersection;
+    intersection -> self_toggle;
+    self_toggle -> test_bits;
+    test_bits -> range_tests;
+    range_tests -> end;
+
+    // 条件分支示例（简化表示）
+    subgraph cluster_range_conditions {
+        label="范围测试条件判断";
+        style=dashed;
+        node [shape=diamond];
+        range_if_len_ge1 [label="len >= 1?"];
+        range_if_len_ge4 [label="len >= 4?"];
+    }
+
+    range_tests -> range_if_len_ge1 [style=invis];
+    range_if_len_ge1 -> range_if_len_ge4 [style=invis];
+}

@@ -1,0 +1,77 @@
+
+digraph FullPanicFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=filled, fillcolor=lightblue];
+
+    // 主函数节点
+    FullPanic [label="FullPanic(panicFn: fn(...) noreturn) -> type"];
+
+    // 结构体内部方法
+    subgraph cluster_struct {
+        label="返回的结构体";
+        style=filled;
+        fillcolor=lightgrey;
+
+        sentinelMismatch [label="sentinelMismatch(expected, found)"];
+        unwrapError [label="unwrapError(err)"];
+        outOfBounds [label="outOfBounds(index, len)"];
+        startGreaterThanEnd [label="startGreaterThanEnd(start, end)"];
+        inactiveUnionField [label="inactiveUnionField(active, accessed)"];
+        sliceCastLenRemainder [label="sliceCastLenRemainder(src_len)"];
+        reachedUnreachable [label="reachedUnreachable()"];
+        unwrapNull [label="unwrapNull()"];
+        castToNull [label="castToNull()"];
+        incorrectAlignment [label="incorrectAlignment()"];
+        invalidErrorCode [label="invalidErrorCode()"];
+        castTruncatedData [label="castTruncatedData()"];
+        negativeToUnsigned [label="negativeToUnsigned()"];
+        integerOverflow [label="integerOverflow()"];
+        shlOverflow [label="shlOverflow()"];
+        shrOverflow [label="shrOverflow()"];
+        divideByZero [label="divideByZero()"];
+        exactDivisionRemainder [label="exactDivisionRemainder()"];
+        integerPartOutOfBounds [label="integerPartOutOfBounds()"];
+        corruptSwitch [label="corruptSwitch()"];
+        shiftRhsTooBig [label="shiftRhsTooBig()"];
+        invalidEnumValue [label="invalidEnumValue()"];
+        forLenMismatch [label="forLenMismatch()"];
+        memcpyLenMismatch [label="memcpyLenMismatch()"];
+        memcpyAlias [label="memcpyAlias()"];
+        noreturnReturned [label="noreturnReturned()"];
+    }
+
+    // Panic调用节点
+    panicFn [label="panicFn(message, address)", fillcolor=pink];
+    panicExtra [label="std.debug.panicExtra(address, message, args)", fillcolor=pink];
+
+    // 主函数到结构体的连接
+    FullPanic -> cluster_struct [lhead=cluster_struct];
+
+    // 方法到panic调用的连接
+    sentinelMismatch -> panicExtra [label="调用"];
+    unwrapError -> panicExtra [label="调用"];
+    outOfBounds -> panicExtra [label="调用"];
+    startGreaterThanEnd -> panicExtra [label="调用"];
+    inactiveUnionField -> panicExtra [label="调用"];
+    sliceCastLenRemainder -> panicExtra [label="调用"];
+    reachedUnreachable -> panicFn [label="call()"];
+    unwrapNull -> panicFn [label="call()"];
+    castToNull -> panicFn [label="call()"];
+    incorrectAlignment -> panicFn [label="call()"];
+    invalidErrorCode -> panicFn [label="call()"];
+    castTruncatedData -> panicFn [label="call()"];
+    negativeToUnsigned -> panicFn [label="call()"];
+    integerOverflow -> panicFn [label="call()"];
+    shlOverflow -> panicFn [label="call()"];
+    shrOverflow -> panicFn [label="call()"];
+    divideByZero -> panicFn [label="call()"];
+    exactDivisionRemainder -> panicFn [label="call()"];
+    integerPartOutOfBounds -> panicFn [label="call()"];
+    corruptSwitch -> panicFn [label="call()"];
+    shiftRhsTooBig -> panicFn [label="call()"];
+    invalidEnumValue -> panicFn [label="call()"];
+    forLenMismatch -> panicFn [label="call()"];
+    memcpyLenMismatch -> panicFn [label="call()"];
+    memcpyAlias -> panicFn [label="call()"];
+    noreturnReturned -> panicFn [label="call()"];
+}

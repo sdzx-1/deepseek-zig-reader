@@ -1,0 +1,40 @@
+
+digraph BlockVecFlow {
+    rankdir=TB;
+    node [shape=box, style=rounded];
+
+    // 结构体定义
+    BlockVec [label="BlockVec结构体\n(blocks_count: comptime_int)"];
+    native_vector_size [label="native_vector_size:\n根据CPU特性选择\n(4/2/1 blocks)"];
+    native_word_size [label="native_word_size:\n向量字节大小\n= native_vector_size * 16"];
+    native_words [label="native_words:\n= blocks_count / native_vector_size"];
+    Repr [label="内部表示类型\n@Vector(native_vector_size*2, u64)"];
+    block_length [label="block_length:\n= blocks_count * 16"];
+
+    // 方法节点
+    fromBytes [label="fromBytes()\n字节序列→内部表示"];
+    toBytes [label="toBytes()\n内部表示→字节序列"];
+    xorBytes [label="xorBytes()\n与字节序列异或"];
+    encrypt [label="encrypt()\nAES加密轮操作\n(vaesenc指令)"];
+    encryptLast [label="encryptLast()\n最终AES加密\n(vaesenclast指令)"];
+    decrypt [label="decrypt()\nAES解密轮操作\n(vaesdec指令)"];
+    decryptLast [label="decryptLast()\n最终AES解密\n(vaesdeclast指令)"];
+    xorBlocks [label="xorBlocks()\n块向量异或"];
+    andBlocks [label="andBlocks()\n块向量与操作"];
+    orBlocks [label="orBlocks()\n块向量或操作"];
+
+    // 结构关系
+    BlockVec -> {native_vector_size, native_word_size, native_words, Repr, block_length};
+    
+    // 方法调用流程
+    fromBytes -> toBytes [label="转换"];
+    toBytes -> xorBytes [label="输入处理"];
+    fromBytes -> encrypt [label="加密流程"];
+    encrypt -> encryptLast [label="多轮加密"];
+    encryptLast -> toBytes [label="输出密文"];
+    fromBytes -> decrypt [label="解密流程"];
+    decrypt -> decryptLast [label="多轮解密"];
+    decryptLast -> toBytes [label="输出明文"];
+    xorBlocks -> {encrypt, decrypt} [label="混合操作"];
+    andBlocks -> orBlocks [label="位操作组合"];
+}

@@ -1,0 +1,48 @@
+
+digraph {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    // 初始化与销毁
+    init [label="init(allocator, io_reader)\n初始化scanner和reader"];
+    deinit [label="deinit()\n释放scanner资源并重置结构体"];
+    init -> deinit [style=invis];
+
+    // 核心流程
+    nextAlloc [label="nextAlloc()\n根据token类型分配内存"];
+    nextAllocMax [label="nextAllocMax()\n带最大长度限制的分配"];
+    allocNextIntoArrayList [label="allocNextIntoArrayList()\n数据写入ArrayList"];
+    refillBuffer [label="refillBuffer()\n从reader填充缓冲区"];
+
+    // 方法调用关系
+    nextAlloc -> nextAllocMax [label="调用"];
+    nextAllocMax -> allocNextIntoArrayListMax [label="处理string/number"];
+    allocNextIntoArrayListMax -> refillBuffer [label="BufferUnderrun时调用"];
+
+    // 跳过逻辑
+    skipValue [label="skipValue()\n根据token类型跳过值"];
+    skipValue -> skipUntilStackHeight [label="对象/数组时调用"];
+    skipUntilStackHeight -> refillBuffer [label="BufferUnderrun时调用"];
+
+    // 基础操作
+    next [label="next()\n获取下一个token"];
+    peekNextTokenType [label="peekNextTokenType()\n查看下一个token类型"];
+    next -> refillBuffer [label="BufferUnderrun时调用"];
+    peekNextTokenType -> refillBuffer [label="BufferUnderrun时调用"];
+
+    // 状态管理
+    enableDiagnostics [label="enableDiagnostics()\n启用诊断信息"];
+    stackHeight [label="stackHeight()\n获取当前栈深度"];
+    ensureTotalStackCapacity [label="ensureTotalStackCapacity()\n预分配栈空间"];
+
+    // 连接初始化到核心流程
+    init -> nextAlloc [style=dashed];
+    init -> skipValue [style=dashed];
+    init -> next [style=dashed];
+
+    // 错误处理公共路径
+    refillBuffer -> scanner_feed [label="填充数据到scanner"];
+    scanner_feed [label="scanner.feedInput()"];
+    scanner_end [label="scanner.endInput()"];
+    refillBuffer -> scanner_end [label="输入结束时调用"];
+}

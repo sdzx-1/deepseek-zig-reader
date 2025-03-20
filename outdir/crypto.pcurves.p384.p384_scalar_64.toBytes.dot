@@ -1,0 +1,65 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+    
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    
+    process_x6 [label="处理arg1[0] (x6)\n提取x7-x20\n存入out1[0]-out1[7]"];
+    process_x5 [label="处理arg1[1] (x5)\n提取x21-x34\n存入out1[8]-out1[15]"];
+    process_x4 [label="处理arg1[2] (x4)\n提取x35-x48\n存入out1[16]-out1[23]"];
+    process_x3 [label="处理arg1[3] (x3)\n提取x49-x62\n存入out1[24]-out1[31]"];
+    process_x2 [label="处理arg1[4] (x2)\n提取x63-x76\n存入out1[32]-out1[39]"];
+    process_x1 [label="处理arg1[5] (x1)\n提取x77-x90\n存入out1[40]-out1[47]"];
+    
+    start -> process_x6;
+    process_x6 -> process_x5;
+    process_x5 -> process_x4;
+    process_x4 -> process_x3;
+    process_x3 -> process_x2;
+    process_x2 -> process_x1;
+    process_x1 -> end;
+    
+    // 展开x6的处理细节示例
+    subgraph cluster_x6 {
+        label="处理x6的细节";
+        style=dashed;
+        
+        x6_start [label="x6 = arg1[0]", shape=note];
+        extract_0 [label="x7 = x6 & 0xFF\nout1[0] = x7"];
+        shift_8 [label="x8 = x6 >> 8"];
+        extract_1 [label="x9 = x8 & 0xFF\nout1[1] = x9"];
+        shift_16 [label="x10 = x8 >> 8"];
+        extract_2 [label="x11 = x10 & 0xFF\nout1[2] = x11"];
+        shift_24 [label="x12 = x10 >> 8"];
+        extract_3 [label="x13 = x12 & 0xFF\nout1[3] = x13"];
+        shift_32 [label="x14 = x12 >> 8"];
+        extract_4 [label="x15 = x14 & 0xFF\nout1[4] = x15"];
+        shift_40 [label="x16 = x14 >> 8"];
+        extract_5 [label="x17 = x16 & 0xFF\nout1[5] = x17"];
+        shift_48 [label="x18 = x16 >> 8"];
+        extract_6 [label="x19 = x18 & 0xFF\nout1[6] = x19"];
+        shift_56 [label="x20 = x18 >> 8"];
+        extract_7 [label="x20_trunc = x20 & 0xFF\nout1[7] = x20_trunc"];
+        
+        x6_start -> extract_0;
+        extract_0 -> shift_8;
+        shift_8 -> extract_1;
+        extract_1 -> shift_16;
+        shift_16 -> extract_2;
+        extract_2 -> shift_24;
+        shift_24 -> extract_3;
+        extract_3 -> shift_32;
+        shift_32 -> extract_4;
+        extract_4 -> shift_40;
+        shift_40 -> extract_5;
+        extract_5 -> shift_48;
+        shift_48 -> extract_6;
+        extract_6 -> shift_56;
+        shift_56 -> extract_7;
+    }
+    
+    // 将x6的细节连接到主流程
+    process_x6 -> x6_start [lhead=cluster_x6, style=invis];
+}

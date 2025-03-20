@@ -1,0 +1,41 @@
+
+digraph flowchart {
+    node [shape=ellipse, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start nodeImpliesMoreThanOnePossibleValue"];
+    loop [label="Loop", shape=diamond];
+    check_tag [label="Check tree.nodeTag(node)", shape=diamond];
+    return_false [label="Return false", shape=box];
+    return_true [label="Return true", shape=box];
+    update_node [label="Update node\n(e.g .try/.await/comptime)", shape=box];
+    handle_identifier [label="Handle .identifier case", shape=diamond];
+    check_primitive [label="Check primitive_instrs.get(ident_bytes)", shape=diamond];
+    primitive_true [label="Primitive is type?", shape=diamond];
+    token_slice [label="tokenSlice(nodeMainToken)", shape=box];
+
+    start -> loop;
+    loop -> check_tag;
+
+    // Direct return false cases
+    check_tag -> return_false [label=".root/.usingnamespace/..."];
+
+    // Return true cases
+    check_tag -> return_true [label=".ptr_type_aligned/.optional_type/..."];
+
+    // Update node and loop back
+    check_tag -> update_node [label=".try/.await/.comptime/..."];
+    update_node -> loop [label="node = new value"];
+
+    // Identifier handling
+    check_tag -> handle_identifier [label=".identifier"];
+    handle_identifier -> token_slice;
+    token_slice -> check_primitive;
+    check_primitive -> primitive_true [label="Found in primitive_instrs"];
+    check_primitive -> return_false [label="Not found"];
+    primitive_true -> return_true [label="anyerror_type/bool_type/..."];
+    primitive_true -> return_false [label="void_type/null_value/..."];
+
+    // Grouped expression cases
+    check_tag -> update_node [label=".grouped_expression/.unwrap_optional"];
+}

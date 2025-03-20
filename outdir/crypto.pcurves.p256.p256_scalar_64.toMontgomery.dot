@@ -1,0 +1,34 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始"];
+    decompose_input [label="分解输入参数为x1, x2, x3, x4"];
+    process_x4 [label="处理x4:\n- 乘法运算\n- 累加进位"];
+    montgomery_reduce1 [label="Montgomery约简:\n- 乘特定常数\n- 调整结果"];
+    process_x1 [label="处理x1:\n- 乘法运算\n- 累加进位"];
+    montgomery_reduce2 [label="Montgomery约简"];
+    process_x2 [label="处理x2:\n- 乘法运算\n- 累加进位"];
+    montgomery_reduce3 [label="Montgomery约简"];
+    process_x3 [label="处理x3:\n- 乘法运算\n- 累加进位"];
+    montgomery_reduce4 [label="Montgomery约简"];
+    final_sub [label="模减法调整:\n- 处理借位"];
+    cmov [label="条件移动选择结果"];
+    output [label="存储结果到out1"];
+    end [label="结束"];
+
+    start -> decompose_input;
+    decompose_input -> process_x4;
+    process_x4 -> montgomery_reduce1;
+    montgomery_reduce1 -> process_x1;
+    process_x1 -> montgomery_reduce2;
+    montgomery_reduce2 -> process_x2;
+    process_x2 -> montgomery_reduce3;
+    montgomery_reduce3 -> process_x3;
+    process_x3 -> montgomery_reduce4;
+    montgomery_reduce4 -> final_sub;
+    final_sub -> cmov;
+    cmov -> output;
+    output -> end;
+}

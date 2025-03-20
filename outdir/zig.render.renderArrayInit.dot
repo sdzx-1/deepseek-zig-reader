@@ -1,0 +1,53 @@
+
+digraph RenderArrayInitFlow {
+    node [shape=rectangle, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=8];
+
+    start [label="开始 renderArrayInit"];
+    check_type_expr [label="检查 array_init.ast.type_expr 是否存在"];
+    render_type_expr [label="渲染类型表达式 (T)"];
+    render_dot_lbrace [label="渲染 '.' 和左括号前一个 token"];
+    check_empty_elements [label="检查元素数量是否为0"];
+    handle_empty_array [label="缩进渲染左括号\n直接渲染右括号并返回"];
+    handle_single_element [label="处理单元素数组"];
+    check_special_single_element [label="检查是否单行字符串且无后续内容"];
+    render_single_line_single_element [label="单行渲染左括号、元素、右括号"];
+    check_trailing_comments [label="检查是否存在注释/多行字符串/尾随逗号"];
+    render_single_line [label="单行渲染所有元素（无尾随逗号）"];
+    prepare_multi_line [label="准备多行渲染\n计算列宽和分块"];
+    process_section [label="处理当前分块表达式\n计算列宽和换行"];
+    render_elements_columns [label="按列对齐渲染表达式"];
+    handle_comma_newline [label="处理逗号和换行"];
+    loop_condition [label="还有未处理的元素？"];
+    render_rbrace [label="渲染右括号并返回"];
+    end [label="结束"];
+
+    start -> check_type_expr;
+    check_type_expr -> render_type_expr [label="存在"];
+    check_type_expr -> render_dot_lbrace [label="不存在"];
+    render_type_expr -> check_empty_elements;
+    render_dot_lbrace -> check_empty_elements;
+
+    check_empty_elements -> handle_empty_array [label="是"];
+    check_empty_elements -> handle_single_element [label="元素数量=1"];
+    check_empty_elements -> check_trailing_comments [label="元素数量>1"];
+
+    handle_empty_array -> end;
+
+    handle_single_element -> check_special_single_element;
+    check_special_single_element -> render_single_line_single_element [label="满足条件"];
+    check_special_single_element -> check_trailing_comments [label="不满足"];
+
+    check_trailing_comments -> render_single_line [label="无注释/多行字符串/尾随逗号"];
+    check_trailing_comments -> prepare_multi_line [label="存在注释等"];
+
+    render_single_line -> render_rbrace;
+    prepare_multi_line -> process_section;
+    process_section -> render_elements_columns;
+    render_elements_columns -> handle_comma_newline;
+    handle_comma_newline -> loop_condition;
+    loop_condition -> process_section [label="是"];
+    loop_condition -> render_rbrace [label="否"];
+
+    render_rbrace -> end;
+}

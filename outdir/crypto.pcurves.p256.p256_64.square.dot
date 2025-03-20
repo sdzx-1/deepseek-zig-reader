@@ -1,0 +1,35 @@
+
+digraph square_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    init_vars [label="初始化变量\nx1, x2, x3, x4为arg1的元素"];
+    mul_initial [label="执行初始乘法\nmulxU64计算x4与各元素的乘积"];
+    add_carries1 [label="处理进位累加\naddcarryxU64累加中间结果"];
+    mod_reduction1 [label="第一次模约减\n乘以0xffffffff00000001等常数"];
+    process_x1 [label="处理x1的乘法与累加"];
+    mod_reduction2 [label="第二次模约减"];
+    process_x2 [label="处理x2的乘法与累加"];
+    mod_reduction3 [label="第三次模约减"];
+    process_x3 [label="处理x3的乘法与累加"];
+    mod_reduction4 [label="第四次模约减"];
+    final_sub [label="最终减法调整\nsubborrowxU64检查模范围"];
+    cmov_adj [label="条件移动调整结果\ncmovznzU64选择正确值"];
+    store_result [label="存储结果到out1"];
+    end [label="结束"];
+
+    start -> init_vars;
+    init_vars -> mul_initial;
+    mul_initial -> add_carries1;
+    add_carries1 -> mod_reduction1;
+    mod_reduction1 -> process_x1;
+    process_x1 -> mod_reduction2;
+    mod_reduction2 -> process_x2;
+    process_x2 -> mod_reduction3;
+    mod_reduction3 -> process_x3;
+    process_x3 -> mod_reduction4;
+    mod_reduction4 -> final_sub;
+    final_sub -> cmov_adj;
+    cmov_adj -> store_result;
+    store_result -> end;
+}

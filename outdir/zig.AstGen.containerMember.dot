@@ -1,0 +1,88 @@
+
+digraph flowchart {
+    node [shape=rectangle fontname="Courier" fontsize=12];
+    edge [fontname="Courier" fontsize=10];
+
+    start [label="开始containerMember"];
+    switch_node [label="switch(tree.nodeTag(member_node))" shape=diamond];
+    end [label="返回.decl"];
+
+    start -> switch_node;
+
+    // 容器字段分支
+    subgraph cluster_container_fields {
+        label="容器字段处理";
+        container_fields_case [label=".container_field*"];
+        container_fields_result [label="返回ContainerMemberResult{ .field = ... }"];
+        container_fields_case -> container_fields_result;
+    }
+
+    // 函数声明分支
+    subgraph cluster_fn_decl {
+        label="函数声明处理";
+        fn_decl_case [label=".fn_proto*/.fn_decl"];
+        process_fn_decl [label="astgen.fnDecl()"];
+        handle_fn_error [label="错误处理：回滚decl_index\n添加失败声明"];
+        fn_decl_case -> process_fn_decl;
+        process_fn_decl -> end [label="成功"];
+        process_fn_decl -> handle_fn_error [label="AnalysisFail"];
+        handle_fn_error -> end;
+    }
+
+    // 变量声明分支
+    subgraph cluster_var_decl {
+        label="变量声明处理";
+        var_decl_case [label=".global_var_decl*"];
+        process_var_decl [label="astgen.globalVarDecl()"];
+        handle_var_error [label="错误处理：回滚decl_index\n添加失败声明"];
+        var_decl_case -> process_var_decl;
+        process_var_decl -> end [label="成功"];
+        process_var_decl -> handle_var_error [label="AnalysisFail"];
+        handle_var_error -> end;
+    }
+
+    // comptime分支
+    subgraph cluster_comptime {
+        label="comptime处理";
+        comptime_case [label=".comptime"];
+        process_comptime [label="astgen.comptimeDecl()"];
+        handle_comptime_error [label="错误处理：回滚decl_index\n添加失败声明"];
+        comptime_case -> process_comptime;
+        process_comptime -> end [label="成功"];
+        process_comptime -> handle_comptime_error [label="AnalysisFail"];
+        handle_comptime_error -> end;
+    }
+
+    // usingnamespace分支
+    subgraph cluster_usingnamespace {
+        label="usingnamespace处理";
+        usingnamespace_case [label=".usingnamespace"];
+        process_usingnamespace [label="astgen.usingnamespaceDecl()"];
+        handle_usingnamespace_error [label="错误处理：回滚decl_index\n添加失败声明"];
+        usingnamespace_case -> process_usingnamespace;
+        process_usingnamespace -> end [label="成功"];
+        process_usingnamespace -> handle_usingnamespace_error [label="AnalysisFail"];
+        handle_usingnamespace_error -> end;
+    }
+
+    // test_decl分支
+    subgraph cluster_test_decl {
+        label="测试声明处理";
+        test_decl_case [label=".test_decl"];
+        process_test_decl [label="astgen.testDecl()"];
+        handle_test_error [label="错误处理：回滚decl_index\n添加失败声明"];
+        test_decl_case -> process_test_decl;
+        process_test_decl -> end [label="成功"];
+        process_test_decl -> handle_test_error [label="AnalysisFail"];
+        handle_test_error -> end;
+    }
+
+    // 连接主switch节点
+    switch_node -> container_fields_case [label="container_field*"];
+    switch_node -> fn_decl_case [label="fn_proto*/.fn_decl"];
+    switch_node -> var_decl_case [label="global_var_decl*"];
+    switch_node -> comptime_case [label=".comptime"];
+    switch_node -> usingnamespace_case [label=".usingnamespace"];
+    switch_node -> test_decl_case [label=".test_decl"];
+    container_fields_result -> end;
+}

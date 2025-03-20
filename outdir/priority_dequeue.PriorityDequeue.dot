@@ -1,0 +1,73 @@
+
+digraph PriorityDequeue {
+    node [shape=rectangle, style=rounded];
+
+    // 初始化与销毁
+    init [label="初始化\ninit()"];
+    deinit [label="释放内存\ndeinit()"];
+
+    // 添加元素
+    add [label="添加元素\nadd(elem)"];
+    addSlice [label="批量添加\naddSlice(items)"];
+    ensureUnusedCapacity [label="确保容量\nensureUnusedCapacity()"];
+    addUnchecked [label="无检查添加\naddUnchecked(elem)"];
+    getStartForSiftUp [label="确定调整起点\ngetStartForSiftUp()"];
+    siftUp [label="向上调整堆结构\nsiftUp()"];
+    doSiftUp [label="执行向上调整\ndoSiftUp()"];
+
+    // 移除元素
+    removeMin [label="移除最小值\nremoveMin()"];
+    removeMax [label="移除最大值\nremoveMax()"];
+    removeIndex [label="按索引移除\nremoveIndex()"];
+    siftDown [label="向下调整堆结构\nsiftDown()"];
+    doSiftDown [label="执行向下调整\ndoSiftDown()"];
+    swapIfParentIsBetter [label="与父节点交换\nswapIfParentIsBetter()"];
+    bestDescendent [label="寻找最佳后代\nbestDescendent()"];
+
+    // 查看元素
+    peekMin [label="查看最小值\npeekMin()"];
+    peekMax [label="查看最大值\npeekMax()"];
+
+    // 容量管理
+    ensureTotalCapacity [label="总容量调整\nensureTotalCapacity()"];
+    shrinkAndFree [label="缩减容量\nshrinkAndFree()"];
+
+    // 结构关系
+    init -> deinit [label="释放内存"];
+    
+    add -> ensureUnusedCapacity;
+    add -> addUnchecked;
+    addSlice -> ensureUnusedCapacity;
+    addSlice -> addUnchecked;
+    addUnchecked -> getStartForSiftUp;
+    getStartForSiftUp -> siftUp;
+    siftUp -> doSiftUp [label="根据层类型"];
+    
+    removeMin -> removeIndex;
+    removeMax -> removeIndex;
+    removeIndex -> siftDown;
+    siftDown -> doSiftDown [label="根据层类型"];
+    doSiftDown -> bestDescendent;
+    doSiftDown -> swapIfParentIsBetter [label="需要调整"];
+    
+    peekMax -> bestItemAtIndices;
+    
+    ensureTotalCapacity -> shrinkAndFree [label="容量缩减"];
+    ensureUnusedCapacity -> ensureTotalCapacity;
+
+    // 辅助节点分组
+    subgraph cluster_add {
+        label="添加操作";
+        add; addSlice; ensureUnusedCapacity; addUnchecked; getStartForSiftUp; siftUp; doSiftUp;
+    }
+    
+    subgraph cluster_remove {
+        label="移除操作";
+        removeMin; removeMax; removeIndex; siftDown; doSiftDown; swapIfParentIsBetter; bestDescendent;
+    }
+    
+    subgraph cluster_capacity {
+        label="容量管理";
+        ensureTotalCapacity; shrinkAndFree; ensureUnusedCapacity;
+    }
+}

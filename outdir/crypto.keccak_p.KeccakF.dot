@@ -1,0 +1,71 @@
+
+digraph KeccakF_Flowchart {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // 顶层函数和结构
+    KeccakF [label="KeccakF(comptime f: u11)"];
+    Init [label="init(bytes: [block_bytes]u8)"];
+    Permute [label="permute()"];
+    PermuteR [label="permuteR(rounds: u5)"];
+    Round [label="round(rc: T)"];
+    Theta [label="Theta Step"];
+    RhoPi [label="Rho + Pi Step"];
+    Chi [label="Chi Step"];
+    Iota [label="Iota Step"];
+    AddBytes [label="addBytes(bytes: []const u8)"];
+    ExtractBytes [label="extractBytes(out: []u8)"];
+    XORBytes [label="xorBytes(out: []u8, in: []const u8)"];
+    EndianSwap [label="endianSwap()"];
+
+    // 结构关系
+    KeccakF -> Init;
+    KeccakF -> Permute;
+    KeccakF -> PermuteR;
+    KeccakF -> AddBytes;
+    KeccakF -> ExtractBytes;
+    KeccakF -> XORBytes;
+    KeccakF -> EndianSwap;
+
+    // Permute流程
+    Permute -> PermuteR [label="调用 max_rounds"];
+    PermuteR -> Round [label="循环调用"];
+    Round -> Theta;
+    Round -> RhoPi;
+    Round -> Chi;
+    Round -> Iota;
+
+    // Theta步骤细节
+    Theta -> "计算 t 数组";
+    Theta -> "异或和循环移位";
+
+    // RhoPi步骤细节
+    RhoPi -> "循环移位和置换";
+    RhoPi -> "更新状态数组";
+
+    // Chi步骤细节
+    Chi -> "非线性变换";
+    Chi -> "异或操作";
+
+    // Iota步骤细节
+    Iota -> "异或轮常数 (RC)";
+
+    // 辅助方法
+    AddBytes -> "分块处理输入数据";
+    AddBytes -> "处理剩余字节";
+    ExtractBytes -> "分块输出数据";
+    ExtractBytes -> "处理剩余字节";
+    XORBytes -> "分块异或操作";
+    XORBytes -> "处理剩余字节";
+    EndianSwap -> "字节序转换";
+
+    // 初始化和断言
+    KeccakF -> "comptime assert(f有效性检查)";
+    Init -> "读取字节到状态数组";
+    Init -> "处理小端序";
+
+    // 数据依赖
+    "处理剩余字节" -> "填充零字节";
+    "分块处理输入数据" -> "mem.readInt";
+    "处理剩余字节" -> "@memcpy";
+}

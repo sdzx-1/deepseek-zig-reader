@@ -1,0 +1,80 @@
+
+digraph resolveTargetQuery {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始", shape=ellipse];
+    end [label="返回result", shape=ellipse];
+
+    // 基本参数初始化
+    init_params [label="初始化参数:\l- query_cpu_arch\l- query_os_tag\l- query_abi\l"];
+    os_default_version [label="设置OS默认版本范围"];
+    check_os_tag_null [label="query.os_tag == null?", shape=diamond];
+
+    // OS检测分支
+    detect_os [label="根据builtin.target.os.tag检测OS版本"];
+    switch_os [label="switch (builtin.target.os.tag)", shape=diamond];
+    
+    // 各OS处理子模块
+    linux_block [label="Linux处理:\l- 调用uname()\l- 解析内核版本\l"];
+    solaris_block [label="Solaris/Illumos处理:\l- 解析release版本\l"];
+    windows_block [label="Windows处理:\l- 检测运行时版本\l"];
+    macos_block [label="macOS处理:\l- 调用Darwin检测\l"];
+    bsd_block [label="FreeBSD/NetBSD/DragonFly处理:\l- 系统调用获取版本\l"];
+    openbsd_block [label="OpenBSD处理:\l- 系统调用并格式转换\l"];
+    other_os [label="其他OS:\l- 使用默认版本范围\l"];
+
+    // 版本范围更新
+    handle_os_version_min [label="处理OS最小版本限制"];
+    handle_os_version_max [label="处理OS最大版本限制"];
+    handle_glibc [label="设置Glibc版本"];
+    handle_android [label="设置Android API级别"];
+
+    // CPU处理
+    cpu_detection [label="检测CPU模型和特性"];
+    x86_special [label="x86特殊处理:\l- 设置16/32位模式\l"];
+    arm_special [label="ARM特殊处理:\l- 添加Thumb模式\l"];
+    update_features [label="更新CPU特性集"];
+
+    // ABI检测
+    detect_abi [label="检测ABI和动态链接器"];
+    post_abi_hacks [label="ABI后处理:\l- Hexagon修复\l- ARM VFP修复\l"];
+    adjust_os_version [label="根据ABI调整OS版本范围"];
+
+    // 连接节点
+    start -> init_params -> os_default_version -> check_os_tag_null;
+    
+    check_os_tag_null -> detect_os [label="是"];
+    check_os_tag_null -> handle_os_version_min [label="否"];
+    
+    detect_os -> switch_os;
+    switch_os -> linux_block [label=".linux"];
+    switch_os -> solaris_block [label=".solaris/.illumos"];
+    switch_os -> windows_block [label=".windows"];
+    switch_os -> macos_block [label=".macos"];
+    switch_os -> bsd_block [label=".freebsd/.netbsd/.dragonfly"];
+    switch_os -> openbsd_block [label=".openbsd"];
+    switch_os -> other_os [label="其他"];
+    
+    // 合并OS处理分支
+    linux_block -> handle_os_version_min;
+    solaris_block -> handle_os_version_min;
+    windows_block -> handle_os_version_min;
+    macos_block -> handle_os_version_min;
+    bsd_block -> handle_os_version_min;
+    openbsd_block -> handle_os_version_min;
+    other_os -> handle_os_version_min;
+
+    // 版本范围处理流程
+    handle_os_version_min -> handle_os_version_max -> handle_glibc -> handle_android -> cpu_detection;
+
+    // CPU处理流程
+    cpu_detection -> x86_special [label="x86架构"];
+    cpu_detection -> arm_special [label="ARM架构"];
+    x86_special -> update_features;
+    arm_special -> update_features;
+    cpu_detection -> update_features [label="其他架构"];
+    update_features -> detect_abi;
+
+    // 最终处理
+    detect_abi -> post_abi_hacks -> adjust_os_version -> end;
+}

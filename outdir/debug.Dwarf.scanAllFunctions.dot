@@ -1,0 +1,86 @@
+
+digraph G {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="开始 scanAllFunctions"];
+    init_fbr [label="初始化 FixedBufferReader"];
+    loop_units [label="循环处理每个编译单元 (while)"];
+    read_header [label="读取 UnitHeader"];
+    check_unit_length [label="unit_length == 0?" shape=diamond];
+    return_early [label="返回", shape=ellipse];
+    calc_next_offset [label="计算 next_offset"];
+    read_version [label="读取版本号 (version)"];
+    check_version [label="version <2 或 >5?" shape=diamond];
+    bad_version [label="返回 bad()", shape=ellipse];
+    handle_v5 [label="处理 version >=5 的 header"];
+    handle_legacy [label="处理 version <5 的 header"];
+    check_address_size [label="address_size 匹配?" shape=diamond];
+    get_abbrev_table [label="获取缩写表 (abbrev_table)"];
+    find_max_attrs [label="计算最大属性数和 ZIG_padding 缩写码"];
+    alloc_attrs_buf [label="分配属性缓冲区 (attrs_buf)"];
+    setup_compile_unit [label="初始化 compile_unit 结构"];
+    loop_dies [label="循环处理 DIE (while)"];
+    seek_non_padding [label="定位到非填充 DIE"];
+    check_next_unit [label="pos >= next_unit_pos?" shape=diamond];
+    parse_die [label="解析 DIE"];
+    handle_tag [label="根据 TAG 分支"];
+    compile_unit_tag [label="处理 DW.TAG.compile_unit"];
+    subprogram_tag [label="处理函数相关 TAG"];
+    handle_abstract_origin [label="递归解析 abstract_origin/specification"];
+    get_fn_name [label="获取函数名 (fn_name)"];
+    handle_pc_range [label="处理 low_pc/high_pc"];
+    handle_ranges [label="处理 AT.ranges"];
+    append_func [label="添加到 func_list"];
+    next_die [label="继续下一个 DIE"];
+    next_unit [label="移动到下一个编译单元"];
+    end [label="结束循环并返回", shape=ellipse];
+
+    start -> init_fbr;
+    init_fbr -> loop_units;
+    
+    loop_units -> read_header;
+    read_header -> check_unit_length;
+    check_unit_length -> return_early [label="是"];
+    check_unit_length -> calc_next_offset [label="否"];
+    calc_next_offset -> read_version;
+    read_version -> check_version;
+    check_version -> bad_version [label="是"];
+    check_version -> handle_v5 [label="version >=5"];
+    check_version -> handle_legacy [label="version <5"];
+    handle_v5 -> check_address_size;
+    handle_legacy -> check_address_size;
+    check_address_size -> bad_version [label="不匹配"];
+    check_address_size -> get_abbrev_table [label="匹配"];
+    get_abbrev_table -> find_max_attrs;
+    find_max_attrs -> alloc_attrs_buf;
+    alloc_attrs_buf -> setup_compile_unit;
+    setup_compile_unit -> loop_dies;
+    
+    loop_dies -> seek_non_padding;
+    seek_non_padding -> check_next_unit;
+    check_next_unit -> end [label="是"];
+    check_next_unit -> parse_die [label="否"];
+    parse_die -> handle_tag;
+    
+    handle_tag -> compile_unit_tag [label="DW.TAG.compile_unit"];
+    compile_unit_tag -> setup_compile_unit [label="更新属性"];
+    
+    handle_tag -> subprogram_tag [label="函数相关 TAG"];
+    subprogram_tag -> handle_abstract_origin;
+    handle_abstract_origin -> get_fn_name;
+    get_fn_name -> handle_pc_range;
+    handle_pc_range -> handle_ranges [label="失败时"];
+    handle_pc_range -> append_func [label="成功时"];
+    handle_ranges -> append_func;
+    append_func -> next_die;
+    
+    handle_tag -> next_die [label="其他 TAG"];
+    next_die -> loop_dies;
+    
+    loop_units -> next_unit [label="处理完当前单元"];
+    next_unit -> loop_units [label="继续循环"];
+    
+    end -> next_unit [style=invis];
+    next_unit -> end [label="所有单元处理完毕"];
+}

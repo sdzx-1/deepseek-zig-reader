@@ -1,0 +1,69 @@
+
+digraph SbrkAllocatorFlow {
+    node [shape=rectangle, style=rounded];
+
+    // alloc函数流程
+    start_alloc [label="alloc开始"];
+    check_len [label="计算actual_len和slot_size\n确定class"];
+    class_condition [label="class < size_class_count?", shape=diamond];
+    check_frees [label="检查frees[class]是否有空闲块"];
+    free_exists [label="从frees[class]取块\n更新链表"];
+    check_next_addr [label="检查next_addrs[class]是否页对齐"];
+    alloc_new_page [label="通过allocBigPages分配新页\n更新next_addrs"];
+    use_next_addr [label="直接使用next_addrs\n并递增指针"];
+    alloc_bigpages [label="计算需要的大页数量\n调用allocBigPages"];
+    return_addr [label="返回分配地址"];
+    end_alloc [label="alloc结束"];
+
+    start_alloc -> check_len;
+    check_len -> class_condition;
+    class_condition -> check_frees [label="是"];
+    check_frees -> free_exists [label="有"];
+    free_exists -> return_addr;
+    check_frees -> check_next_addr [label="无"];
+    check_next_addr -> alloc_new_page [label="对齐"];
+    alloc_new_page -> return_addr;
+    check_next_addr -> use_next_addr [label="未对齐"];
+    use_next_addr -> return_addr;
+    class_condition -> alloc_bigpages [label="否"];
+    alloc_bigpages -> return_addr;
+    return_addr -> end_alloc;
+
+    // allocBigPages子流程
+    start_allocBig [label="allocBigPages开始"];
+    check_big_frees [label="检查big_frees[class]"];
+    take_big_free [label="从big_frees取块\n更新链表"];
+    call_sbrk [label="调用sbrk分配内存"];
+    end_allocBig [label="返回地址"];
+
+    start_allocBig -> check_big_frees;
+    check_big_frees -> take_big_free [label="有空闲"];
+    take_big_free -> end_allocBig;
+    check_big_frees -> call_sbrk [label="无空闲"];
+    call_sbrk -> end_allocBig;
+
+    // free函数流程
+    start_free [label="free开始"];
+    calc_actual_len [label="计算actual_len和slot_size"];
+    free_class_cond [label="class < size_class_count?", shape=diamond];
+    add_to_frees [label="将地址加入frees链表"];
+    add_to_big_frees [label="将地址加入big_frees链表"];
+    end_free [label="free结束"];
+
+    start_free -> calc_actual_len;
+    calc_actual_len -> free_class_cond;
+    free_class_cond -> add_to_frees [label="是"];
+    free_class_cond -> add_to_big_frees [label="否"];
+    add_to_frees -> end_free;
+    add_to_big_frees -> end_free;
+
+    // 全局元素
+    lock [label="获取锁", shape=oval];
+    unlock [label="释放锁", shape=oval];
+
+    // 同步锁操作
+    start_alloc -> lock [style=invis];
+    end_alloc -> unlock [style=invis];
+    start_free -> lock [style=invis];
+    end_free -> unlock [style=invis];
+}

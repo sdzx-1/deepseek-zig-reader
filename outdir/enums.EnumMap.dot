@@ -1,0 +1,76 @@
+
+digraph EnumMap {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 主结构
+    subgraph cluster_EnumMap {
+        label="EnumMap";
+        
+        // 初始化方法
+        subgraph cluster_init {
+            label="init";
+            init_start [label="开始初始化"];
+            init_check_exhaustive [label="检查枚举是否穷尽?", shape=diamond];
+            init_exhaustive_loop [label="遍历每个索引\n使用 comptime 展开"];
+            init_non_exhaustive_loop [label="遍历枚举字段\n使用 comptime 展开"];
+            init_set_bit_value [label="设置对应bit位\n存储value值"];
+            init_end [label="返回初始化后的结构体"];
+            
+            init_start -> init_check_exhaustive;
+            init_check_exhaustive -> init_exhaustive_loop [label="是"];
+            init_check_exhaustive -> init_non_exhaustive_loop [label="否"];
+            init_exhaustive_loop -> init_set_bit_value;
+            init_non_exhaustive_loop -> init_set_bit_value;
+            init_set_bit_value -> init_end;
+        }
+
+        // put方法
+        subgraph cluster_put {
+            label="put";
+            put_start [label="开始添加键值"];
+            put_get_index [label="获取键的索引"];
+            put_set_bit [label="设置对应bit位"];
+            put_store_value [label="存储value值"];
+            put_end [label="完成添加"];
+            
+            put_start -> put_get_index -> put_set_bit -> put_store_value -> put_end;
+        }
+
+        // get方法
+        subgraph cluster_get {
+            label="get";
+            get_start [label="开始获取值"];
+            get_check_bit [label="检查bit位是否设置", shape=diamond];
+            get_return_value [label="返回对应值"];
+            get_return_null [label="返回null"];
+            
+            get_start -> get_check_bit;
+            get_check_bit -> get_return_value [label="已设置"];
+            get_check_bit -> get_return_null [label="未设置"];
+        }
+
+        // 迭代器
+        subgraph cluster_iterator {
+            label="iterator";
+            iter_start [label="创建迭代器"];
+            iter_next [label="获取下一个bit位", shape=diamond];
+            iter_return_entry [label="返回Entry结构"];
+            iter_end [label="结束迭代"];
+            
+            iter_start -> iter_next;
+            iter_next -> iter_return_entry [label="存在"];
+            iter_next -> iter_end [label="不存在"];
+        }
+
+        // 方法间关系
+        init_end -> put_start [style=invis];
+        put_end -> get_start [style=invis];
+        get_return_value -> iter_start [style=invis];
+    }
+
+    // 跨子图连接
+    init_end -> put_get_index [ltail=cluster_init, lhead=cluster_put, style=dotted];
+    put_end -> get_check_bit [ltail=cluster_put, lhead=cluster_get, style=dotted];
+    get_return_value -> iter_next [ltail=cluster_get, lhead=cluster_iterator, style=dotted];
+}

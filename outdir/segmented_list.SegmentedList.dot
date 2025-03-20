@@ -1,0 +1,69 @@
+
+digraph SegmentedList {
+    node [shape=rectangle, style=rounded];
+
+    // 主要结构和方法
+    SegmentedList [label="SegmentedList<T, prealloc_item_count>"];
+    deinit [label="deinit(allocator)"];
+    append [label="append(allocator, item)"];
+    appendSlice [label="appendSlice(allocator, items)"];
+    pop [label="pop()"];
+    addOne [label="addOne(allocator)"];
+    shrinkRetainingCapacity [label="shrinkRetainingCapacity(new_len)"];
+    clearRetainingCapacity [label="clearRetainingCapacity()"];
+    clearAndFree [label="clearAndFree(allocator)"];
+    setCapacity [label="setCapacity(allocator, new_capacity)"];
+    growCapacity [label="growCapacity(allocator, new_capacity)"];
+    shrinkCapacity [label="shrinkCapacity(allocator, new_capacity)"];
+    writeToSlice [label="writeToSlice(dest, start)"];
+    iterator [label="iterator(start_index)"];
+    constIterator [label="constIterator(start_index)"];
+    freeShelves [label="freeShelves(allocator, from_count, to_count)"];
+    shelfCount [label="shelfCount(box_count)"];
+    shelfSize [label="shelfSize(shelf_index)"];
+    shelfIndex [label="shelfIndex(list_index)"];
+    boxIndex [label="boxIndex(list_index, shelf_index)"];
+
+    // 结构体初始化关系
+    SegmentedList -> deinit;
+    SegmentedList -> append;
+    SegmentedList -> appendSlice;
+    SegmentedList -> pop;
+    SegmentedList -> addOne;
+    SegmentedList -> shrinkRetainingCapacity;
+    SegmentedList -> clearRetainingCapacity;
+    SegmentedList -> clearAndFree;
+    SegmentedList -> setCapacity;
+    SegmentedList -> writeToSlice;
+    SegmentedList -> iterator;
+    SegmentedList -> constIterator;
+
+    // 方法调用关系
+    deinit -> freeShelves [label="释放动态段"];
+    append -> addOne [label="添加单个元素"];
+    addOne -> growCapacity [label="检查容量"];
+    appendSlice -> append [label="循环添加"];
+    setCapacity -> growCapacity [label="扩容"];
+    setCapacity -> shrinkCapacity [label="缩容"];
+    growCapacity -> shelfCount [label="计算新段数量"];
+    growCapacity -> shelfSize [label="分配新段"];
+    shrinkCapacity -> freeShelves [label="释放多余段"];
+    writeToSlice -> shelfIndex [label="计算段索引"];
+    writeToSlice -> boxIndex [label="计算段内索引"];
+    iterator -> shelfIndex [label="初始化迭代器"];
+    iterator -> boxIndex [label="定位元素"];
+
+    // 工具函数
+    shelfCount -> shelfIndex [style=dashed];
+    shelfSize -> shelfIndex [style=dashed];
+    boxIndex -> shelfIndex [style=dashed];
+
+    // 条件分支示例（简化表示）
+    setCapacity -> {growCapacity, shrinkCapacity} [label="判断容量方向"];
+    writeToSlice -> {prealloc_segment, dynamic_segments} [label="分段拷贝"];
+
+    // 错误处理（简化表示）
+    growCapacity -> "allocator.alloc" [label="尝试分配"];
+    growCapacity -> "errdefer free" [label="失败回滚"];
+    shrinkCapacity -> "allocator.resize" [label="尝试调整内存"];
+}

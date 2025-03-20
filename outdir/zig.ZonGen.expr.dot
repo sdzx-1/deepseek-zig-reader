@@ -1,0 +1,78 @@
+
+digraph expr_flowchart {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle];
+    edge [fontname="Arial"];
+
+    start [label="Start expr(zg, node, dest_node)", shape=ellipse];
+    switch_node [label="Switch tree.nodeTag(node)", shape=diamond];
+    error_operators [label="Call zg.addErrorTok()\n(Operator not allowed)"];
+    error_types [label="Call zg.addErrorNode()\n(Types not allowed)"];
+    error_control_flow [label="Call zg.addErrorNode()\n(Control flow not allowed)"];
+    error_keyword [label="Call zg.addErrorNode()\n('comptime' not allowed)"];
+    error_asm [label="Call zg.addErrorNode()\n(Inline ASM not allowed)"];
+    error_builtin [label="Call zg.addErrorNode()\n(Builtin calls not allowed)"];
+    error_field_access [label="Call zg.addErrorNode()\n(Field access not allowed)"];
+    error_slice [label="Call zg.addErrorNode()\n(Slice not allowed)"];
+    error_pointers [label="Call zg.addErrorTok()\n(Pointers not allowed)"];
+    error_blocks [label="Handle block statements\n(Check if empty)"];
+    handle_grouped_expr [label="Report error\nRecursive call expr(child_node)"];
+    handle_negation [label="Handle negation\nCheck child node type"];
+    handle_number_literal [label="Call zg.numberLiteral()"];
+    handle_char_literal [label="Call zg.charLiteral()"];
+    handle_identifier [label="Call zg.identifier()"];
+    handle_enum_literal [label="Set enum literal node"];
+    handle_string_literal [label="Set string literal node"];
+    handle_array_init [label="Process array initialization\nRecursive calls on elements"];
+    handle_struct_init [label="Process struct initialization\nCheck field names"];
+    end [label="Return", shape=ellipse];
+
+    start -> switch_node;
+
+    switch_node -> error_operators [label="Operator types"];
+    switch_node -> error_types [label="Type declarations"];
+    switch_node -> error_control_flow [label="Control flow"];
+    switch_node -> error_keyword [label=".comptime"];
+    switch_node -> error_asm [label=".asm"];
+    switch_node -> error_builtin [label="Builtin calls"];
+    switch_node -> error_field_access [label=".field_access"];
+    switch_node -> error_slice [label="Slice operators"];
+    switch_node -> error_pointers [label="Deref/AddressOf"];
+    switch_node -> error_blocks [label="Block statements"];
+    switch_node -> handle_grouped_expr [label=".grouped_expression"];
+    switch_node -> handle_negation [label=".negation"];
+    switch_node -> handle_number_literal [label=".number_literal"];
+    switch_node -> handle_char_literal [label=".char_literal"];
+    switch_node -> handle_identifier [label=".identifier"];
+    switch_node -> handle_enum_literal [label=".enum_literal"];
+    switch_node -> handle_string_literal [label="String literals"];
+    switch_node -> handle_array_init [label="Array init dot"];
+    switch_node -> handle_struct_init [label="Struct init dot"];
+
+    error_operators -> end;
+    error_types -> end;
+    error_control_flow -> end;
+    error_keyword -> end;
+    error_asm -> end;
+    error_builtin -> end;
+    error_field_access -> end;
+    error_slice -> end;
+    error_pointers -> end;
+
+    error_blocks -> end [label="Non-empty blocks"];
+    error_blocks -> end [label="Empty blocks\n(add error note)"];
+
+    handle_grouped_expr -> end;
+
+    handle_negation -> handle_number_literal [label="Number literal"];
+    handle_negation -> end [label="Other cases"];
+
+    handle_number_literal -> end;
+    handle_char_literal -> end;
+    handle_identifier -> end;
+    handle_enum_literal -> end;
+    handle_string_literal -> end;
+
+    handle_array_init -> end [label="Process all elements"];
+    handle_struct_init -> end [label="Check duplicates\nProcess fields"];
+}

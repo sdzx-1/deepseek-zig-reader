@@ -1,0 +1,61 @@
+
+digraph parse_flow {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始解析证书"];
+    parse_cert [label="解析cert.buffer"];
+    parse_cert -> parse_tbs [label="解析tbs_certificate"];
+    parse_tbs -> parse_version [label="解析version_elem"];
+    parse_version -> check_version_tag [label="检查version标识符"];
+
+    check_version_tag [shape=diamond, label="version_elem标识符是否为0xA0?"];
+    check_version_tag -> parse_serial_number [label="是"];
+    check_version_tag -> use_version_elem [label="否"];
+
+    parse_serial_number [label="解析serial_number"];
+    use_version_elem [label="直接使用version_elem作为serial_number"];
+    parse_serial_number -> parse_tbs_signature;
+    use_version_elem -> parse_tbs_signature;
+
+    parse_tbs_signature [label="解析tbs_signature"];
+    parse_tbs_signature -> parse_issuer [label="解析issuer"];
+    parse_issuer -> parse_validity [label="解析validity"];
+    
+    parse_validity -> parse_not_before [label="解析not_before"];
+    parse_not_before -> parse_not_after [label="解析not_after"];
+    parse_not_after -> parse_subject [label="解析subject"];
+
+    parse_subject -> process_subject [label="处理subject层级"];
+    process_subject [shape=box3d, label="三层嵌套循环处理\nRDN/ATAV/ty-val结构"];
+    process_subject -> extract_common_name [label="提取common_name"];
+
+    parse_pub_key_info [label="解析pub_key_info"];
+    extract_common_name -> parse_pub_key_info;
+    parse_pub_key_info -> parse_pub_key_algo [label="解析算法"];
+    
+    parse_pub_key_algo [shape=diamond, label="处理公钥算法分支"];
+    parse_pub_key_algo -> parse_ec_params [label="X9_62_id_ecPublicKey"];
+    parse_ec_params [label="解析EC参数\n获取named_curve"];
+    parse_ec_params -> parse_pub_key [label="解析公钥数据"];
+    
+    parse_sig_algo [label="解析签名算法"];
+    parse_pub_key -> parse_sig_algo;
+    parse_sig_algo -> parse_signature [label="解析签名值"];
+
+    check_extensions [shape=diamond, label="version是否为v1?"];
+    parse_signature -> check_extensions;
+    check_extensions -> skip_extensions [label="是"];
+    check_extensions -> process_extensions [label="否"];
+    
+    process_extensions [shape=box3d, label="遍历扩展\n匹配subject_alt_name"];
+    process_extensions -> collect_results;
+
+    skip_extensions [label="跳过扩展处理"];
+    skip_extensions -> collect_results;
+
+    collect_results [label="组装Parsed结构体"];
+    collect_results -> end [label="返回结果"];
+
+    start -> parse_cert;
+}

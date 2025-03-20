@@ -1,0 +1,56 @@
+
+digraph Blake2bFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 Blake2b 初始化", shape=ellipse];
+    init_params [label="设置参数: out_bits, block_length, digest_length 等"];
+    init_iv [label="初始化向量 iv 设置"];
+    check_key [label="检查选项中的密钥、盐值、上下文"];
+    modify_iv [label="根据盐值和上下文修改 iv"];
+    handle_key [label="处理密钥，填充缓冲区并更新"];
+    init_complete [label="初始化完成，返回状态结构体"];
+
+    start -> init_params -> init_iv -> check_key;
+    check_key -> modify_iv [label="存在盐值/上下文"];
+    check_key -> handle_key [label="存在密钥"];
+    modify_iv -> handle_key;
+    handle_key -> init_complete;
+
+    update_start [label="更新数据 (update)", shape=ellipse];
+    check_buffer [label="检查缓冲区是否有部分数据"];
+    fill_buffer [label="填充缓冲区至完整块"];
+    hash_full [label="处理完整块，调用 round 函数"];
+    process_blocks [label="分块处理所有完整数据块"];
+    store_remainder [label="存储剩余数据到缓冲区"];
+    update_end [label="更新完成"];
+
+    update_start -> check_buffer;
+    check_buffer -> fill_buffer [label="缓冲区+新数据 > 块大小"];
+    fill_buffer -> hash_full -> process_blocks;
+    check_buffer -> process_blocks [label="直接处理完整块"];
+    process_blocks -> store_remainder -> update_end;
+
+    final_start [label="最终处理 (final)", shape=ellipse];
+    pad_buffer [label="填充缓冲区至完整块并用零填充"];
+    last_round [label="调用 round 函数，设置 last 标志"];
+    convert_endian [label="转换 h 数组为小端序"];
+    output_digest [label="输出摘要结果"];
+    final_end [label="结束", shape=ellipse];
+
+    final_start -> pad_buffer -> last_round -> convert_endian -> output_digest -> final_end;
+
+    round_process [label="round 函数处理"];
+    prepare_m_v [label="准备消息块 m 和状态数组 v"];
+    apply_sigma [label="应用 sigma 排列进行混淆"];
+    update_h [label="更新状态 h"];
+    round_end [label="完成一轮处理"];
+
+    hash_full -> round_process;
+    last_round -> round_process;
+    round_process -> prepare_m_v -> apply_sigma -> update_h -> round_end;
+
+    // 连接主流程
+    init_complete -> update_start [label="调用 update"];
+    update_end -> final_start [label="调用 final"];
+}

@@ -1,0 +1,47 @@
+
+digraph MemoryPoolExtra {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // Main Functions
+    init [label="init(allocator)"];
+    initPreheated [label="initPreheated(allocator, initial_size)"];
+    preheat [label="preheat(size)"];
+    create [label="create()"];
+    destroy [label="destroy(ptr)"];
+    reset [label="reset(mode)"];
+    deinit [label="deinit()"];
+    allocNew [label="allocNew()"];
+
+    // Subroutines and Relationships
+    init -> initPreheated [label="calls"];
+    initPreheated -> preheat [label="calls (errdefer)"];
+    initPreheated -> deinit [label="on error"];
+
+    preheat -> allocNew [label="allocates memory"];
+    preheat -> free_list [label="updates"];
+
+    create -> free_list [label="checks if empty"];
+    create -> allocNew [label="if growable=true"];
+    create -> error_oom [label="else returns OutOfMemory"];
+    create -> free_list [label="removes node"];
+
+    destroy -> free_list [label="adds node back"];
+    destroy -> ptr_undefined [label="resets item"];
+
+    reset -> arena_reset [label="calls ArenaAllocator.reset()"];
+    reset -> free_list [label="resets to null"];
+
+    deinit -> arena_deinit [label="releases memory"];
+    deinit -> pool_undefined [label="sets pool to undefined"];
+
+    // Data Structures
+    free_list [shape=ellipse, label="free_list"];
+    arena [shape=ellipse, label="arena"];
+
+    // Invisible edges for alignment
+    {rank=same; init; initPreheated;}
+    {rank=same; create; destroy;}
+    {rank=same; preheat; reset;}
+    {rank=same; free_list; arena;}
+}

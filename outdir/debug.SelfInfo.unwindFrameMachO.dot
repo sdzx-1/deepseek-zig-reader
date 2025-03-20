@@ -1,0 +1,72 @@
+
+digraph unwindFrameMachO {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.5];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial", arrowsize=0.8];
+
+    start [label="开始 unwindFrameMachO", shape=ellipse, fillcolor="#b3e2cd"];
+    parse_header [label="解析头部信息"];
+    check_indices [label="检查indices长度\n若为0返回MissingUnwindInfo"];
+    binary_search_first_level [label="一级索引二分查找\n确定second_level_index"];
+    check_second_level_offset [label="检查secondLevelPagesSectionOffset\n若为0返回MissingUnwindInfo"];
+    get_common_encodings [label="获取公共编码表"];
+    check_second_level_kind [label="检查二级页面类型\n(kind.*)"];
+
+    handle_regular [label="处理REGULAR模式\n解析条目并二分查找"];
+    handle_compressed [label="处理COMPRESSED模式\n解析条目并处理编码索引"];
+    invalid_kind [label="返回InvalidUnwindInfo", shape=diamond];
+
+    check_raw_encoding [label="检查raw_encoding\n若为0返回NoUnwindInfo"];
+    setup_reg_context [label="设置寄存器上下文"];
+
+    arch_decision [label="根据CPU架构选择分支", shape=diamond];
+    x86_64_modes [label="x86_64模式处理\n(RBP_FRAME/STACK_IMMD/STACK_IND/DWARF)"];
+    aarch64_modes [label="aarch64模式处理\n(FRAMELESS/DWARF/FRAME)"];
+    unimplemented_arch [label="返回UnimplementedArch", shape=diamond];
+
+    update_context [label="更新context.pc\n返回new_ip"];
+    end [label="结束", shape=ellipse, fillcolor="#b3e2cd"];
+
+    subgraph cluster_error_handling {
+        label="错误处理";
+        error_missing [label="MissingUnwindInfo"];
+        error_invalid [label="InvalidUnwindInfo"];
+        error_unimplemented [label="UnimplementedUnwindEncoding"];
+        error_missing_eh [label="MissingEhFrame"];
+        error_no_unwind [label="NoUnwindInfo"];
+    }
+
+    start -> parse_header;
+    parse_header -> check_indices;
+    check_indices -> binary_search_first_level [label="indices.len > 0"];
+    check_indices -> error_missing [label="indices.len == 0"];
+
+    binary_search_first_level -> check_second_level_offset;
+    check_second_level_offset -> get_common_encodings [label="有效偏移"];
+    check_second_level_offset -> error_missing [label="无效偏移"];
+
+    get_common_encodings -> check_second_level_kind;
+    check_second_level_kind -> handle_regular [label="REGULAR"];
+    check_second_level_kind -> handle_compressed [label="COMPRESSED"];
+    check_second_level_kind -> invalid_kind [label="其他"];
+    invalid_kind -> error_invalid;
+
+    handle_regular -> check_raw_encoding;
+    handle_compressed -> check_raw_encoding;
+
+    check_raw_encoding -> setup_reg_context [label="raw_encoding != 0"];
+    check_raw_encoding -> error_no_unwind [label="raw_encoding == 0"];
+
+    setup_reg_context -> arch_decision;
+    arch_decision -> x86_64_modes [label="x86_64"];
+    arch_decision -> aarch64_modes [label="aarch64"];
+    arch_decision -> unimplemented_arch [label="其他架构"];
+
+    x86_64_modes -> update_context [label="成功处理"];
+    aarch64_modes -> update_context [label="成功处理"];
+    x86_64_modes -> error_unimplemented [label="OLD模式"];
+    x86_64_modes -> error_missing_eh [label="DWARF无eh_frame"];
+    aarch64_modes -> error_missing_eh [label="DWARF无eh_frame"];
+
+    update_context -> end;
+}

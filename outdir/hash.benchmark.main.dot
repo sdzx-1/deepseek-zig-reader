@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    
+    start [label="main 函数入口"];
+    init_stdout [label="初始化 stdout 和参数解析"];
+    parse_args [label="解析命令行参数循环"];
+    handle_mode [label="处理 --mode\n打印模式并返回"];
+    handle_seed [label="处理 --seed\n设置随机种子"];
+    handle_filter [label="处理 --filter\n设置过滤条件"];
+    handle_count [label="处理 --count\n设置数据量"];
+    handle_key_size [label="处理 --key-size\n设置密钥大小"];
+    handle_flags [label="处理标志参数\n(--iterative-only等)"];
+    validate_args [label="参数验证\n检查冲突选项"];
+    init_allocator [label="初始化 GPA 分配器"];
+    loop_hashes [label="遍历所有哈希算法"];
+    check_filter [label="检查哈希名称\n是否符合过滤条件"];
+    test_iterative [label="测试迭代API\n计算吞吐量并输出"];
+    test_small_keys [label="测试小密钥模式\n分数组/指针两种实现"];
+    test_arrays [label="测试数组模式\n遍历所有预定义尺寸"];
+    exit [label="结束"];
+
+    start -> init_stdout;
+    init_stdout -> parse_args;
+
+    parse_args -> handle_mode [label="参数是 --mode"];
+    parse_args -> handle_seed [label="参数是 --seed"];
+    parse_args -> handle_filter [label="参数是 --filter"];
+    parse_args -> handle_count [label="参数是 --count"];
+    parse_args -> handle_key_size [label="参数是 --key-size"];
+    parse_args -> handle_flags [label="标志参数"];
+    parse_args -> exit [label="参数解析完成"];
+
+    handle_mode -> exit;
+    handle_seed -> parse_args;
+    handle_filter -> parse_args;
+    handle_count -> parse_args;
+    handle_key_size -> parse_args;
+    handle_flags -> parse_args;
+
+    parse_args -> validate_args [label="所有参数处理完毕"];
+    validate_args -> init_allocator [label="参数合法"];
+    validate_args -> exit [label="参数冲突直接退出"];
+
+    init_allocator -> loop_hashes;
+    
+    loop_hashes -> check_filter [label="对每个哈希算法"];
+    check_filter -> test_iterative [label="通过过滤且支持迭代API"];
+    check_filter -> test_small_keys [label="通过过滤且非迭代模式"];
+    check_filter -> loop_hashes [label="跳过不符合的哈希"];
+    
+    test_iterative -> test_arrays [label="启用数组测试"];
+    test_small_keys -> test_arrays [label="启用数组测试"];
+    test_arrays -> loop_hashes;
+    
+    loop_hashes -> exit [label="所有哈希处理完毕"];
+}

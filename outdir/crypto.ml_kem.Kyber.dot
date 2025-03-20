@@ -1,0 +1,50 @@
+
+digraph KyberFlow {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // Key Generation
+    generateKeyPair [label="生成密钥对 (KeyPair.generate)"];
+    generateDeterministic [label="确定性生成密钥对 (generateDeterministic)"];
+    innerKeyFromSeed [label="内部密钥生成 (innerKeyFromSeed)"];
+    seedExpansion [label="种子扩展 (SHA3-512)"];
+    sampleSecret [label="生成私钥向量 s (V.noise)"];
+    computeTh [label="计算公钥向量 t (A s + e)"];
+
+    // Encapsulation
+    encaps [label="公钥封装 (PublicKey.encaps)"];
+    generateM [label="生成 m (随机或哈希种子)"];
+    generateKR [label="生成 (K', r) = G(m ‖ H(pk))"];
+    innerEncrypt [label="加密生成密文 ct (InnerPk.encrypt)"];
+    deriveSharedSecret [label="生成共享密钥 (K' 或 KDF(K' ‖ H(ct)))"];
+
+    // Decapsulation
+    decaps [label="私钥解封装 (SecretKey.decaps)"];
+    decryptM [label="解密得到 m' (InnerSk.decrypt)"];
+    regenerateKR2 [label="重新生成 (K'', r') = G(m' ‖ H(pk))"];
+    compareCT [label="比较 ct 和 ct'"];
+    replaceK [label="条件替换 K'' 为 z"];
+    finalSharedSecret [label="生成最终共享密钥"];
+
+    // 结构关系
+    generateKeyPair -> generateDeterministic -> innerKeyFromSeed;
+    innerKeyFromSeed -> seedExpansion;
+    seedExpansion -> sampleSecret;
+    sampleSecret -> computeTh;
+
+    encaps -> generateM;
+    generateM -> generateKR;
+    generateKR -> innerEncrypt;
+    innerEncrypt -> deriveSharedSecret [label="ML-KEM/标准模式分支"];
+
+    decaps -> decryptM;
+    decryptM -> regenerateKR2;
+    regenerateKR2 -> compareCT;
+    compareCT -> replaceK [label="ct ≠ ct'"];
+    replaceK -> finalSharedSecret;
+
+    // 跨模块连接
+    innerKeyFromSeed -> computeTh [label="生成公钥 t"];
+    computeTh -> encaps [label="公钥参与加密"];
+    sampleSecret -> decaps [label="私钥参与解密"];
+}

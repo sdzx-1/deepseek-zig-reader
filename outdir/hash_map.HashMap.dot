@@ -1,0 +1,76 @@
+
+digraph HashMap {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 初始化
+    init [label="初始化\ninit()"];
+    initContext [label="初始化上下文\ninitContext()"];
+    
+    // 内存管理
+    deinit [label="释放资源\ndeinit()"];
+    clearRetainingCapacity [label="清空保留容量\nclearRetainingCapacity()"];
+    clearAndFree [label="清空并释放\nclearAndFree()"];
+    
+    // 容量管理
+    ensureTotalCapacity [label="确保总容量\nensureTotalCapacity()"];
+    ensureUnusedCapacity [label="确保未用容量\nensureUnusedCapacity()"];
+    
+    // 数据操作
+    put [label="插入数据\nput()"];
+    putNoClobber [label="插入不覆盖\nputNoClobber()"];
+    putAssumeCapacity [label="断言容量插入\nputAssumeCapacity()"];
+    fetchPut [label="插入并返回旧值\nfetchPut()"];
+    
+    // 查询操作
+    get [label="查询值\nget()"];
+    getKey [label="查询键\ngetKey()"];
+    getEntry [label="查询条目\ngetEntry()"];
+    contains [label="检查存在\ncontains()"];
+    
+    // 删除操作
+    remove [label="删除\nremove()"];
+    fetchRemove [label="删除并返回值\nfetchRemove()"];
+    removeByPtr [label="通过指针删除\nremoveByPtr()"];
+    
+    // 克隆与移动
+    clone [label="克隆\nclone()"];
+    move [label="移动\nmove()"];
+    
+    // 迭代器
+    iterator [label="条目迭代器\niterator()"];
+    keyIterator [label="键迭代器\nkeyIterator()"];
+    valueIterator [label="值迭代器\nvalueIterator()"];
+    
+    // 指针控制
+    lockPointers [label="锁定指针\nlockPointers()"];
+    unlockPointers [label="解锁指针\nunlockPointers()"];
+    
+    // 哈希优化
+    rehash [label="重新哈希\nrehash()"];
+
+    // 流程关系
+    init -> deinit [label="释放时调用"];
+    initContext -> deinit;
+    
+    deinit -> clearRetainingCapacity [style=dotted, label="内部调用"];
+    deinit -> clearAndFree [style=dotted];
+    
+    put -> ensureTotalCapacity [label="容量不足时"];
+    put -> ensureUnusedCapacity;
+    put -> putAssumeCapacity [label="断言容量"];
+    
+    fetchPut -> put [style=dashed, label="依赖"];
+    fetchRemove -> remove [style=dashed];
+    
+    get -> contains [label="存在性检查"];
+    getKey -> getEntry;
+    
+    clone -> cloneWithAllocator [label="扩展"];
+    clone -> cloneWithContext [label="扩展"];
+    
+    lockPointers -> unlockPointers [label="配对使用"];
+    
+    rehash -> put [label="优化后插入"];
+    rehash -> get [label="优化后查询"];
+}

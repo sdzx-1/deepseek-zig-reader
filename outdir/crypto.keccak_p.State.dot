@@ -1,0 +1,19 @@
+
+digraph {
+    node [shape=ellipse];
+    uninitialized [label="uninitialized"];
+    initialized [label="initialized"];
+    absorb [label="absorb"];
+    updated [label="updated"];
+    squeeze [label="squeeze"];
+
+    uninitialized -> initialized [label="init()"];
+    initialized -> absorb [label="absorb()"];
+    initialized -> updated [label="permute()"];
+    absorb -> absorb [label="absorb() (partial)"];
+    absorb -> updated [label="fillBlock()/pad()"];
+    updated -> absorb [label="absorb()"];
+    updated -> updated [label="permute()"];
+    updated -> squeeze [label="squeeze()"];
+    squeeze -> squeeze [label="squeeze() (continue)"];
+}

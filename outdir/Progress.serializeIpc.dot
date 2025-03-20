@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    init [label="初始化变量\n复制旧元数据\n重置ipc_metadata_len为0"];
+    main_loop [label="主循环遍历parents和storage"];
+    check_parent [label="检查main_parent是否为.unused"];
+    get_fd [label="获取main_storage的IPC文件描述符(fd)"];
+    read_data [label="从fd读取数据到pipe_buf"];
+    handle_error [label="处理读取错误\n重置计数器并继续主循环"];
+    process_trash [label="处理剩余垃圾数据\n调整缓冲区"];
+    check_input_empty [label="检查input是否为空"];
+    use_saved_data [label="使用保存的IPC数据\n更新serialized_len"];
+    parse_subtree [label="解析subtree_len\n计算expected_bytes"];
+    check_bytes [label="input长度是否足够?"];
+    adjust_input [label="跳过已处理的数据\n继续解析"];
+    extract_data [label="提取storage和parents数据"];
+    update_metadata [label="更新ipc_metadata\n记录fd和节点信息"];
+    copy_root [label="复制根节点到main_storage\n处理字节序"];
+    copy_nodes [label="复制子节点到serialized_buffer\n调整父指针"];
+    save_copy [label="保存parents/storage/IPC元数据到副本"];
+    end [label="返回serialized_len"];
+
+    start -> init;
+    init -> main_loop;
+    main_loop -> check_parent;
+    check_parent -> get_fd [label="否"];
+    check_parent -> main_loop [label="是（continue）"];
+    get_fd -> read_data;
+    read_data -> handle_error [label="出现错误"];
+    read_data -> process_trash [label="成功读取"];
+    process_trash -> check_input_empty;
+    check_input_empty -> use_saved_data [label="是"];
+    check_input_empty -> parse_subtree [label="否"];
+    parse_subtree -> check_bytes;
+    check_bytes -> adjust_input [label="input长度不足\n记录remaining_read_trash"];
+    check_bytes -> extract_data [label="长度足够"];
+    adjust_input -> use_saved_data;
+    extract_data -> update_metadata;
+    update_metadata -> copy_root;
+    copy_root -> copy_nodes;
+    copy_nodes -> main_loop [label="继续循环"];
+    main_loop -> save_copy [label="循环结束"];
+    save_copy -> end;
+    handle_error -> main_loop;
+    use_saved_data -> main_loop;
+}

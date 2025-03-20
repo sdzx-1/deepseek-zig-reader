@@ -1,0 +1,56 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    check_label [label="检查标签令牌是否存在\n若存在则检查重复定义"];
+    handle_rl [label="处理结果位置需求\n决定是否需要结果值"];
+    check_inline [label="检查内联关键字\n若在comptime作用域中报错"];
+    alloc_arrays [label="分配indexables和lens数组"];
+    init_index_ptr [label="创建index_ptr\n初始化为0"];
+    process_inputs [label="遍历输入节点\n生成indexable_ref和len_refs"];
+    check_any_len [label="检查是否有长度检查\n若无则报错"];
+    gen_for_len [label="生成for_len多操作指令"];
+    create_loop [label="创建loop_block和loop_scope"];
+    cond_scope [label="条件作用域cond_scope\n生成比较指令和条件分支"];
+    then_scope [label="处理then分支\n生成捕获变量\n执行循环体"];
+    else_scope [label="处理else分支（如果存在）"];
+    set_payload [label="设置条件分支payload"];
+    increment_index [label="递增index_ptr\n添加重复指令"];
+    handle_result [label="处理返回值\n确保结果被使用"];
+    end [label="结束"];
+
+    // 错误节点
+    error_redundant_inline [label="错误：冗余inline关键字", shape="ellipse", color="red"];
+    error_no_len [label="错误：无长度检查", shape="ellipse", color="red"];
+    error_discard_ref [label="错误：指针修饰符无效", shape="ellipse", color="red"];
+    error_unused_label [label="警告：未使用标签", shape="note", color="orange"];
+
+    // 主流程
+    start -> check_label;
+    check_label -> handle_rl;
+    handle_rl -> check_inline;
+    check_inline -> error_redundant_inline [label="发现冗余inline"];
+    check_inline -> alloc_arrays [label="正常"];
+    alloc_arrays -> init_index_ptr;
+    init_index_ptr -> process_inputs;
+    process_inputs -> error_discard_ref [label="发现无效指针修饰符"];
+    process_inputs -> check_any_len [label="处理完所有输入"];
+    check_any_len -> error_no_len [label="无长度检查"];
+    check_any_len -> gen_for_len [label="存在长度检查"];
+    gen_for_len -> create_loop;
+    create_loop -> cond_scope;
+    cond_scope -> then_scope [label="条件成立"];
+    cond_scope -> else_scope [label="条件不成立"];
+    then_scope -> set_payload;
+    else_scope -> set_payload;
+    set_payload -> increment_index;
+    increment_index -> create_loop [label="重复循环"];
+    create_loop -> handle_result [label="循环结束"];
+    handle_result -> end;
+
+    // 副作用连接
+    check_label -> error_unused_label [label="标签未使用时"];
+    process_inputs -> process_inputs [label="遍历下一个输入"];
+}

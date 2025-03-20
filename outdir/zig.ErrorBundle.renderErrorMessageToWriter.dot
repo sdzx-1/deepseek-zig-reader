@@ -1,0 +1,92 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="renderErrorMessageToWriter 开始"];
+    get_err_msg [label="获取错误消息 err_msg = eb.getErrorMessage()"];
+    check_src_loc [label="检查 err_msg.src_loc 是否是 .none?", shape=diamond];
+
+    // 分支: src_loc != .none
+    subgraph cluster_src_loc_exists {
+        label="处理存在源码位置的情况";
+        style=filled;
+        color=lightgrey;
+
+        write_prefix [label="写入前缀（文件路径、行号、列号）"];
+        set_color_bold [label="设置终端颜色为粗体"];
+        print_location [label="打印文件路径、行号、列号"];
+        set_color_kind [label="设置错误类型颜色"];
+        write_kind [label="写入错误类型（如 error:）"];
+        calc_prefix_len [label="计算前缀长度 prefix_len"];
+        check_msg_count [label="err_msg.count == 1?", shape=diamond];
+        single_msg [label="调用 writeMsg()\n并换行"];
+        multi_msg [label="调用 writeMsg()\n并追加 (N times)"];
+        check_source_line [label="需要显示源码行?", shape=diamond];
+        render_source_line [label="渲染源码行和错误标记"];
+        process_notes [label="递归处理所有 note 消息"];
+        check_ref_trace [label="存在参考跟踪?", shape=diamond];
+        render_ref_trace [label="渲染参考跟踪信息"];
+    }
+
+    // 分支: src_loc == .none
+    subgraph cluster_no_src_loc {
+        label="处理无源码位置的情况";
+        style=filled;
+        color=lightgrey;
+
+        write_kind_only [label="直接写入错误类型和消息"];
+        check_msg_count_2 [label="err_msg.count == 1?", shape=diamond];
+        single_msg_2 [label="直接输出消息并换行"];
+        multi_msg_2 [label="输出消息并追加 (N times)"];
+        process_notes_indent [label="递归处理 note（增加缩进）"];
+    }
+
+    // 连接主流程
+    start -> get_err_msg;
+    get_err_msg -> check_src_loc;
+
+    // 分支 1: src_loc != .none
+    check_src_loc -> write_prefix [label="是"];
+    write_prefix -> set_color_bold;
+    set_color_bold -> print_location;
+    print_location -> set_color_kind;
+    set_color_kind -> write_kind;
+    write_kind -> calc_prefix_len;
+    calc_prefix_len -> check_msg_count;
+
+    check_msg_count -> single_msg [label="是"];
+    check_msg_count -> multi_msg [label="否"];
+    single_msg -> check_source_line;
+    multi_msg -> check_source_line;
+
+    check_source_line -> render_source_line [label="是"];
+    render_source_line -> process_notes;
+    check_source_line -> process_notes [label="否"];
+
+    process_notes -> check_ref_trace;
+    check_ref_trace -> render_ref_trace [label="是"];
+    render_ref_trace -> end_group1 [label="结束分支"];
+    check_ref_trace -> end_group1 [label="否"];
+
+    // 分支 2: src_loc == .none
+    check_src_loc -> write_kind_only [label="否"];
+    write_kind_only -> check_msg_count_2;
+
+    check_msg_count_2 -> single_msg_2 [label="是"];
+    check_msg_count_2 -> multi_msg_2 [label="否"];
+    single_msg_2 -> process_notes_indent;
+    multi_msg_2 -> process_notes_indent;
+
+    // 公共结束节点
+    end_group1 [label="", shape=point, width=0];
+    process_notes_indent -> end_group2 [label="结束分支"];
+    end_group2 [label="", shape=point, width=0];
+    end_group1 -> final_reset [label="合并分支"];
+    end_group2 -> final_reset;
+
+    final_reset [label="重置终端颜色"];
+    final_reset -> end;
+
+    end [label="函数结束"];
+}

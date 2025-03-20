@@ -1,0 +1,60 @@
+
+digraph windowsCreateProcessPathExt {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始", shape=ellipse];
+    check_app_empty [label="检查app_name_len是否为0"];
+    open_dir [label="打开目录(dir)"];
+    build_wildcard [label="构建通配符路径(app_name*)"];
+    query_files [label="NtQueryDirectoryFile查询文件"];
+    process_files [label="处理查询结果\n跳过目录\n记录扩展名"];
+    check_unappended [label="存在未扩展名的文件?"];
+    try_unappended [label="尝试执行未扩展名文件"];
+    check_unappended_success [label="执行成功?", shape=diamond];
+    check_pathext [label="存在支持的PATHEXT扩展?", shape=diamond];
+    iterate_pathext [label="遍历PATHEXT扩展"];
+    try_pathext [label="尝试执行带扩展名的文件"];
+    check_pathext_success [label="执行成功?", shape=diamond];
+    return_error [label="返回错误(unappended_err)"];
+    end [label="结束", shape=ellipse];
+
+    start -> check_app_empty;
+    check_app_empty -> open_dir [label="非空"];
+    check_app_empty -> return_error [label="空"];
+
+    open_dir -> build_wildcard;
+    build_wildcard -> query_files;
+
+    query_files -> process_files [label="有结果"];
+    query_files -> return_error [label="NO_SUCH_FILE"];
+    query_files -> check_unappended [label="NO_MORE_FILES"];
+
+    process_files -> query_files [label="继续查询"];
+    process_files -> check_unappended [label="处理完毕"];
+
+    check_unappended -> try_unappended [label="是"];
+    check_unappended -> check_pathext [label="否"];
+
+    try_unappended -> check_unappended_success;
+    check_unappended_success -> end [label="是"];
+    check_unappended_success -> check_pathext [label="否"];
+
+    check_pathext -> iterate_pathext [label="是"];
+    check_pathext -> return_error [label="否"];
+
+    iterate_pathext -> try_pathext;
+    try_pathext -> check_pathext_success;
+    check_pathext_success -> end [label="是"];
+    check_pathext_success -> iterate_pathext [label="否\n继续下一个扩展"];
+
+    iterate_pathext -> return_error [label="所有扩展尝试失败"];
+    return_error -> end;
+
+    // 异常处理分支
+    edge [color=red];
+    open_dir -> return_error [label="打开失败"];
+    query_files -> return_error [label="其他错误状态"];
+    try_unappended -> return_error [label="特定错误"];
+    try_pathext -> return_error [label="非跳过错误"];
+}

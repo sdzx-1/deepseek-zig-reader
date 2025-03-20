@@ -1,0 +1,49 @@
+
+digraph rvalueInner {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.3];
+    node [fontname="Arial", shape=box, style="rounded,filled", fillcolor="#e8e8e8"];
+    edge [fontname="Arial"];
+
+    start [label="Start rvalueInner", shape=ellipse];
+    handle_raw_result [label="Handle raw_result:\l- Check if raw_result.toIndex() exists\l- If instruction is AlwaysVoid, result = void_value\l- Else result = raw_result"];
+    check_noreturn [label="Check gz.endsWithNoReturn()", shape=diamond];
+    return_result_early [label="Return result", shape=ellipse];
+    switch_rl [label="Switch ri.rl", shape=diamond];
+    
+    /* Switch cases */
+    case_none_coerced [label="case .none, .coerced_ty:\lReturn result"];
+    case_discard [label="case .discard:\l- Emit .ensure_result_non_error\lReturn void_value"];
+    case_ref [label="case .ref, .ref_coerced_ty:\l- Handle pointer coercion\l- Use ref_table or create new .ref instruction"];
+    case_ty [label="case .ty:\l- Check type matches with result\l- If match, return result\lElse emit .as instruction"];
+    case_ptr [label="case .ptr:\l- Emit .store_node\lReturn void_value"];
+    case_inferred_ptr [label="case .inferred_ptr:\l- Emit .store_to_inferred_ptr\lReturn void_value"];
+    case_destructure [label="case .destructure:\l- Validate destructure\l- Iterate components\lStore elements to pointers"];
+
+    /* Edges */
+    start -> handle_raw_result;
+    handle_raw_result -> check_noreturn;
+    
+    check_noreturn -> return_result_early [label="Yes"];
+    check_noreturn -> switch_rl [label="No"];
+    
+    switch_rl -> case_none_coerced [label=".none/.coerced_ty"];
+    switch_rl -> case_discard [label=".discard"];
+    switch_rl -> case_ref [label=".ref/.ref_coerced_ty"];
+    switch_rl -> case_ty [label=".ty"];
+    switch_rl -> case_ptr [label=".ptr"];
+    switch_rl -> case_inferred_ptr [label=".inferred_ptr"];
+    switch_rl -> case_destructure [label=".destructure"];
+    
+    case_none_coerced -> return_result [label="Return"];
+    case_discard -> return_void [label="Return void"];
+    case_ref -> return_ref [label="Return ref"];
+    case_ty -> return_result_or_emit_as [label="Return or emit .as"];
+    case_ptr -> return_void [label="Return void"];
+    case_inferred_ptr -> return_void [label="Return void"];
+    case_destructure -> return_void [label="Return void"];
+
+    /* Hidden nodes for alignment */
+    return_result [label="Return result", shape=ellipse, style=invis];
+    return_void [label="Return void_value", shape=ellipse, style=invis];
+    return_result_or_emit_as [label="Return result\lOR Emit .as instruction", shape=ellipse, style=invis];
+}

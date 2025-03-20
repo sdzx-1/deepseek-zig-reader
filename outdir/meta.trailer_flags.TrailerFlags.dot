@@ -1,0 +1,52 @@
+
+digraph TrailerFlags {
+    rankdir="TB";
+    node [shape=box, style="rounded", fontname="Helvetica"];
+
+    // 结构体类型定义
+    TrailerFlags [label="TrailerFlags(Fields: type) type"];
+    StructDef [label="返回的结构体"];
+    IntType [label="Int = meta.Int(.unsigned, bit_count)"];
+    bit_count [label="bit_count = @typeInfo(Fields).struct.fields.len"];
+    FieldEnum [label="FieldEnum = std.meta.FieldEnum(Fields)"];
+    ActiveFields [label="ActiveFields = EnumFieldStruct(FieldEnum, bool, false)"];
+    FieldValues [label="FieldValues (编译时生成的optional结构)"];
+
+    // 核心方法
+    has [label="has(field: FieldEnum) -> bool\n（位检查）"];
+    get [label="get(p: [*]u8, field) -> ?Field\n（依赖has和ptrConst）"];
+    setFlag [label="setFlag(field)\n（位操作）"];
+    init [label="init(fields: ActiveFields)\n（遍历字段设置位）"];
+    setMany [label="setMany(p: [*]u8, fields: FieldValues)\n（批量设置值）"];
+    set [label="set(p: [*]u8, field, value)\n（直接赋值）"];
+    ptr [label="ptr(p: [*]u8, field) -> *Field\n（计算偏移地址）"];
+    ptrConst [label="ptrConst(p: [*]const u8, field)\n（常量版本）"];
+    offset [label="offset(field) -> usize\n（对齐计算）"];
+    sizeInBytes [label="sizeInBytes() -> usize\n（总大小计算）"];
+
+    // 依赖关系
+    TrailerFlags -> StructDef;
+    StructDef -> {IntType, bit_count, FieldEnum, ActiveFields, FieldValues};
+    
+    // 方法调用链
+    StructDef -> {has, get, setFlag, init, setMany, set, ptr, ptrConst, offset, sizeInBytes};
+    get -> has;
+    get -> ptrConst;
+    init -> setFlag [label="遍历设置位"];
+    setMany -> set [label="逐个字段设置"];
+    ptr -> offset;
+    ptrConst -> offset;
+    offset -> mem.alignForward [label="内存对齐"];
+    sizeInBytes -> mem.alignForward;
+    
+    // 类型关联
+    FieldEnum -> {has, get, setFlag, offset};
+    ActiveFields -> init [label="输入参数"];
+    FieldValues -> setMany [label="输入参数"];
+    IntType -> bits [label=".bits 字段类型"];
+
+    // 注释节点
+    note [shape=note, label="注：\l- mem.alignForward 用于内存对齐计算\l- @typeInfo 用于编译时反射\l- 灰色虚线表示数据流", color=grey, fontcolor=grey];
+    offset -> note [style=dotted, color=grey];
+    sizeInBytes -> note [style=dotted, color=grey];
+}

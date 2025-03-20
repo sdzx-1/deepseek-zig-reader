@@ -1,0 +1,77 @@
+
+digraph getZigArgs {
+    graph [fontname="Arial", nodesep=0.2, ranksep=0.5];
+    node [fontname="Arial", shape=box, style="rounded"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    end [label="返回参数列表", shape=ellipse];
+
+    init_args [label="初始化参数列表\n添加zig_exe路径"];
+    add_cmd [label="根据编译类型\n添加build-lib/exe/obj/test命令"];
+    handle_flags [label="处理编译标志\n(allow-so-scripts, llvm, lld等)"];
+    ofmt_entry [label="设置目标格式(ofmt)\n处理入口点(entry)"];
+    force_symbols [label="处理强制未定义符号"];
+    stack_size [label="设置栈大小"];
+    fuzz_flag [label="添加模糊测试(-ffuzz)"];
+    system_libs [label="遍历系统库和框架依赖\n处理静态库/动态库/C源文件等"];
+    module_deps [label="处理模块依赖\n动态库rpath/框架参数"];
+    linker_flags [label="添加链接器参数\n(libc, libcpp, 框架等)"];
+    windows_specific [label="处理Windows选项\n(manifest, image-base)"];
+    test_params [label="添加测试参数\n(filter, runner)"];
+    debug_flags [label="处理调试和日志选项"];
+    output_files [label="设置输出文件选项\n(asm, docs, bin等)"];
+    linker_options [label="处理链接器选项\n(压缩调试节/GC节等)"];
+    libc_cache [label="处理libc文件和缓存目录"];
+    dynamic_lib [label="动态库版本/安装名称"];
+    macos_flags [label="处理macOS特有选项\n(entitlements/pagezero)"];
+    runtime_flags [label="添加运行时选项\n(compiler-rt/ubsan等)"];
+    wasi_link [label="处理WASI执行模型\n链接脚本"];
+    test_cmds [label="处理测试命令参数"];
+    sysroot_search [label="处理系统根目录\n和搜索路径(-I/-L)"];
+    build_id [label="处理构建ID和Zig库目录"];
+    pie_lto [label="添加PIE/LTO/覆盖率选项"];
+    subsystem_error [label="处理子系统选项\n错误限制"];
+    arg_length [label="检查参数长度\n生成响应文件(如果需要)"];
+
+    start -> init_args;
+    init_args -> add_cmd;
+    add_cmd -> handle_flags;
+    handle_flags -> ofmt_entry;
+    ofmt_entry -> force_symbols;
+    force_symbols -> stack_size;
+    stack_size -> fuzz_flag;
+    fuzz_flag -> system_libs;
+    system_libs -> module_deps;
+    module_deps -> linker_flags;
+    linker_flags -> windows_specific;
+    windows_specific -> test_params;
+    test_params -> debug_flags;
+    debug_flags -> output_files;
+    output_files -> linker_options;
+    linker_options -> libc_cache;
+    libc_cache -> dynamic_lib;
+    dynamic_lib -> macos_flags;
+    macos_flags -> runtime_flags;
+    runtime_flags -> wasi_link;
+    wasi_link -> test_cmds;
+    test_cmds -> sysroot_search;
+    sysroot_search -> build_id;
+    build_id -> pie_lto;
+    pie_lto -> subsystem_error;
+    subsystem_error -> arg_length;
+    arg_length -> end;
+
+    // 关键条件分支
+    subgraph cluster_loops {
+        label="循环处理";
+        system_libs -> system_libs [label="遍历所有依赖模块", style=dashed];
+        module_deps -> module_deps [label="遍历模块的import_table", style=dashed];
+    }
+
+    subgraph cluster_conditions {
+        label="条件分支";
+        handle_flags -> handle_flags [label="根据b.reference_trace等标志", style=dashed];
+        arg_length -> arg_length [label="args_length >=30KB?", style=dashed];
+    }
+}

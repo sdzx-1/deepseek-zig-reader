@@ -1,0 +1,89 @@
+
+digraph innerParseFlowchart {
+    graph [bgcolor=transparent];
+    node [fontname="Arial", shape=box, style="rounded,filled", fillcolor="#E5E5E5", color="#333333", fontcolor="#333333"];
+    edge [color="#666666", fontname="Arial", fontsize=10];
+
+    start [label="Start innerParse(T, allocator, source, options)", shape=ellipse];
+    end [label="Return parsed value", shape=ellipse];
+    error [label="Return Error", shape=ellipse];
+
+    start -> typeSwitch;
+    
+    subgraph cluster_typeSwitch {
+        label="Switch @typeInfo(T)";
+        typeSwitch [label="", shape=point, width=0];
+        
+        typeSwitch -> bool [label=".bool"];
+        typeSwitch -> number [label=".float/.comptime_float"];
+        typeSwitch -> integer [label=".int/.comptime_int"];
+        typeSwitch -> optional [label=".optional"];
+        typeSwitch -> enum [label=".enum"];
+        typeSwitch -> union [label=".union"];
+        typeSwitch -> struct [label=".struct"];
+        typeSwitch -> array [label=".array"];
+        typeSwitch -> vector [label=".vector"];
+        typeSwitch -> pointer [label=".pointer"];
+    }
+
+    // Bool handling
+    bool [label="Check next token"];
+    bool -> bool_true [label=".true"];
+    bool -> bool_false [label=".false"];
+    bool -> error [label="else"];
+    bool_true [label="Return true"];
+    bool_false [label="Return false"];
+    bool_true -> end;
+    bool_false -> end;
+
+    // Number handling
+    number [label="Get token\nParse to float"];
+    number -> error [label="Unexpected token"];
+    number -> end;
+
+    // Integer handling
+    integer [label="Get token\nConvert to int"];
+    integer -> error [label="Unexpected token"];
+    integer -> end;
+
+    // Optional handling
+    optional [label="Peek next token"];
+    optional -> optional_null [label=".null"];
+    optional -> optional_recurse [label="else"];
+    optional_null [label="Return null"];
+    optional_recurse [label="Recurse into child type"];
+    optional_null -> end;
+    optional_recurse -> end;
+
+    // Enum handling
+    enum [label="Check custom jsonParse\nElse parse enum from token"];
+    enum -> error [label="Unexpected token"];
+    enum -> end;
+
+    // Union handling
+    union [label="Check object_begin\nParse tagged union"];
+    union -> error [label="Invalid structure"];
+    union -> end;
+
+    // Struct handling
+    struct [label="Check tuple/object\nParse fields"];
+    struct -> error [label="Invalid structure"];
+    struct -> end;
+
+    // Array handling
+    array [label="Parse array/string"];
+    array -> error [label="Unexpected token"];
+    array -> end;
+
+    // Vector handling
+    vector [label="Parse array"];
+    vector -> error [label="Unexpected token"];
+    vector -> end;
+
+    // Pointer handling
+    pointer [label="Handle slice/allocations"];
+    pointer -> error [label="Unsupported pointer"];
+    pointer -> end;
+
+    error -> end [style=invis];
+}

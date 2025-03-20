@@ -1,0 +1,42 @@
+
+digraph State256X_Flow {
+    node [shape=box, style=rounded];
+
+    start [label="开始 State256X 初始化"];
+    init_constants [label="创建常量 c1, c2"];
+    process_key_nonce [label="处理密钥和随机数生成 kxn1, kxn2"];
+    build_initial_blocks [label="构建初始 blocks 数组"];
+    check_degree [label="检查 degree > 1?", shape=diamond];
+    
+    degree_gt1 [label="执行多上下文块更新\n循环4次:\n- 异或上下文块\n- 更新 state (key_block1)\n- 更新 state (key_block2)\n- 更新 state (kxn1)\n- 更新 state (kxn2)"];
+    degree_eq1 [label="执行简单块更新\n循环4次:\n- 更新 state (key_block1)\n- 更新 state (key_block2)\n- 更新 state (kxn1)\n- 更新 state (kxn2)"];
+    
+    update_method [label="update 方法流程:\n1. 加密 blocks[5] 和 blocks[0]\n2. 循环移位加密块\n3. 异或输入数据到 blocks[0]"];
+    enc_method [label="enc 方法流程:\n1. 生成加密数据\n2. 更新 state"];
+    dec_method [label="dec 方法流程:\n1. 生成解密数据\n2. 更新 state"];
+    finalize_method [label="finalize 流程:\n1. 处理长度信息\n2. 7次更新\n3. 生成认证标签"];
+    finalizeMac_method [label="finalizeMac 流程:\n1. 处理数据长度和标签位\n2. 7次更新\n3. 处理多 degree 标签\n4. 返回最终标签"];
+
+    start -> init_constants;
+    init_constants -> process_key_nonce;
+    process_key_nonce -> build_initial_blocks;
+    build_initial_blocks -> check_degree;
+    
+    check_degree -> degree_gt1 [label="是"];
+    check_degree -> degree_eq1 [label="否"];
+    
+    degree_gt1 -> update_method [label="调用 update"];
+    degree_eq1 -> update_method [label="调用 update"];
+    
+    update_method -> enc_method [label="加密时调用"];
+    update_method -> dec_method [label="解密时调用"];
+    update_method -> finalize_method [label="最终化时调用"];
+    update_method -> finalizeMac_method [label="MAC 最终化调用"];
+    
+    enc_method -> finalize_method [label="加密后处理"];
+    dec_method -> finalize_method [label="解密后处理"];
+    finalize_method -> end [label="返回认证标签"];
+    finalizeMac_method -> end [label="返回 MAC 标签"];
+    
+    end [label="流程结束"];
+}

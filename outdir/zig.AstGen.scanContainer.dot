@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 scanContainer"];
+    init_vars [label="初始化变量:\n- gpa, tree\n- any_invalid_declarations\n- NameEntry 结构定义"];
+    init_sfba [label="初始化栈回退分配器 (SFBA)"];
+    init_hashmaps [label="初始化哈希表:\n- names\n- test_names\n- decltest_names"];
+    loop_members [label="遍历所有成员节点 (members)"];
+    process_node [label="处理当前成员节点"];
+    check_node_type [label="判断节点类型"];
+
+    subgraph cluster_node_processing {
+        label="节点处理分支";
+        style=filled;
+        color=lightgrey;
+
+        node_field [label="容器字段 (field)\n- 检查元组类型\n- 跳过元组字段"];
+        node_decl [label="变量/函数声明 (decl)\n- 记录到 namespace.decls\n- 名称重复检查"];
+        node_test_decl [label="测试声明 (test_decl)\n- 处理匿名/命名测试\n- 记录到 test_names/decltest_names"];
+        node_other [label="其他类型\n- comptime/usingnamespace\n- 直接跳过"];
+    }
+
+    name_processing [label="名称处理:\n- 生成名称字符串索引\n- 哈希表去重检查"];
+    shadow_check [label="检查名称遮蔽:\n- 原始类型冲突\n- 外部作用域遮蔽"];
+    collect_errors [label="记录错误信息到 astgen"];
+    post_loop [label="遍历结束后的处理"];
+    check_duplicates [label="检查所有哈希表重复项"];
+    generate_errors [label="生成重复名称错误信息"];
+    return_result [label="返回结果:\n- decl_count 或错误"];
+
+    start -> init_vars -> init_sfba -> init_hashmaps -> loop_members;
+    loop_members -> process_node;
+    process_node -> check_node_type;
+
+    check_node_type -> node_field [label="容器字段"];
+    check_node_type -> node_decl [label="变量/函数"];
+    check_node_type -> node_test_decl [label="测试声明"];
+    check_node_type -> node_other [label="其他类型"];
+
+    node_field -> name_processing [style=invis];
+    node_decl -> name_processing;
+    node_test_decl -> name_processing [style=invis];
+    node_other -> loop_members [label="继续下一个成员"];
+
+    name_processing -> shadow_check;
+    shadow_check -> collect_errors [label="发现错误"];
+    shadow_check -> loop_members [label="继续下一个成员"];
+
+    loop_members -> post_loop [label="所有成员处理完毕"];
+    post_loop -> check_duplicates;
+    check_duplicates -> generate_errors [label="存在重复名称"];
+    generate_errors -> return_result [label="any_invalid_declarations = true"];
+    check_duplicates -> return_result [label="无重复且无错误"];
+
+    collect_errors -> loop_members [label="继续下一个成员"];
+    return_result [shape=diamond, label="返回 decl_count\n或 error.AnalysisFail"];
+}

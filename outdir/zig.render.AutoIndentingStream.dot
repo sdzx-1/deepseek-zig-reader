@@ -1,0 +1,48 @@
+
+digraph AutoIndentingStream {
+    node [shape=rectangle, style=rounded];
+
+    // 初始化与销毁
+    init -> deinit [label="allocates"];
+    init -> setIndentDelta;
+    
+    // 核心写入流程
+    write -> applyIndent [label="应用缩进"];
+    applyIndent -> underlying_writer [label="写入空格"];
+    write -> writeNoIndent [label="处理实际内容"];
+    writeNoIndent -> resetLine [label="检测换行符"];
+    
+    // 换行与缩进重置逻辑
+    insertNewline -> writeNoIndent [label="插入\\n"];
+    resetLine -> indent_stack [label="检查缩进类型"];
+    resetLine -> indent_count [label="更新缩进层级"];
+    
+    // 缩进堆栈操作
+    pushIndent -> indent_stack [label="压入未实现的缩进"];
+    forcePushIndent -> indent_stack [label="压入已实现的缩进"];
+    popIndent -> indent_stack [label="弹出并更新计数"];
+    
+    // 空间模式管理
+    pushSpace -> space_stack [label="记录空间上下文"];
+    popSpace -> space_stack [label="移除空间上下文"];
+    enableSpaceMode -> space_mode [label="同步缩进计数"];
+    disableSpaceMode -> space_mode [label="重置为null"];
+    
+    // 特殊控制流
+    disableIndentCommitting -> disable_indent_committing [label="增加计数器"];
+    enableIndentCommitting -> disable_indent_committing [label="减少计数器"];
+    
+    // 条件判断节点
+    resetLine -> condition_binop [label=".binop检查"];
+    condition_binop -> skip_indent [label="父级是.after_equals"];
+    condition_binop -> check_field_access [label="继续处理.field_access"];
+    
+    // 工具方法
+    maybeInsertNewline -> insertNewline [label="当前行非空时插入"];
+    lastSpaceModeIndent -> space_stack [label="获取最后空间缩进"];
+    isLineOverIndented -> applied_indent [label="比较当前缩进"];
+    
+    // 错误处理
+    setIndentDelta -> assert [label="缩进量合法性检查"];
+    enableIndentCommitting -> assert [label="计数器必须>0"];
+}

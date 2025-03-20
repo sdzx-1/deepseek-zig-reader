@@ -1,0 +1,55 @@
+
+digraph TarIteratorFlowchart {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 next()"];
+    check_unread_bytes [label="检查未读文件字节\nself.unread_file_bytes > 0?"];
+    skip_unread_bytes [label="跳过未读字节\nself.reader.skipBytes()"];
+    reset_unread_bytes [label="重置 unread_file_bytes=0"];
+    read_header [label="读取头部信息\nself.readHeader()"];
+    header_result [label="头部存在？", shape=diamond];
+    process_header [label="处理头部类型\nheader.kind()"];
+    handle_file_types [label="设置文件类型/模式/属性\n更新name/link_name/size"];
+    set_padding [label="计算填充字节\nself.padding = blockPadding(file.size)"];
+    set_unread_bytes [label="设置未读字节\nself.unread_file_bytes = file.size"];
+    return_file [label="返回文件对象", shape=parallelogram];
+    handle_long_name [label="读取长文件名\nself.readString()"];
+    handle_long_link [label="读取长链接名\nself.readString()"];
+    handle_extended_header [label="解析PAX扩展头\npaxIterator()"];
+    handle_global_header [label="跳过全局扩展头\nself.reader.skipBytes()"];
+    unsupported_header [label="记录诊断信息\n添加错误到diagnostics"];
+    skip_sparse_headers [label="处理GNU稀疏头\nself.skipGnuSparseExtendedHeaders()"];
+    skip_header_content [label="跳过头部内容\nself.reader.skipBytes()"];
+    end [label="返回null", shape=parallelogram];
+
+    start -> check_unread_bytes;
+    check_unread_bytes -> skip_unread_bytes [label="是"];
+    check_unread_bytes -> reset_unread_bytes [label="否"];
+    skip_unread_bytes -> reset_unread_bytes;
+    reset_unread_bytes -> read_header;
+    read_header -> header_result;
+    header_result -> process_header [label="存在"];
+    header_result -> end [label="不存在"];
+    
+    process_header -> handle_file_types [label="文件/目录/符号链接"];
+    process_header -> handle_long_name [label="GNU长文件名"];
+    process_header -> handle_long_link [label="GNU长链接名"];
+    process_header -> handle_extended_header [label="PAX扩展头"];
+    process_header -> handle_global_header [label="全局扩展头"];
+    process_header -> unsupported_header [label="其他类型"];
+    
+    handle_file_types -> set_padding -> set_unread_bytes -> return_file;
+    return_file -> end [label="返回文件后继续循环"];
+    
+    handle_long_name -> read_header [label="继续循环"];
+    handle_long_link -> read_header;
+    handle_extended_header -> read_header;
+    handle_global_header -> read_header;
+    
+    unsupported_header -> skip_sparse_headers [label="如果是稀疏头"];
+    unsupported_header -> skip_header_content [label="其他"];
+    skip_sparse_headers -> skip_header_content;
+    skip_header_content -> read_header;
+}

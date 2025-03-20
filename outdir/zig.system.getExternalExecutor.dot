@@ -1,0 +1,73 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始"];
+    check_os_match [label="os_match = host.os == candidate.os"];
+    check_cpu_ok [label="检查cpu_ok条件"];
+    check_libc [label="options.link_libc为真?"];
+    check_dl_access [label="验证candidate动态链接器存在"];
+    return_native [label="返回.native"];
+    check_rosetta [label="允许Rosetta且host是macOS/aarch64?"];
+    return_rosetta [label="返回.rosetta"];
+    check_qemu [label="允许QEMU且os_match且(!cpu_ok或qemu_fixes_dl)?"];
+    qemu_switch [label="根据candidate.cpu.arch选择QEMU命令"];
+    check_windows [label="candidate.os是Windows?"];
+    check_wine [label="允许Wine?"];
+    check_wine_arch [label="检查架构兼容性"];
+    return_wine [label="根据指针宽度返回wine或wine64"];
+    check_wasi [label="candidate.os是WASI?"];
+    check_wasmtime [label="允许Wasmtime?"];
+    return_wasmtime [label="返回.wasmtime"];
+    check_macos [label="candidate.os是macOS?"];
+    check_darling [label="允许Darling?"];
+    check_darling_arch [label="candidate.cpu == host.cpu?"];
+    return_darling [label="返回.darling"];
+    return_bad [label="返回.bad_os_or_cpu或其他错误"];
+
+    start -> check_os_match;
+    check_os_match -> check_cpu_ok;
+    
+    check_cpu_ok -> os_match_and_cpu_ok [label="os_match && cpu_ok"];
+    check_cpu_ok -> check_rosetta [label="其他情况"];
+    
+    os_match_and_cpu_ok -> check_libc;
+    check_libc -> check_dl_access [label="是"];
+    check_libc -> return_native [label="否"];
+    check_dl_access -> return_native [label="成功"];
+    check_dl_access -> bad_result_dl [label="失败"];
+    bad_result_dl -> return_bad [label="设置bad_dl错误"];
+    
+    check_rosetta -> check_rosetta_conditions [label="是"];
+    check_rosetta_conditions [label="host.os==macos && host.cpu==aarch64"];
+    check_rosetta_conditions -> candidate_x86_64 [label="candidate.cpu是x86_64?"];
+    candidate_x86_64 -> return_rosetta [label="是"];
+    candidate_x86_64 -> return_bad [label="否"];
+    
+    check_rosetta -> check_qemu [label="否"];
+    check_qemu -> qemu_switch [label="是"];
+    qemu_switch -> return_qemu [label="找到匹配的QEMU命令"];
+    qemu_switch -> return_bad [label="无匹配"];
+    
+    check_qemu -> check_windows [label="否"];
+    check_windows -> check_wine [label="是"];
+    check_wine -> check_wine_arch [label="是"];
+    check_wine_arch -> return_wine [label="架构兼容"];
+    check_wine_arch -> return_bad [label="不兼容"];
+    check_wine -> return_bad [label="否"];
+    
+    check_windows -> check_wasi [label="否"];
+    check_wasi -> check_wasmtime [label="是"];
+    check_wasmtime -> return_wasmtime [label="是"];
+    check_wasmtime -> return_bad [label="否"];
+    
+    check_wasi -> check_macos [label="否"];
+    check_macos -> check_darling [label="是"];
+    check_darling -> check_darling_arch [label="是"];
+    check_darling_arch -> return_darling [label="是"];
+    check_darling_arch -> return_bad [label="否"];
+    check_darling -> return_bad [label="否"];
+    
+    check_macos -> return_bad [label="否"];
+}

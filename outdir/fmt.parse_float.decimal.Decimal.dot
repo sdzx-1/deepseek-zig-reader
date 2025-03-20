@@ -1,0 +1,50 @@
+
+digraph Decimal {
+    node [shape=box, style=rounded];
+
+    start [label="开始Decimal结构"];
+    new [label="new():\n初始化结构体"];
+    tryAddDigit [label="tryAddDigit():\n添加数字到缓冲区"];
+    trim [label="trim():\n修剪尾部零"];
+    round [label="round():\n四舍五入处理"];
+    leftShift [label="leftShift():\n左移操作"];
+    rightShift [label="rightShift():\n右移操作"];
+    parse [label="parse():\n解析字符串"];
+    numberOfDigitsLeftShift [label="numberOfDigitsLeftShift():\n计算左移位数"];
+
+    start -> new;
+    start -> parse;
+
+    parse -> tryAddDigit [label="逐个添加数字"];
+    parse -> trim [label="处理尾部零"];
+    parse -> numberOfDigitsLeftShift [label="处理指数部分"];
+
+    leftShift -> trim [label="移位后修剪"];
+    leftShift -> numberOfDigitsLeftShift [label="确定移位位数"];
+    rightShift -> trim [label="移位后修剪"];
+
+    numberOfDigitsLeftShift -> pow2_table [label="查预定义表比较"];
+    pow2_table [shape=note, label="预定义pow2_to_pow5_table\n比较前导数字"];
+
+    new -> tryAddDigit [style=invis];
+    tryAddDigit -> trim [style=invis];
+    trim -> round [style=invis];
+    round -> leftShift [style=invis];
+    leftShift -> rightShift [style=invis];
+    
+    subgraph cluster_shift {
+        label="移位操作流程";
+        leftShift;
+        rightShift;
+        numberOfDigitsLeftShift;
+        pow2_table;
+    }
+
+    subgraph cluster_core {
+        label="核心操作";
+        new;
+        tryAddDigit;
+        trim;
+        round;
+    }
+}

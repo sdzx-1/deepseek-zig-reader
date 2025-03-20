@@ -1,0 +1,55 @@
+
+digraph Salsa20Flow {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+
+    // 主函数和子函数
+    SalsaNonVecImpl [label="SalsaNonVecImpl(rounds)"];
+    initContext [label="initContext(key, d)"];
+    salsaCore [label="salsaCore(x, input, feedback)"];
+    hashToBytes [label="hashToBytes(out, x)"];
+    salsaXor [label="salsaXor(out, in, key, d)"];
+    hsalsa [label="hsalsa(input, key)"];
+
+    // 流程结构
+    SalsaNonVecImpl -> {initContext, salsaCore, hashToBytes, salsaXor, hsalsa};
+    
+    // salsaXor流程
+    salsaXor -> initContext [label="创建ctx"];
+    salsaXor -> salsaCore [label="处理64字节块"];
+    salsaCore -> QuarterRound [label="应用ARX步骤"];
+    salsaCore -> FeedbackAdd [label="feedback=true时叠加输入"];
+    salsaXor -> hashToBytes [label="生成buf"];
+    salsaXor -> XorBlocks [label="异或处理完整块"];
+    salsaXor -> UpdateCounter [label="更新ctx[8]和ctx[9]"];
+    salsaXor -> ProcessRemaining [label="处理剩余字节"];
+
+    // hsalsa流程
+    hsalsa -> initContext [label="创建ctx"];
+    hsalsa -> salsaCore [label="feedback=false"];
+    hsalsa -> ExtractWords [label="提取特定字到输出"];
+
+    // 子节点定义
+    subgraph cluster_core {
+        label="salsaCore内部逻辑";
+        QuarterRound [label="循环应用QuarterRound操作"];
+        FeedbackAdd [label="叠加输入到结果"];
+    }
+
+    subgraph cluster_xor {
+        label="salsaXor处理流程";
+        XorBlocks [label="异或64字节块"];
+        UpdateCounter [label="更新块计数器"];
+        ProcessRemaining [label="处理尾部字节"];
+    }
+
+    subgraph cluster_hsalsa {
+        label="hsalsa处理流程";
+        ExtractWords [label="提取x[0,5,10,15,6,7,8,9]"];
+    }
+
+    // 连接线样式
+    edge [fontsize=10];
+    initContext -> salsaCore [style=dashed];
+    QuarterRound -> FeedbackAdd [style=dotted];
+}

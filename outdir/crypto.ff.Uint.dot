@@ -1,0 +1,82 @@
+
+digraph Uint {
+    graph [rankdir=LR, fontname="Courier", splines=ortho];
+    node [shape=box, fontname="Courier", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier"];
+
+    // 主结构
+    Uint [label="Uint(max_bits)"];
+    StructDef [label="返回结构体定义", shape=ellipse];
+    Uint -> StructDef;
+
+    // 结构体组件
+    subgraph cluster_struct {
+        label="结构体组件";
+        LimbsBuffer [label="limbs_buffer: [max_limbs_count]Limb"];
+        LimbsLen [label="limbs_len: usize"];
+        EncodedBytes [label="encoded_bytes: computed"];
+        ZeroConstant [label="zero: 初始化全0"];
+    }
+
+    StructDef -> {LimbsBuffer LimbsLen EncodedBytes ZeroConstant};
+
+    // 主要方法
+    subgraph cluster_methods {
+        label="主要方法";
+        
+        FromPrimitive [label="fromPrimitive(T, init_value)"];
+        ToPrimitive [label="toPrimitive(T)"];
+        ToBytes [label="toBytes(bytes, endian)"];
+        FromBytes [label="fromBytes(bytes, endian)"];
+        Eql [label="eql(x, y)"];
+        Compare [label="compare(x, y)"];
+        IsZero [label="isZero()"];
+        AddWithOverflow [label="addWithOverflow(y)"];
+        SubWithOverflow [label="subWithOverflow(y)"];
+    }
+
+    StructDef -> {FromPrimitive ToPrimitive ToBytes FromBytes Eql Compare IsZero AddWithOverflow SubWithOverflow};
+
+    // 关键方法详细流程
+    FromPrimitive -> {
+        "初始化out.limbs_buffer",
+        "循环填充limb",
+        "检查x!=0 → Overflow"
+    };
+
+    ToBytes -> {
+        "bytes清零",
+        "按endian遍历limbs",
+        "处理每个字节的移位操作",
+        "检查剩余bits → Overflow"
+    };
+
+    AddWithOverflow -> {
+        "调用conditionalAddWithOverflow(true, y)",
+        "逐limb相加并处理进位"
+    };
+
+    SubWithOverflow -> {
+        "调用conditionalSubWithOverflow(true, y)",
+        "逐limb相减并处理借位"
+    };
+
+    // 内部辅助函数
+    subgraph cluster_helpers {
+        label="内部辅助函数";
+        Normalize [label="normalize()"];
+        CMov [label="cmov(on, y)"];
+        ConditionalAdd [label="conditionalAddWithOverflow(on, y)"];
+        ConditionalSub [label="conditionalSubWithOverflow(on, y)"];
+    }
+
+    StructDef -> {Normalize CMov ConditionalAdd ConditionalSub};
+
+    // 数据流向
+    edge [color=blue];
+    FromPrimitive -> ToPrimitive [label="数值转换"];
+    ToBytes -> FromBytes [label="编解码互逆"];
+    AddWithOverflow -> ConditionalAdd [label="进位传播"];
+    SubWithOverflow -> ConditionalSub [label="借位传播"];
+    Normalize -> IsZero [label="归零检测"];
+}

@@ -1,0 +1,38 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始"];
+    init_vars [label="初始化变量\n从arg1和arg2中提取元素"];
+    initial_multiplies [label="执行初始乘法\nmulxU64计算各部分乘积"];
+    add_with_carries [label="处理进位加法\naddcarryxU64累加中间结果"];
+    montgomery_reduce1 [label="Montgomery约减\n乘以模逆，调整结果"];
+    repeat_multiplies [label="重复乘法步骤\n处理后续元素相乘"];
+    montgomery_reduce2 [label="再次Montgomery约减\n处理累加后的中间值"];
+    final_subtraction [label="条件减法\nsubborrowxU64处理可能的溢出"];
+    cmov_operations [label="条件移动结果\ncmovznzU64选择最终值"];
+    output_result [label="输出结果到out1数组"];
+    end [label="结束"];
+
+    start -> init_vars;
+    init_vars -> initial_multiplies;
+    initial_multiplies -> add_with_carries;
+    add_with_carries -> montgomery_reduce1;
+
+    montgomery_reduce1 -> repeat_multiplies [label="处理x1元素"];
+    repeat_multiplies -> montgomery_reduce2 [label="每个元素循环处理"];
+    montgomery_reduce2 -> repeat_multiplies [label="继续下一个元素"];
+
+    montgomery_reduce2 -> final_subtraction [label="所有元素处理完毕"];
+    final_subtraction -> cmov_operations;
+    cmov_operations -> output_result;
+    output_result -> end;
+
+    // 显示循环结构
+    subgraph cluster_loop {
+        label="元素处理循环";
+        repeat_multiplies;
+        montgomery_reduce2;
+    }
+}

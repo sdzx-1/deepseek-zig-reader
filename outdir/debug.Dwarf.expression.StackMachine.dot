@@ -1,0 +1,72 @@
+
+digraph StackMachineFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 StackMachine"];
+    init_addr_type [label="根据 options.addr_size\n初始化 addr_type 和 addr_type_signed"];
+    define_struct [label="定义返回结构体\n包含 Operand 和 Value 类型"];
+    stack_init [label="初始化 stack: std.ArrayListUnmanaged(Value)"];
+
+    run_method [label="run 方法"];
+    run_initial_value [label="如果有 initial_value\n压入堆栈"];
+    stream_init [label="创建 FixedBufferStream\n读取表达式字节流"];
+    step_loop [label="循环调用 step 方法\n直到表达式处理完毕"];
+    return_result [label="返回栈顶结果或 null"];
+
+    step_method [label="step 方法"];
+    read_opcode [label="读取操作码 (opcode)"];
+    check_valid_cfa [label="检查 CFA 有效性\n(options.call_frame_context)"];
+    read_operand [label="调用 readOperand\n获取操作数"];
+    handle_opcode [label="根据 opcode 类型\n执行对应操作"];
+    update_stack [label="更新堆栈状态"];
+    check_stream_end [label="检查是否到达字节流末尾"];
+
+    subgraph cluster_readOperand {
+        label="readOperand 处理流程";
+        ro_start [label="开始 readOperand"];
+        ro_switch_opcode [label="根据 opcode 选择处理分支"];
+        ro_read_bytes [label="读取不同格式的操作数\n(LEB128/固定大小)"];
+        ro_return [label="返回 Operand 或错误"];
+        ro_start -> ro_switch_opcode -> ro_read_bytes -> ro_return;
+    }
+
+    subgraph cluster_opcode_handling {
+        label="step 方法中的操作码处理";
+        op_literals [label="处理字面量\n(压栈操作)"];
+        op_registers [label="处理寄存器值\n(读取寄存器内容)"];
+        op_stack_ops [label="处理堆栈操作\n(dup/drop/swap等)"];
+        op_arithmetic [label="算术逻辑运算\n(add/sub/mul/div等)"];
+        op_control_flow [label="控制流操作\n(bra/skip/条件跳转)"];
+        op_type_conv [label="类型转换操作\n(convert/reinterpret)"];
+        op_special [label="特殊操作\n(nop/entry_value)"];
+    }
+
+    start -> init_addr_type -> define_struct -> stack_init;
+    define_struct -> run_method;
+    
+    run_method -> run_initial_value -> stream_init -> step_loop -> return_result;
+    step_loop -> step_method [label="每次迭代"];
+    
+    step_method -> read_opcode -> check_valid_cfa -> read_operand -> handle_opcode;
+    handle_opcode -> update_stack -> check_stream_end;
+    
+    read_operand -> cluster_readOperand;
+    handle_opcode -> cluster_opcode_handling;
+    
+    cluster_opcode_handling -> op_literals;
+    cluster_opcode_handling -> op_registers;
+    cluster_opcode_handling -> op_stack_ops;
+    cluster_opcode_handling -> op_arithmetic;
+    cluster_opcode_handling -> op_control_flow;
+    cluster_opcode_handling -> op_type_conv;
+    cluster_opcode_handling -> op_special;
+    
+    check_stream_end -> step_loop [label="继续循环"];
+    check_stream_end -> return_result [label="结束循环"];
+    
+    edge [style=dashed];
+    op_control_flow -> stream_init [label="修改 stream.pos"];
+    op_registers -> context [label="依赖 context.thread_context"];
+    op_type_conv -> context [label="依赖 context.compile_unit"];
+}

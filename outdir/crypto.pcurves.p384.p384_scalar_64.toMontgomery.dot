@@ -1,0 +1,34 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始: toMontgomery 函数入口"];
+    init [label="分解输入参数 arg1 到变量 x1, x2, x3, x4, x5, x6"];
+    process_x6 [label="处理 x6:\n- 多次 mulxU64 乘法\n- addcarryxU64 进位链\n- 模约减操作"];
+    process_x1 [label="处理 x1:\n- 类似 x6 的乘法与进位链\n- 模约减"];
+    process_x2 [label="处理 x2:\n- 类似结构"];
+    process_x3 [label="处理 x3:\n- 类似结构"];
+    process_x4 [label="处理 x4:\n- 类似结构"];
+    process_x5 [label="处理 x5:\n- 类似结构"];
+    final_sub [label="最终减法调整:\n- subborrowxU64 链\n- 条件判断"];
+    cmov [label="条件移动 (cmovznzU64)\n选择最终结果"];
+    output [label="写入输出数组 out1"];
+    end [label="结束"];
+
+    start -> init;
+    init -> process_x6;
+    process_x6 -> process_x1 [label="处理完 x6"];
+    process_x1 -> process_x2 [label="处理完 x1"];
+    process_x2 -> process_x3 [label="处理完 x2"];
+    process_x3 -> process_x4 [label="处理完 x3"];
+    process_x4 -> process_x5 [label="处理完 x4"];
+    process_x5 -> final_sub [label="处理完 x5"];
+    final_sub -> cmov [label="调整结果"];
+    cmov -> output;
+    output -> end;
+    
+    // 隐藏的边用于强制布局层级
+    {rank=same; process_x6 process_x1 process_x2 process_x3 process_x4 process_x5}
+    {rank=same; final_sub cmov output}
+}

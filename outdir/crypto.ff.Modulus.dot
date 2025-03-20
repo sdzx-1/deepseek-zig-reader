@@ -1,0 +1,57 @@
+
+digraph ModulusFlow {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始创建Modulus实例", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    subgraph cluster_creation {
+        label="模数创建与初始化";
+        fromUint [label="fromUint:\n- 验证模数奇偶性\n- 计算m0inv\n- 调用computeRR"];
+        fromPrimitive [label="fromPrimitive:\n- 类型检查\n- 调用fromUint"];
+        fromBytes [label="fromBytes:\n- 字节转换\n- 调用fromUint"];
+        computeRR [label="computeRR:\n- 初始化rr\n- 循环shiftIn"];
+        shiftIn [label="shiftIn:\n- 处理进位借位\n- 条件移动数据"];
+    }
+
+    subgraph cluster_operations {
+        label="字段元素运算";
+        add [label="add:\n- 加法溢出处理\n- 条件减法"];
+        sub [label="sub:\n- 减法借位处理\n- 条件加法"];
+        mul [label="mul:\n- 判断Montgomery形式\n- 调用montgomeryMul"];
+        sq [label="sq:\n- Montgomery形式转换\n- 调用montgomerySq"];
+        pow [label="pow:\n- 处理指数编码\n- 调用内部幂函数"];
+        montgomeryMul [label="montgomeryMul:\n- 调用montgomeryLoop\n- 条件减法"];
+        montgomerySq [label="montgomerySq:\n- 调用montgomeryLoop\n- 条件减法"];
+        montgomeryLoop [label="montgomeryLoop:\n- 宽乘法处理\n- 累加进位"];
+    }
+
+    subgraph cluster_pow_internal {
+        label="幂运算内部处理";
+        powInternal [label="powWithEncodedExponentInternal:\n- 公开指数预计算表\n- 秘密指数条件拷贝"];
+        processBit [label="按位处理指数:\n- 平方与乘法步骤"];
+        precomputeTable [label="预计算表生成:\n- 连续Montgomery乘法"];
+    }
+
+    start -> {fromUint, fromPrimitive, fromBytes};
+    fromUint -> computeRR;
+    computeRR -> shiftIn [label="循环调用"];
+    fromPrimitive -> fromUint;
+    fromBytes -> fromUint;
+
+    add -> end;
+    sub -> end;
+    mul -> {montgomeryMul, toMontgomery, fromMontgomery};
+    sq -> {montgomerySq, toMontgomery};
+    pow -> powInternal;
+    powInternal -> {processBit, precomputeTable};
+    processBit -> {montgomerySq, montgomeryMul};
+    precomputeTable -> montgomeryMul;
+
+    montgomeryMul -> montgomeryLoop;
+    montgomerySq -> montgomeryLoop;
+    montgomeryLoop -> shiftIn [style=dotted];
+
+    {rank=same; fromUint, fromPrimitive, fromBytes}
+    {rank=same; add, sub, mul, sq, pow}
+}

@@ -1,0 +1,74 @@
+
+digraph renderFnProto {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="开始"];
+    end [label="结束"];
+    
+    handle_fn_token [label="处理fn_token和函数名"];
+    check_after_fn [label="检查after_fn_token是否是标识符"];
+    render_identifier [label="渲染函数名"];
+    handle_lparen [label="处理左括号"];
+    find_rparen [label="确定右括号位置"];
+    check_trailing_comma [label="检查是否有尾随逗号或注释"];
+    single_line_params [label="单行渲染参数"];
+    multi_line_params [label="多行渲染参数"];
+    process_params [label="循环处理参数"];
+    handle_rparen [label="处理右括号"];
+    handle_attributes [label="处理align/addrspace/section/callconv属性"];
+    handle_bang [label="处理!符号"];
+    render_return_type [label="渲染返回类型"];
+
+    start -> handle_fn_token;
+    handle_fn_token -> check_after_fn;
+    
+    check_after_fn -> render_identifier [label="是标识符"];
+    check_after_fn -> handle_lparen [label="不是标识符"];
+    render_identifier -> handle_lparen;
+    
+    handle_lparen -> find_rparen;
+    find_rparen -> check_trailing_comma;
+    
+    check_trailing_comma -> single_line_params [label="无尾随逗号且无注释"];
+    check_trailing_comma -> multi_line_params [label="有尾随逗号或有注释"];
+    
+    single_line_params -> process_params;
+    multi_line_params -> process_params;
+    
+    process_params -> handle_rparen [label="参数处理完成"];
+    handle_rparen -> handle_attributes;
+    
+    handle_attributes -> handle_bang;
+    handle_bang -> render_return_type;
+    render_return_type -> end;
+
+    // 分支细化
+    subgraph cluster_params {
+        label="参数处理循环";
+        param_start [label="开始参数循环"];
+        check_param_type [label="检查token类型"];
+        handle_doc_comment [label="处理文档注释"];
+        handle_ellipsis [label="处理..."];
+        handle_keywords [label="处理noalias/comptime"];
+        handle_anytype [label="处理anytype"];
+        handle_identifier [label="处理标识符和类型"];
+        param_end [label="结束参数循环"];
+        
+        param_start -> check_param_type;
+        check_param_type -> handle_doc_comment [label="doc_comment"];
+        check_param_type -> handle_ellipsis [label="ellipsis3"];
+        check_param_type -> handle_keywords [label="noalias/comptime"];
+        check_param_type -> handle_anytype [label="anytype"];
+        check_param_type -> handle_identifier [label="identifier"];
+        check_param_type -> param_end [label="r_paren"];
+        handle_doc_comment -> check_param_type;
+        handle_ellipsis -> param_end;
+        handle_keywords -> check_param_type;
+        handle_anytype -> check_param_type;
+        handle_identifier -> check_param_type;
+    }
+    
+    process_params -> param_start [label="进入参数循环"];
+    param_end -> handle_rparen;
+}

@@ -1,0 +1,42 @@
+
+digraph DeleteFileFlow {
+    node [shape=rectangle, fontname="Arial"];
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    set_flags [label="设置 create_options_flags\n根据 options.remove_dir"];
+    process_path [label="处理 sub_path_w\n生成 nt_name"];
+    check_dot [label="检查路径是否为 '.' 或 '..'"];
+    init_attr [label="初始化 OBJECT_ATTRIBUTES"];
+    nt_create [label="调用 NtCreateFile"];
+    handle_ntcreate_errors [label="处理 NtCreateFile 错误"];
+    defer_close [label="defer CloseHandle(tmp_handle)"];
+    check_win_version [label="系统版本 >= Win10 RS5?", shape=diamond];
+    try_ex_disposition [label="尝试 FileDispositionInformationEx"];
+    handle_ex_result [label="处理设置结果\n是否需要回退？", shape=diamond];
+    fallback [label="回退到 FileDispositionInformation"];
+    set_disposition [label="设置 FileDispositionInformation"];
+    handle_disposition_errors [label="处理设置错误"];
+    success [label="删除成功"];
+
+    start -> set_flags;
+    set_flags -> process_path;
+    process_path -> check_dot;
+    check_dot -> init_attr [label="路径正常"];
+    check_dot -> end [label="路径是 '..'\n返回 FileBusy"];
+    init_attr -> nt_create;
+    nt_create -> handle_ntcreate_errors;
+    handle_ntcreate_errors -> defer_close [label="成功"];
+    handle_ntcreate_errors -> end [label="返回错误"];
+    defer_close -> check_win_version;
+    check_win_version -> try_ex_disposition [label="是"];
+    check_win_version -> set_disposition [label="否"];
+    try_ex_disposition -> handle_ex_result;
+    handle_ex_result -> fallback [label="需要回退 (INVALID_PARAMETER)"];
+    handle_ex_result -> success [label="成功"];
+    handle_ex_result -> handle_disposition_errors [label="其他错误"];
+    fallback -> set_disposition;
+    set_disposition -> handle_disposition_errors;
+    handle_disposition_errors -> success [label="成功"];
+    handle_disposition_errors -> end [label="返回错误"];
+    success -> end;
+}

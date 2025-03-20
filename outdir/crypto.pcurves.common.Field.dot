@@ -1,0 +1,86 @@
+
+digraph FieldFunction {
+    node [shape=rectangle, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    // 主要结构节点
+    FieldFunction [label="Field(comptime params)"];
+    FeStruct [label="返回的Fe结构体"];
+    FieldFunction -> FeStruct;
+
+    // Fe结构体的主要方法
+    subgraph cluster_fe_methods {
+        label="Fe结构体方法";
+        fromBytes [label="fromBytes: 字节解码"];
+        toBytes [label="toBytes: 字节编码"];
+        add [label="add: 加法"];
+        sub [label="sub: 减法"];
+        mul [label="mul: 乘法"];
+        invert [label="invert: 求逆"];
+        sqrt [label="sqrt: 平方根"];
+        isSquare [label="isSquare: 判断平方剩余"];
+        pow [label="pow: 幂运算"];
+        equivalent [label="equivalent: 等价判断"];
+    }
+    FeStruct -> {fromBytes toBytes add sub mul invert sqrt isSquare pow equivalent};
+
+    // fromBytes详细流程
+    subgraph cluster_fromBytes {
+        label="fromBytes流程";
+        fb_start [label="开始"];
+        fb_endian [label="处理字节序"];
+        fb_reject [label="rejectNonCanonical"];
+        fb_convert [label="转换到Montgomery域"];
+        fb_return [label="返回Fe实例"];
+        fb_start -> fb_endian -> fb_reject -> fb_convert -> fb_return;
+    }
+    fromBytes -> cluster_fromBytes [lhead=cluster_fromBytes];
+
+    // invert方法详细流程
+    subgraph cluster_invert {
+        label="invert流程";
+        inv_start [label="开始"];
+        inv_init [label="初始化变量d, f, g, r, v"];
+        inv_loop [label="循环迭代"];
+        inv_divstep [label="调用divstep"];
+        inv_update [label="更新变量"];
+        inv_cond [label="处理剩余迭代"];
+        inv_precomp [label="计算precomp"];
+        inv_mul [label="乘法运算"];
+        inv_end [label="返回结果"];
+        inv_start -> inv_init -> inv_loop;
+        inv_loop -> inv_divstep -> inv_update -> inv_loop;
+        inv_loop -> inv_cond -> inv_precomp -> inv_mul -> inv_end;
+    }
+    invert -> cluster_invert [lhead=cluster_invert];
+
+    // sqrt方法条件分支
+    subgraph cluster_sqrt {
+        label="sqrt流程";
+        sqrt_start [label="开始"];
+        sqrt_check_order [label="检查field_order"];
+        sqrt_case1 [label="case1: NIST P-384"];
+        sqrt_case2 [label="case2: 其他曲线"];
+        sqrt_unchecked [label="调用uncheckedSqrt"];
+        sqrt_verify [label="验证结果"];
+        sqrt_error [label="返回错误"];
+        sqrt_end [label="返回结果"];
+        sqrt_start -> sqrt_check_order;
+        sqrt_check_order -> sqrt_case1 [label="特定值"];
+        sqrt_check_order -> sqrt_case2 [label="其他"];
+        sqrt_case1 -> sqrt_unchecked;
+        sqrt_case2 -> sqrt_unchecked;
+        sqrt_unchecked -> sqrt_verify;
+        sqrt_verify -> sqrt_end [label="验证通过"];
+        sqrt_verify -> sqrt_error [label="验证失败"];
+    }
+    sqrt -> cluster_sqrt [lhead=cluster_sqrt];
+
+    // 关键依赖关系
+    equivalent -> isZero;
+    pow -> sqn [label="多次平方"];
+    isSquare -> pow [label="计算Legendre符号"];
+    sqrt -> uncheckedSqrt [label="内部调用"];
+    invert -> mul [label="乘法运算"];
+    invert -> sq [label="平方运算"];
+}

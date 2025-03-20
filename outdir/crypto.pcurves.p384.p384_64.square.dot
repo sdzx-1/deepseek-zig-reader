@@ -1,0 +1,53 @@
+
+digraph {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 square 函数", shape=ellipse];
+    init_vars [label="初始化变量\nx1=arg1[1], x2=arg1[2], ..., x6=arg1[0]"];
+    multiply_phases [label="分阶段乘法运算", shape=box];
+    mulx_steps [label="执行 mulxU64 乘法\n(处理 x6 与 arg1[5..0] 的乘法)", shape=box];
+    addcarry_steps [label="执行 addcarryxU64 累加\n(处理进位链 x18->x15->x13...)", shape=box];
+    montgomery_reduction [label="Montgomery 约简\n(乘以 0x100000001 并模运算)", shape=box];
+    repeat_for_xi [label="对 x1, x2, x3, x4, x5 重复上述步骤", shape=diamond];
+    final_subtraction [label="最终减法处理\n(subborrowxU64 检查溢出)", shape=box];
+    cmovznz_adjust [label="条件移动调整结果\n(cmovznzU64 选择最终值)", shape=box];
+    output_result [label="写入输出 out1[0..5]", shape=box];
+    end [label="结束", shape=ellipse];
+
+    start -> init_vars;
+    init_vars -> multiply_phases;
+    multiply_phases -> mulx_steps;
+    mulx_steps -> addcarry_steps;
+    addcarry_steps -> montgomery_reduction;
+    montgomery_reduction -> repeat_for_xi;
+
+    repeat_for_xi -> multiply_phases [label="循环处理 x1..x5"];
+    repeat_for_xi -> final_subtraction [label="全部处理完成"];
+
+    final_subtraction -> cmovznz_adjust;
+    cmovznz_adjust -> output_result;
+    output_result -> end;
+
+    // 详细步骤子图（示例）
+    subgraph cluster_multiply {
+        label="乘法阶段示例";
+        mul_step1 [label="mulxU64(x7, x8, x6, arg1[5])"];
+        mul_step2 [label="mulxU64(x9, x10, x6, arg1[4])"];
+        mul_step3 [label="..."];
+        mul_step1 -> mul_step2 -> mul_step3;
+    }
+
+    // 进位链子图
+    subgraph cluster_addcarry {
+        label="进位加法链";
+        add1 [label="addcarryxU64(x19, x20, 0x0, x18, x15)"];
+        add2 [label="addcarryxU64(x21, x22, x20, x16, x13)"];
+        add3 [label="..."];
+        add1 -> add2 -> add3;
+    }
+
+    // 连接子图到主流程
+    multiply_phases -> mul_step1;
+    addcarry_steps -> add1;
+}

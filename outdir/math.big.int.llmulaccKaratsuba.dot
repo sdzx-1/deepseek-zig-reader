@@ -1,0 +1,43 @@
+
+digraph llmulaccKaratsuba {
+    node [shape=rectangle, fontname="Arial"];
+    start [label="开始 llmulaccKaratsuba"];
+    check_assert [label="断言: r.len >= a.len 且 a.len >= b.len"];
+    compute_split [label="计算分割点 split = b.len / 2"];
+    calc_limbs [label="计算 limbs_after_split = r.len - split\n limbs_after_split2 = r.len - 2*split"];
+    slice_a0_b0 [label="分割 a0 = a[0..split], b0 = b[0..split]"];
+    slice_a1_b1 [label="分割 a1 和 b1 为 a[split..] 和 b[split..]\n限制长度为 limbs_after_split"];
+    alloc_tmp [label="分配临时内存 tmp"];
+    compute_p2 [label="计算 p2 = a1 * b1\n累加到 r[split..] 和 r[split*2..]"];
+    compute_p0 [label="计算 p0 = a0 * b0\n累加到 r 和 r[split..]"];
+    check_p1_condition [label="检查 j0_sign * j1_sign 是否为 0？", shape=diamond];
+    handle_zero_p1 [label="p1 为零，跳过计算"];
+    compute_j0_j1 [label="计算 j0 = a0 - a1\n j1 = b1 - b0"];
+    check_signs [label="检查 j0_sign * j1_sign 符号", shape=diamond];
+    add_p1 [label="累加 p1 = j0 * j1 到 r[split..]"];
+    sub_p1 [label="减去 p1 = j0 * j1 到 r[split..]"];
+    free_tmp [label="释放临时内存 tmp"];
+    end [label="返回"];
+
+    start -> check_assert;
+    check_assert -> compute_split;
+    compute_split -> calc_limbs;
+    calc_limbs -> slice_a0_b0;
+    slice_a0_b0 -> slice_a1_b1;
+    slice_a1_b1 -> alloc_tmp;
+    alloc_tmp -> compute_p2;
+    compute_p2 -> compute_p0;
+    compute_p0 -> check_p1_condition;
+    
+    check_p1_condition -> handle_zero_p1 [label="是"];
+    check_p1_condition -> compute_j0_j1 [label="否"];
+    handle_zero_p1 -> free_tmp;
+    
+    compute_j0_j1 -> check_signs;
+    check_signs -> add_p1 [label="符号乘积为 1"];
+    check_signs -> sub_p1 [label="符号乘积为 -1"];
+    add_p1 -> free_tmp;
+    sub_p1 -> free_tmp;
+    
+    free_tmp -> end;
+}

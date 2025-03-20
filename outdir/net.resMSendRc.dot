@@ -1,0 +1,52 @@
+
+digraph resMSendRc {
+    node [shape=rectangle, style="rounded"];
+    start [label="Start"];
+    init_params [label="初始化参数\ntimeout, attempts"];
+    init_ns_list [label="初始化ns列表\n填充并检查协议族"];
+    create_socket [label="创建socket\n处理IPv6回退"];
+    socket_config [label="配置socket选项\n处理IPv4映射"];
+    bind_socket [label="绑定socket到本地地址"];
+    setup_poll [label="设置poll结构"];
+    outer_loop [label="主循环: 超时控制"];
+    check_retry_interval [label="达到重试间隔?"];
+    send_queries [label="发送所有未应答查询\n到所有名称服务器"];
+    poll_wait [label="等待poll事件\n计算等待时间"];
+    handle_response [label="接收响应"];
+    validate_response [label="验证响应有效性"];
+    match_query [label="匹配查询ID"];
+    process_rcode [label="处理响应码\n0/3: 接受, 2: 重试"];
+    update_answers [label="更新答案缓冲区\n调整next指针"];
+    check_completion [label="所有查询完成?"];
+    end [label="结束"];
+
+    start -> init_params;
+    init_params -> init_ns_list;
+    init_ns_list -> create_socket;
+    create_socket -> socket_config [label="IPv6环境"];
+    socket_config -> bind_socket;
+    bind_socket -> setup_poll;
+    setup_poll -> outer_loop;
+
+    outer_loop -> check_retry_interval;
+    check_retry_interval -> send_queries [label="是"];
+    check_retry_interval -> poll_wait [label="否"];
+    send_queries -> poll_wait;
+
+    poll_wait -> handle_response [label="有事件"];
+    poll_wait -> outer_loop [label="超时"];
+
+    handle_response -> validate_response [label="接收数据"];
+    validate_response -> outer_loop [label="无效"];
+    validate_response -> match_query [label="有效"];
+
+    match_query -> outer_loop [label="无匹配查询"];
+    match_query -> process_rcode [label="找到匹配"];
+
+    process_rcode -> update_answers [label="接受响应"];
+    process_rcode -> send_queries [label="需要重试"];
+
+    update_answers -> check_completion;
+    check_completion -> outer_loop [label="未完成"];
+    check_completion -> end [label="完成"];
+}

@@ -1,0 +1,57 @@
+
+digraph LinearFifo {
+    graph [rankdir=TB];
+    node [shape=rectangle];
+
+    // 入口点
+    LinearFifoFunction [label="LinearFifo(T, buffer_type)"];
+
+    // 分支类型
+    LinearFifoFunction -> BufferType;
+    BufferType [label="buffer_type分支"];
+    BufferType -> Static [label="Static"];
+    BufferType -> Slice [label="Slice"];
+    BufferType -> Dynamic [label="Dynamic"];
+
+    // 初始化方法
+    Static -> InitStatic [label="initStatic()"];
+    Slice -> InitSlice [label="initSlice(buf)"];
+    Dynamic -> InitDynamic [label="initDynamic(allocator)"];
+
+    // 核心操作
+    InitStatic -> Methods;
+    InitSlice -> Methods;
+    InitDynamic -> Methods;
+
+    Methods [label="核心方法"];
+    Methods -> Deinit [label="deinit()"];
+    Methods -> Read [label="read()/readItem()"];
+    Methods -> Write [label="write()/writeItem()"];
+    Methods -> Realign [label="realign()"];
+    Methods -> EnsureCapacity [label="ensureTotalCapacity()"];
+    Methods -> Shrink [label="shrink()"];
+    Methods -> Pump [label="pump()"];
+
+    // 方法间关系
+    EnsureCapacity -> Realign [label="调用"];
+    Write -> EnsureCapacity [label="依赖"];
+    Read -> Discard [label="调用"];
+    Pump -> Read [label="循环读取"];
+    Pump -> Write [label="循环写入"];
+
+    // 错误处理
+    EnsureCapacity -> ErrorHandling [label="可能返回OutOfMemory"];
+    Write -> ErrorHandling [label="可能返回OutOfMemory"];
+    ErrorHandling [shape=diamond, label="错误处理"];
+
+    // 内存管理
+    Deinit -> FreeMemory [label="释放动态内存"];
+    Shrink -> ReallocMemory [label="调整容量"];
+    Realign -> CopyData [label="数据对齐"];
+
+    // 辅助节点
+    CopyData [label="内存拷贝"];
+    FreeMemory [label="释放内存"];
+    ReallocMemory [label="重新分配内存"];
+    Discard [label="discard()"];
+}

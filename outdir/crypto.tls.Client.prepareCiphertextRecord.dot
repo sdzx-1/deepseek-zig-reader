@@ -1,0 +1,64 @@
+
+digraph prepareCiphertextRecord {
+    node [shape=rectangle];
+    start [label="开始 prepareCiphertextRecord"];
+    init_vars [label="初始化变量：cleartext_buf, ciphertext_end, iovec_end, bytes_i"];
+    switch_cipher [label="根据 application_cipher 和 tls_version 选择分支"];
+    tls13 [label="TLS 1.3 处理分支"];
+    tls12 [label="TLS 1.2 处理分支"];
+    loop_start [label="进入循环处理数据块"];
+    calc_length [label="计算加密内容长度（encrypted_content_len/message_len）"];
+    check_zero [label="长度是否为0？", shape=diamond];
+    return [label="返回结果：iovec_end, ciphertext_end, overhead_len"];
+    copy_data [label="拷贝数据到 cleartext_buf"];
+    add_inner_type [label="TLS 1.3：追加 inner_content_type 字节"];
+    build_header [label="构造记录头（AD）"];
+    generate_nonce [label="生成 Nonce"];
+    encrypt_data [label="执行 AEAD 加密"];
+    update_seq [label="递增 write_seq"];
+    update_buffers [label="更新 ciphertext_end 和 iovec_end"];
+    add_to_iovec [label="将加密记录添加到 iovecs"];
+    loop_cond [label="继续循环", shape=diamond];
+
+    start -> init_vars;
+    init_vars -> switch_cipher;
+    switch_cipher -> tls13 [label="tls_1_3"];
+    switch_cipher -> tls12 [label="tls_1_2"];
+
+    subgraph cluster_tls13 {
+        label="TLS 1.3 流程";
+        tls13 -> loop_start;
+        loop_start -> calc_length;
+        calc_length -> check_zero;
+        check_zero -> return [label="是"];
+        check_zero -> copy_data [label="否"];
+        copy_data -> add_inner_type;
+        add_inner_type -> build_header;
+        build_header -> generate_nonce;
+        generate_nonce -> encrypt_data;
+        encrypt_data -> update_seq;
+        update_seq -> update_buffers;
+        update_buffers -> add_to_iovec;
+        add_to_iovec -> loop_cond;
+        loop_cond -> loop_start [label="继续"];
+    }
+
+    subgraph cluster_tls12 {
+        label="TLS 1.2 流程";
+        tls12 -> loop_start;
+        loop_start -> calc_length;
+        calc_length -> check_zero;
+        check_zero -> return [label="是"];
+        check_zero -> copy_data [label="否"];
+        copy_data -> build_header;
+        build_header -> generate_nonce;
+        generate_nonce -> encrypt_data;
+        encrypt_data -> update_seq;
+        update_seq -> update_buffers;
+        update_buffers -> add_to_iovec;
+        add_to_iovec -> loop_cond;
+        loop_cond -> loop_start [label="继续"];
+    }
+
+    return [shape=oval];
+}

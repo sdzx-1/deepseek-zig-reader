@@ -1,0 +1,41 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始"];
+    init [label="初始化\n设置运行时安全检查为Debug模式"];
+    process_arg1_0 [label="处理arg1[0]\n- mulxU64乘法\n- addcarryxU64处理进位"];
+    process_arg1_1 [label="处理arg1[1]\n- mulxU64乘法\n- addcarryxU64处理进位"];
+    process_arg1_2 [label="处理arg1[2]\n- mulxU64乘法\n- addcarryxU64处理进位"];
+    process_arg1_3 [label="处理arg1[3]\n- mulxU64乘法\n- addcarryxU64处理进位"];
+    process_arg1_4 [label="处理arg1[4]\n- mulxU64乘法\n- addcarryxU64处理进位"];
+    process_arg1_5 [label="处理arg1[5]\n- mulxU64乘法\n- addcarryxU64处理进位"];
+    subtract_borrow [label="减法处理\n- subborrowxU64逐位减法\n- 处理借位"];
+    conditional_select [label="条件选择\n- cmovznzU64根据借位选择结果"];
+    output [label="输出结果\n存储到out1数组"];
+    end [label="结束"];
+
+    start -> init;
+    init -> process_arg1_0;
+    process_arg1_0 -> process_arg1_1;
+    process_arg1_1 -> process_arg1_2;
+    process_arg1_2 -> process_arg1_3;
+    process_arg1_3 -> process_arg1_4;
+    process_arg1_4 -> process_arg1_5;
+    process_arg1_5 -> subtract_borrow;
+    subtract_borrow -> conditional_select;
+    conditional_select -> output;
+    output -> end;
+
+    // 内部结构示例（以process_arg1_0为例）
+    subgraph cluster_arg1_0 {
+        label="处理arg1[0]的详细步骤";
+        style="dashed";
+        mul1 [label="mulxU64计算x2, x3"];
+        addcarry1 [label="addcarryxU64处理x4-x17"];
+        addcarry2 [label="addcarryxU64处理x18-x25"];
+        addcarry3 [label="addcarryxU64处理x26-x39"];
+        mul1 -> addcarry1 -> addcarry2 -> addcarry3;
+    }
+}

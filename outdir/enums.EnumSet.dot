@@ -1,0 +1,108 @@
+
+digraph EnumSet {
+    rankdir="TB";
+    node [shape=rectangle, style=rounded];
+
+    // 结构定义
+    subgraph cluster_struct {
+        label="EnumSet 结构";
+        style=filled;
+        color=lightgrey;
+
+        struct [label="结构体定义\n(Self)"];
+        Indexer [label="Indexer: EnumIndexer(E)"];
+        Key [label="Key: Indexer.Key"];
+        BitSet [label="BitSet: std.StaticBitSet"];
+        len [label="len = Indexer.count"];
+        bits [label="bits: BitSet"];
+
+        struct -> {Indexer, Key, BitSet, len, bits};
+    }
+
+    // 初始化方法
+    subgraph cluster_init {
+        label="初始化方法";
+        init [label="init(init_values)"];
+        initEmpty [label="initEmpty()"];
+        initFull [label="initFull()"];
+        initMany [label="initMany(keys)"];
+        initOne [label="initOne(key)"];
+
+        init -> {inline for, 条件分支};
+        initMany -> insert [label="遍历插入"];
+        initOne -> initMany [label="包装调用"];
+    }
+
+    // 基本操作
+    subgraph cluster_ops {
+        label="基本操作";
+        contains [label="contains(key)"];
+        insert_op [label="insert(key)"];
+        remove [label="remove(key)"];
+        setPresent [label="setPresent(key, present)"];
+        toggle [label="toggle(key)"];
+        toggleSet [label="toggleSet(other)"];
+        toggleAll [label="toggleAll()"];
+
+        insert_op -> bits.set;
+        remove -> bits.unset;
+        setPresent -> bits.setValue;
+        toggle -> bits.toggle;
+        toggleSet -> bits.toggleSet;
+        toggleAll -> bits.toggleAll;
+    }
+
+    // 集合运算
+    subgraph cluster_operations {
+        label="集合运算";
+        setUnion [label="setUnion(other)"];
+        setIntersection [label="setIntersection(other)"];
+        eql [label="eql(other)"];
+        subsetOf [label="subsetOf(other)"];
+        supersetOf [label="supersetOf(other)"];
+        complement [label="complement()"];
+        unionWith [label="unionWith(other)"];
+        intersectWith [label="intersectWith(other)"];
+        xorWith [label="xorWith(other)"];
+        differenceWith [label="differenceWith(other)"];
+
+        setUnion -> bits.setUnion;
+        setIntersection -> bits.setIntersection;
+        eql -> bits.eql;
+        subsetOf -> bits.subsetOf;
+        supersetOf -> bits.supersetOf;
+        complement -> bits.complement;
+        unionWith -> bits.unionWith;
+        intersectWith -> bits.intersectWith;
+        xorWith -> bits.xorWith;
+        differenceWith -> bits.differenceWith;
+    }
+
+    // 迭代器
+    subgraph cluster_iterator {
+        label="迭代器";
+        iterator [label="iterator()"];
+        Iterator_struct [label="Iterator 结构"];
+        next [label="next()"];
+
+        iterator -> Iterator_struct;
+        Iterator_struct -> next;
+        next -> bits.iterator.next;
+    }
+
+    // 结构关系
+    struct -> {init, initEmpty, initFull, initMany, initOne};
+    struct -> {contains, insert_op, remove, setPresent, toggle};
+    struct -> {setUnion, setIntersection, eql, subsetOf, supersetOf};
+    struct -> {complement, unionWith, intersectWith, xorWith, differenceWith};
+    struct -> iterator;
+
+    // 条件分支逻辑
+    condition [label="枚举是否穷举?", shape=diamond];
+    inline_for_exhaustive [label="遍历所有索引"];
+    inline_for_non_exhaustive [label="遍历枚举字段"];
+
+    init -> condition;
+    condition -> inline_for_exhaustive [label="是"];
+    condition -> inline_for_non_exhaustive [label="否"];
+}

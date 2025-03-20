@@ -1,0 +1,59 @@
+
+digraph orelseCatchExpr {
+    node [shape=rectangle, style=filled, fillcolor=lightblue];
+    start [label="开始 orelseCatchExpr"];
+    end [label="返回 block.toRef() 或 rvalue"];
+    
+    subgraph cluster_main {
+        label="主流程";
+        init [label="初始化 astgen, tree"];
+        block_scope_setup [label="创建 block_scope 并配置 break_result_info"];
+        operand_cond [label="生成 operand 和 cond\n添加 condbr 指令"];
+        create_block [label="创建 block 指令并添加到父块"];
+        
+        start -> init -> block_scope_setup -> operand_cond -> create_block;
+    }
+    
+    subgraph cluster_then {
+        label="Then 分支";
+        then_start [label="进入 then_scope"];
+        unwrapped_payload [label="生成 unwrapped_payload"];
+        then_result [label="根据 ri.rl 生成 then_result"];
+        then_break [label="添加 break 到 block"];
+        
+        then_start -> unwrapped_payload -> then_result -> then_break;
+    }
+    
+    subgraph cluster_else {
+        label="Else 分支";
+        else_start [label="进入 else_scope"];
+        check_err_trace [label="检查是否需要保存错误追踪"];
+        handle_payload [label="处理 payload_token\n（错误捕获检查）"];
+        else_result [label="生成 else_result"];
+        else_break [label="添加 break 到 block（若非 noreturn）"];
+        
+        else_start -> check_err_trace -> handle_payload -> else_result -> else_break;
+    }
+    
+    subgraph cluster_merge {
+        label="合并处理";
+        set_condbr [label="设置 condbr 的 then/else 分支"];
+        check_rvalue [label="检查 need_result_rvalue"];
+        return [label="返回 block.toRef() 或调用 rvalue"];
+        
+        set_condbr -> check_rvalue -> return;
+    }
+    
+    create_block -> then_start [label="cond=true"];
+    create_block -> else_start [label="cond=false"];
+    then_break -> set_condbr;
+    else_break -> set_condbr;
+    check_rvalue -> end [label="need_result_rvalue=true\n调用 rvalue"];
+    check_rvalue -> end [label="need_result_rvalue=false\n直接返回"];
+    
+    edge [style=dashed];
+    operand_cond -> then_start [label="条件跳转"];
+    operand_cond -> else_start [label="条件跳转"];
+    handle_payload -> astgen_error [label="payload 为 _ 时报错"];
+    astgen_error [label="向 astgen 添加错误", fillcolor=pink];
+}

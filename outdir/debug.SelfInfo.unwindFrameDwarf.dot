@@ -1,0 +1,59 @@
+
+digraph unwindFrameDwarf {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    check_unwind [label="检查是否支持unwinding"];
+    check_pc [label="检查context.pc是否为0"];
+    explicit_fde [label="是否有explicit_fde_offset?"];
+    read_fde_cie [label="从指定FDE偏移读取FDE和CIE"];
+    eh_frame_hdr [label="尝试从.eh_frame_hdr查找"];
+    scan_cie_fde [label="扫描并构建CIE/FDE列表"];
+    binary_search [label="二分查找FDE"];
+    parse_cie_fde [label="解析CIE和FDE"];
+    setup_expr [label="初始化表达式上下文"];
+    run_vm [label="运行虚拟机到本机代码"];
+    resolve_cfa [label="解析CFA规则"];
+    update_registers [label="准备寄存器更新"];
+    copy_updates [label="应用寄存器更新"];
+    handle_return [label="处理返回地址"];
+    adjust_pc [label="调整PC值"];
+    return_ra [label="返回return_address"];
+
+    error_unsupported [label="返回错误: UnsupportedCpuArchitecture", shape=diamond];
+    error_missing_fde [label="返回错误: MissingFDE", shape=diamond];
+    error_other [label="返回其他错误", shape=diamond];
+    return_zero [label="返回0"];
+
+    start -> check_unwind;
+    check_unwind -> error_unsupported [label="不支持"];
+    check_unwind -> check_pc [label="支持"];
+    check_pc -> return_zero [label="pc=0"];
+    check_pc -> explicit_fde [label="pc≠0"];
+    
+    explicit_fde -> read_fde_cie [label="存在"];
+    explicit_fde -> eh_frame_hdr [label="不存在"];
+    
+    read_fde_cie -> error_missing_fde [label="FDE无效"];
+    read_fde_cie -> parse_cie_fde [label="成功"];
+    
+    eh_frame_hdr -> scan_cie_fde [label="查找失败"];
+    eh_frame_hdr -> parse_cie_fde [label="查找成功"];
+    eh_frame_hdr -> error_other [label="其他错误"];
+    
+    scan_cie_fde -> binary_search;
+    binary_search -> error_missing_fde [label="未找到"];
+    binary_search -> parse_cie_fde [label="找到"];
+    
+    parse_cie_fde -> setup_expr;
+    setup_expr -> run_vm;
+    run_vm -> resolve_cfa;
+    resolve_cfa -> update_registers;
+    update_registers -> copy_updates [label="准备更新"];
+    copy_updates -> handle_return [label="循环应用"];
+    handle_return -> adjust_pc;
+    adjust_pc -> return_ra;
+    
+    resolve_cfa -> error_other [label="CFA规则无效"];
+    run_vm -> error_other [label="运行失败"];
+}

@@ -1,0 +1,75 @@
+
+digraph DebugAllocatorFlow {
+    graph [rankdir=TB, fontname="Arial", bgcolor="#f0f0f0"];
+    node [shape=rectangle, style="rounded,filled", fillcolor="#e8e8e8", fontname="Arial"];
+
+    start [label="开始", shape=ellipse, fillcolor="#4CAF50"];
+    end [label="结束", shape=ellipse, fillcolor="#FF5252"];
+
+    subgraph cluster_init {
+        label="初始化阶段";
+        init_config [label="解析Config参数\n(page_size, thread_safe等)"];
+        init_buckets [label="初始化buckets数组\n(size_class计算)"];
+        init_mutex [label="初始化互斥锁\n(根据配置选择真实锁或DummyMutex)"];
+    }
+
+    subgraph cluster_alloc {
+        label="内存分配(alloc)";
+        check_memory_limit [label="检查内存限制\n(config.enable_memory_limit?)"];
+        determine_size_class [label="确定size_class\n(基于请求大小和对齐)"];
+        alloc_large [label="大内存分配\n(使用backing_allocator)"];
+        alloc_small [label="小内存分配\n(从buckets中选择空闲slot)"];
+        update_metadata [label="更新元数据\n(记录栈跟踪/对齐信息)"];
+    }
+
+    subgraph cluster_free {
+        label="内存释放(free)";
+        validate_ptr [label="验证指针有效性\n(检查canary值)"];
+        update_bitmap [label="更新used_bits位图"];
+        check_bucket_reuse [label="检查bucket是否可重用\n(freed_count == allocated_count?)"];
+        free_backing [label="释放物理内存\n(config.never_unmap?)"];
+    }
+
+    subgraph cluster_leak_check {
+        label="内存泄漏检测";
+        scan_buckets [label="扫描所有buckets\n(遍历used_bits)"];
+        scan_large_allocs [label="扫描大内存分配表\n(检查未释放条目)"];
+        generate_report [label="生成泄漏报告\n(带栈跟踪信息)"];
+    }
+
+    subgraph cluster_resize {
+        label="内存调整(resize/remap)";
+        check_size_class [label="检查新旧size_class\n(是否跨大小类别)"];
+        handle_inplace [label="原地调整\n(更新元数据)"];
+        handle_relocation [label="重新分配\n(可能需要数据迁移)"];
+    }
+
+    start -> init_config;
+    init_config -> init_buckets -> init_mutex;
+
+    init_mutex -> alloc -> check_memory_limit;
+    check_memory_limit -> determine_size_class;
+    determine_size_class -> alloc_large [label="size_class >= threshold"];
+    determine_size_class -> alloc_small [label="size_class < threshold"];
+    alloc_large -> update_metadata;
+    alloc_small -> update_metadata;
+    update_metadata -> end;
+
+    free -> validate_ptr;
+    validate_ptr -> update_bitmap -> check_bucket_reuse;
+    check_bucket_reuse -> free_backing [label="完全空闲"];
+    free_backing -> end;
+
+    leak_check -> scan_buckets -> scan_large_allocs -> generate_report -> end;
+
+    resize -> check_size_class;
+    check_size_class -> handle_inplace [label="同size_class"];
+    check_size_class -> handle_relocation [label="不同size_class"];
+    handle_inplace -> end;
+    handle_relocation -> end;
+
+    // 跨子图连接
+    alloc -> free [style=invis];
+    free -> resize [style=invis];
+    resize -> leak_check [style=invis];
+}

@@ -1,0 +1,36 @@
+
+digraph GetDynamicSymbolFlowchart {
+    graph [fontname="Arial", fontsize="12", labelloc="t", labeljust="l", rankdir="TB"];
+    node [shape="rectangle", style="rounded", fontname="Arial", fontsize="10"];
+    edge [fontname="Arial", fontsize="10"];
+
+    start [label="开始 getDynamicSymbol()", shape="ellipse"];
+    switch_arch [label="switch (builtin.cpu.arch)", shape="diamond"];
+    return_x86 [label="x86:\n嵌入x86特定汇编\n设置返回指针"];
+    return_x64 [label="x86_64:\n嵌入x64 RIP相对寻址\n设置返回指针"];
+    return_arm [label="ARM系列:\nLDR+ADD指令绕过偏移限制\n设置返回指针"];
+    return_aarch64 [label="AArch64:\nADRP+ADD指令组合\n设置返回指针"];
+    return_csky [label="CSKY:\n通过gb寄存器获取GOT首项\n设置返回指针"];
+    other_arch [label="其他架构分支\n(共15个处理分支)"];
+    compile_error [label="@compileError\n(PIE不支持此目标)", shape="octagon"];
+    return_result [label="返回[*]elf.Dyn指针", shape="ellipse"];
+
+    start -> switch_arch;
+    switch_arch -> return_x86 [label=".x86"];
+    switch_arch -> return_x64 [label=".x86_64"];
+    switch_arch -> return_arm [label=".arm/.thumb等"];
+    switch_arch -> return_aarch64 [label=".aarch64"];
+    switch_arch -> return_csky [label=".csky"];
+    switch_arch -> other_arch [label="其他支持架构"];
+    switch_arch -> compile_error [label="else"];
+
+    return_x86 -> return_result;
+    return_x64 -> return_result;
+    return_arm -> return_result;
+    return_aarch64 -> return_result;
+    return_csky -> return_result;
+    other_arch -> return_result [label="每个架构对应\n特定汇编实现"];
+    
+    edge [style="invis"];
+    {rank=same; return_result compile_error}
+}

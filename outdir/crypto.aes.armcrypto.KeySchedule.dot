@@ -1,0 +1,38 @@
+
+digraph KeySchedule {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=box];
+    edge [fontname="Arial"];
+
+    start [label="KeySchedule 函数入口", shape=ellipse];
+    check_rounds [label="检查Aes.rounds == 10 或 14", shape=diamond];
+    expand128 [label="调用expand128生成128位密钥"];
+    expand256 [label="调用expand256生成256位密钥"];
+    drc128_call [label="drc128 轮函数"];
+    drc256_call [label="drc256 轮函数"];
+    invert_method [label="invert 方法反转轮密钥"];
+    end [label="返回生成的密钥结构体", shape=ellipse];
+
+    start -> check_rounds;
+    
+    check_rounds -> expand128 [label="Aes.rounds == 10"];
+    check_rounds -> expand256 [label="Aes.rounds == 14"];
+    
+    expand128 -> drc128_call [label="循环处理rcs数组"];
+    expand256 -> drc256_call [label="双重循环处理rcs数组"];
+    
+    drc128_call -> end [label="生成11轮密钥"];
+    drc256_call -> end [label="生成15轮密钥"];
+    
+    invert_method -> end [label="反转轮密钥顺序"];
+    
+    subgraph cluster_invert {
+        label="invert 方法逻辑";
+        invert_entry [label="取最后一轮密钥作为第一轮"];
+        aesimc_loop [label="循环应用aesimc指令逆向中间轮"];
+        invert_exit [label="取第一轮密钥作为最后一轮"];
+        invert_entry -> aesimc_loop -> invert_exit;
+    }
+    
+    end -> invert_method [label="可选调用", style=dashed];
+}

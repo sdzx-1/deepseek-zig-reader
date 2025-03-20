@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=ellipse, style=filled, color=lightblue]; start end;
+    node [shape=rectangle, style=rounded];
+    node [shape=diamond, color=orange];
+
+    start -> extract_astgen_gpa;
+    extract_astgen_gpa [label="Extract astgen and gpa from args.value_gz"];
+    extract_astgen_gpa -> compute_body_lengths;
+
+    compute_body_lengths [label="Compute type_body, align_body,\nlinksection_body, addrspace_body,\nvalue_body lengths"];
+    compute_body_lengths -> check_flags;
+
+    check_flags [label="Check has_name, has_lib_name,\nhas_type_body, has_special_body,\nhas_value_body"];
+    check_flags -> determine_id;
+
+    determine_id [label="Determine 'id' based on\nargs.kind, args.linkage,\nand other flags"];
+    determine_id -> assert_checks;
+
+    assert_checks [label="Assertions to validate\nid properties"];
+    assert_checks -> calculate_body_lens;
+
+    calculate_body_lens [label="Calculate type_len, align_len,\nlinksection_len, addrspace_len,\nvalue_len"];
+    calculate_body_lens -> prepare_flags;
+
+    prepare_flags [label="Convert src_hash and flags\ninto arrays"];
+    prepare_flags -> compute_need_extra;
+
+    compute_need_extra [label="Calculate required extra\nspace capacity"];
+    compute_need_extra -> ensure_capacity;
+
+    ensure_capacity [label="Ensure astgen.extra has\nsufficient capacity"];
+    ensure_capacity -> add_extra_data;
+
+    add_extra_data [label="Add src_hash and flags\nto astgen.extra"];
+    add_extra_data -> conditional_appends;
+
+    conditional_appends [shape=diamond, label="Append name, lib_name,\ntype/special/value bodies\nbased on 'id' flags"];
+    conditional_appends -> append_bodies;
+
+    append_bodies [label="Append all body fragments\nto astgen with fixups"];
+    append_bodies -> unstack_gz;
+
+    unstack_gz [label="Unstack value_gz, addrspace_gz,\nlinksection_gz, align_gz, type_gz"];
+    unstack_gz -> end;
+
+    start [label="Start"];
+    end [label="End"];
+}

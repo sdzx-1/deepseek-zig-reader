@@ -1,0 +1,53 @@
+
+digraph G {
+    node [shape=rectangle, fontname="Arial", style="filled", fillcolor="lightgrey"];
+    edge [arrowhead=vee];
+
+    start [label="开始: ArrayBitSet(MaskIntType, size)"];
+    check_int [label="检查 MaskIntType 是否为整数类型"];
+    check_unsigned [label="检查 MaskIntType 是否为无符号"];
+    check_u0 [label="检查 MaskIntType 是否为 u0"];
+    check_power_of_two [label="检查 MaskIntType 的位数是否是2的幂"];
+    check_padding [label="检查 MaskIntType 是否有填充位"];
+    calculate_constants [label="计算常量: mask_len, num_masks, last_pad_bits, last_item_mask"];
+    return_struct [label="返回 extern struct 类型定义"];
+    error_compile [label="抛出编译错误", fillcolor="pink"];
+
+    start -> check_int;
+    check_int -> check_unsigned [label="是整数"];
+    check_int -> error_compile [label="不是整数"];
+
+    check_unsigned -> check_u0 [label="是无符号"];
+    check_unsigned -> error_compile [label="有符号"];
+
+    check_u0 -> check_power_of_two [label="不是 u0"];
+    check_u0 -> error_compile [label="是 u0"];
+
+    check_power_of_two -> check_padding [label="是2的幂"];
+    check_power_of_two -> error_compile [label="不是2的幂"];
+
+    check_padding -> calculate_constants [label="无填充位"];
+    check_padding -> error_compile [label="有填充位"];
+
+    calculate_constants -> return_struct;
+
+    // 结构体方法示意节点（简化表示）
+    subgraph cluster_struct {
+        label="extern struct 包含的方法";
+        style="dashed";
+        node [shape=note];
+
+        initEmpty [label="initEmpty()"];
+        initFull [label="initFull()"];
+        isSet [label="isSet(index)"];
+        count [label="count()"];
+        setValue [label="setValue(index, value)"];
+        setRangeValue [label="setRangeValue(range, value)"];
+        unset [label="unset(index)"];
+        toggle [label="toggle(index)"];
+        findFirstSet [label="findFirstSet()"];
+        // 其他方法省略...
+    }
+
+    return_struct -> initEmpty [style="invis"];
+}

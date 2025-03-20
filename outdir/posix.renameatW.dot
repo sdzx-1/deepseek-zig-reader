@@ -1,0 +1,36 @@
+
+digraph renameatW_flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="函数入口 renameatW"];
+    open_old_file [label="调用 windows.OpenFile 打开旧文件\n获取 src_fd"];
+    check_win_version [label="检查系统版本 >= Win10 RS5?", shape=diamond];
+    try_rename_ex [label="构造 FILE_RENAME_INFORMATION_EX\n设置标志位并调用 NtSetInformationFile"];
+    rename_ex_success [label="重命名成功", shape=ellipse];
+    invalid_param [label="返回 INVALID_PARAMETER?", shape=diamond];
+    handle_other_errors [label="处理其他错误状态"];
+    fallback [label="回退到 FILE_RENAME_INFORMATION\n构造结构体并调用 NtSetInformationFile"];
+    process_final_status [label="根据返回状态码处理错误"];
+    end [label="函数返回", shape=ellipse];
+
+    start -> open_old_file;
+    open_old_file -> check_win_version;
+    
+    check_win_version -> try_rename_ex [label="是"];
+    check_win_version -> fallback [label="否"];
+    
+    try_rename_ex -> invalid_param;
+    invalid_param -> rename_ex_success [label="SUCCESS"];
+    invalid_param -> handle_other_errors [label="其他错误"];
+    invalid_param -> fallback [label="INVALID_PARAMETER"];
+    
+    handle_other_errors -> process_final_status;
+    fallback -> process_final_status;
+    
+    process_final_status -> end [label="根据状态码返回对应错误或成功"];
+    
+    // 错误处理连接
+    open_old_file -> end [label="打开失败时直接返回错误"];
+    rename_ex_success -> end;
+}

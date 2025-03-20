@@ -1,0 +1,58 @@
+
+digraph renderExpression {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 renderExpression"];
+    check_replace_string [label="检查 replace_nodes_with_string"];
+    check_replace_node [label="检查 replace_nodes_with_node"];
+    switch_node_tag [label="根据 nodeTag 分支"];
+    end [label="返回/结束"];
+
+    // 替换逻辑
+    start -> check_replace_string;
+    check_replace_string -> check_replace_node [label="未找到替换"];
+    check_replace_string -> write_replacement [label="找到字符串替换"];
+    write_replacement -> render_space [label="写入替换内容"];
+    render_space -> end;
+
+    check_replace_node -> switch_node_tag [label="未找到替换"];
+    check_replace_node -> recursive_call [label="找到节点替换"];
+    recursive_call -> end [label="递归调用 renderExpression"];
+
+    // 主要 switch 分支
+    switch_node_tag -> identifier [label=".identifier"];
+    switch_node_tag -> literals [label="数字/字符/字符串等字面量"];
+    switch_node_tag -> multiline_string [label=".multiline_string_literal"];
+    switch_node_tag -> error_value [label=".error_value"];
+    switch_node_tag -> block [label=".block_*"];
+    switch_node_tag -> errdefer [label=".errdefer"];
+    switch_node_tag -> control_keywords [label="defer/comptime等"];
+    switch_node_tag -> catch [label=".catch"];
+    switch_node_tag -> field_access [label=".field_access"];
+    switch_node_tag -> binops [label="二元操作符"];
+    switch_node_tag -> assign [label="赋值操作"];
+    switch_node_tag -> other_cases [label="其他 50+ 分支..."];
+
+    // 示例子流程（部分展示）
+    multiline_string -> handle_tokens [label="处理多行字符串"];
+    handle_tokens -> dedent_check [label="处理缩进"];
+    dedent_check -> space_handling [label="根据 space 参数处理后续符号"];
+
+    binops -> render_lhs [label="渲染左操作数"];
+    render_lhs -> handle_op_token [label="处理操作符"];
+    handle_op_token -> render_rhs [label="渲染右操作数"];
+    render_rhs -> end;
+
+    // 通用连接
+    identifier -> end [label="渲染标识符"];
+    literals -> end [label="直接渲染 Token"];
+    block -> end [label="渲染代码块"];
+    other_cases -> end [label="各自的具体逻辑"];
+
+    // 注释说明
+    subgraph cluster_note {
+        label="注：实际包含 60+ 分支";
+        style=dashed;
+        note [label="完整流程图需覆盖所有 AST 节点类型\n包括 if/while/for/switch 等控制流", shape=note];
+    }
+}

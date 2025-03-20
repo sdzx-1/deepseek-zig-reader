@@ -1,0 +1,57 @@
+
+digraph ChaCha20Flow {
+    node [shape=rectangle, style=rounded];
+
+    // 主要函数节点
+    ChaChaNonVecImpl [label="ChaChaNonVecImpl(rounds_nb)"];
+    initContext [label="initContext(key, d)"];
+    chacha20Core [label="chacha20Core(x, input)"];
+    hashToBytes [label="hashToBytes(out, x)"];
+    contextFeedback [label="contextFeedback(x, ctx)"];
+    chacha20Xor [label="chacha20Xor(out, in, key, nonce_and_counter, count64)"];
+    chacha20Stream [label="chacha20Stream(out, key, nonce_and_counter, count64)"];
+    hchacha20 [label="hchacha20(input, key)"];
+    QuarterRound [label="QuarterRound struct"];
+    Rp [label="Rp(a, b, c, d)"];
+
+    // 函数调用关系
+    ChaChaNonVecImpl -> {initContext, chacha20Core, hashToBytes, contextFeedback, chacha20Xor, chacha20Stream, hchacha20, QuarterRound, Rp};
+    
+    chacha20Xor -> initContext;
+    chacha20Xor -> chacha20Core [label="循环处理64字节块"];
+    chacha20Xor -> contextFeedback;
+    chacha20Xor -> hashToBytes;
+    chacha20Xor -> count64_branch [label="count64?"];
+    
+    count64_branch [shape=diamond, label="count64=true?"];
+    count64_branch -> ctx_update_64 [label="Yes"];
+    count64_branch -> ctx_update_32 [label="No"];
+    
+    ctx_update_64 [label="更新ctx[12]和ctx[13]"];
+    ctx_update_32 [label="更新ctx[12]"];
+
+    chacha20Stream -> initContext;
+    chacha20Stream -> chacha20Core [label="循环生成64字节块"];
+    chacha20Stream -> contextFeedback;
+    chacha20Stream -> hashToBytes;
+    chacha20Stream -> count64_branch_stream [label="count64?"];
+    
+    count64_branch_stream [shape=diamond, label="count64=true?"];
+    count64_branch_stream -> ctx_update_64_stream [label="Yes"];
+    count64_branch_stream -> ctx_update_32_stream [label="No"];
+    
+    hchacha20 -> initContext;
+    hchacha20 -> chacha20Core;
+    hchacha20 -> hashToBytes [label="提取中间结果"];
+
+    chacha20Core -> Rp [label="定义轮结构"];
+    chacha20Core -> math_rotl [label="循环移位操作"];
+    chacha20Core -> rounds_loop [label="执行rounds_nb次迭代"];
+    
+    rounds_loop [label="for循环处理每轮运算"];
+    math_rotl [label="math.rotl()"];
+
+    // 隐藏技术节点（保持布局整洁）
+    {rank=same; count64_branch; ctx_update_64; ctx_update_32}
+    {rank=same; count64_branch_stream; ctx_update_64_stream; ctx_update_32_stream}
+}

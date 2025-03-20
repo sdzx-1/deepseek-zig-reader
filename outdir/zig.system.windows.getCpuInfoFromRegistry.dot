@@ -1,0 +1,50 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始getCpuInfoFromRegistry"];
+    check_args_type [label="检查参数类型是否为结构体/元组"];
+    compile_error [label="抛出编译错误", shape=oval];
+    build_subkey [label="构建注册表子键路径\n(如CPU0)"];
+    init_table [label="初始化注册表查询表"];
+    process_fields [label="遍历参数结构字段"];
+    handle_strings [label="处理字符串类型\n(UNICODE_STRING初始化)"];
+    handle_dwords [label="处理DWORD/QWORD类型\n(缓冲区准备)"];
+    fill_table [label="填充查询表条目"];
+    set_sentinel [label="设置查询表结束标记"];
+    call_rtlquery [label="调用RtlQueryRegistryValues"];
+    success_check [label="检查返回状态"];
+    process_results [label="处理查询结果"];
+    string_processing [label="转换UTF16到UTF8"];
+    dword_processing [label="复制DWORD/QWORD数据"];
+    error_handling [label="返回错误", shape=oval];
+    end [label="返回成功"];
+
+    start -> check_args_type;
+    check_args_type -> compile_error [label="类型不符"];
+    check_args_type -> build_subkey [label="类型正确"];
+    build_subkey -> init_table;
+    init_table -> process_fields;
+    
+    process_fields -> handle_strings [label="字段类型为\nSZ/EXPAND_SZ/MULTI_SZ"];
+    process_fields -> handle_dwords [label="字段类型为\nDWORD/QWORD"];
+    
+    handle_strings -> fill_table;
+    handle_dwords -> fill_table;
+    fill_table -> process_fields [label="继续下一个字段"];
+    
+    process_fields -> set_sentinel [label="所有字段处理完毕"];
+    set_sentinel -> call_rtlquery;
+    call_rtlquery -> success_check;
+    
+    success_check -> error_handling [label="非SUCCESS状态"];
+    success_check -> process_results [label="SUCCESS"];
+    
+    process_results -> string_processing [label="字符串类型字段"];
+    process_results -> dword_processing [label="DWORD/QWORD字段"];
+    
+    string_processing -> end;
+    dword_processing -> end;
+    error_handling -> end;
+}

@@ -1,0 +1,65 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始处理 continueExpr"];
+    get_data [label="获取节点数据 opt_break_label 和 opt_rhs"];
+    check_invalid_combination [label="检查无效组合\n(无标签但有操作数)", shape=diamond];
+    error1 [label="返回错误\n'cannot continue with operand...'"];
+    init_scope_loop [label="初始化作用域循环\nscope = parent_scope"];
+    while_scope_loop [label="循环遍历作用域", shape=diamond];
+    
+    switch_scope_tag [label="根据 scope.tag 分支", shape=diamond];
+    case_gen_zir [label="scope.tag == .gen_zir"];
+    check_defer [label="检查当前 defer 表达式", shape=diamond];
+    error_defer [label="返回 defer 表达式错误\n附加 note"];
+    check_continue_block [label="检查 continue_block 是否存在", shape=diamond];
+    parent_scope_upd [label="scope = gen_zir.parent\n继续循环"];
+    
+    handle_label_match [label="处理标签匹配"];
+    validate_operand [label="验证操作数与块类型\n(switch_block 检查)", shape=diamond];
+    error_operand [label="返回操作数类型错误"];
+    gen_defers [label="生成 defer 表达式"];
+    handle_err_ret [label="处理错误跟踪恢复"];
+    add_break [label="添加 break/continue 指令"];
+    return_unreachable [label="返回 unreachable_value"];
+    
+    case_other_scopes [label="其他 scope 类型\n.local_val/.local_ptr/.defer_*"];
+    upd_scope_other [label="scope = 对应父作用域\n继续循环"];
+    
+    exit_loop [label="退出作用域循环"];
+    check_label_found [label="检查是否找到标签", shape=diamond];
+    error_label [label="返回标签未找到错误"];
+    error_continue_outside [label="返回 continue 不在循环错误"];
+
+    start -> get_data;
+    get_data -> check_invalid_combination;
+    check_invalid_combination -> error1 [label="是"];
+    check_invalid_combination -> init_scope_loop [label="否"];
+    init_scope_loop -> while_scope_loop;
+    
+    while_scope_loop -> switch_scope_tag [label="循环继续"];
+    switch_scope_tag -> case_gen_zir [label=".gen_zir"];
+    case_gen_zir -> check_defer;
+    
+    check_defer -> error_defer [label="存在 defer"];
+    check_defer -> check_continue_block [label="无 defer"];
+    check_continue_block -> parent_scope_upd [label="不存在"];
+    check_continue_block -> handle_label_match [label="存在"];
+    
+    handle_label_match -> validate_operand;
+    validate_operand -> error_operand [label="类型不匹配"];
+    validate_operand -> gen_defers [label="匹配"];
+    gen_defers -> handle_err_ret;
+    handle_err_ret -> add_break;
+    add_break -> return_unreachable;
+    
+    switch_scope_tag -> case_other_scopes [label="其他类型"];
+    case_other_scopes -> upd_scope_other -> while_scope_loop;
+    
+    while_scope_loop -> exit_loop [label="循环结束"];
+    exit_loop -> check_label_found;
+    check_label_found -> error_label [label="有标签"];
+    check_label_found -> error_continue_outside [label="无标签"];
+}

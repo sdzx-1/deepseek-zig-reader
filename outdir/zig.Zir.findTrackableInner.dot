@@ -1,0 +1,64 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 findTrackableInner"];
+    check_tags [label="检查指令标签 tags[inst]"];
+    switch_tags [label="Switch 根据指令标签处理"];
+    handle_boring_inst [label="处理无操作指令（如add/sub等）\n直接返回"];
+    handle_struct_init [label="处理结构体初始化指令\n将inst添加到contents.other"];
+    extended_case [label="处理.extended操作码"];
+    extended_switch [label="Switch 子操作码"];
+    handle_struct_decl [label="处理struct_decl\n解析额外数据\n处理字段和body"];
+    handle_union_decl [label="处理union_decl\n解析额外数据\n处理body"];
+    handle_enum_decl [label="处理enum_decl\n解析额外数据\n处理body"];
+    handle_typeof_peer [label="处理typeof_peer\n递归处理body"];
+    handle_reify_opaque [label="处理reify/opaque_decl\n添加到contents.other"];
+    handle_func [label="处理函数指令（func/func_fancy）\n检查body并递归处理"];
+    handle_block [label="处理块指令（block/loop等）\n递归处理body"];
+    handle_condbr [label="处理条件分支\n递归处理then/else body"];
+    handle_switch [label="处理switch指令\n递归处理各个case"];
+    handle_defer [label="处理defer指令\n检查defers哈希表\n递归处理body"];
+    handle_call [label="处理call/field_call\n合并参数body并处理"];
+    handle_param [label="处理参数指令\n递归处理类型body"];
+    todo_suspend [label="TODO: 处理suspend_block"];
+    return [label="返回"];
+
+    start -> check_tags;
+    check_tags -> switch_tags;
+    switch_tags -> handle_boring_inst [label="普通指令"];
+    switch_tags -> handle_struct_init [label="struct_init等"];
+    switch_tags -> extended_case [label=".extended"];
+    switch_tags -> handle_func [label="func/func_inferred/func_fancy"];
+    switch_tags -> handle_block [label="block/loop等"];
+    switch_tags -> handle_condbr [label="condbr"];
+    switch_tags -> handle_switch [label="switch_block"];
+    switch_tags -> handle_defer [label="defer相关"];
+    switch_tags -> handle_call [label="call/field_call"];
+    switch_tags -> handle_param [label="param"];
+    switch_tags -> todo_suspend [label="suspend_block"];
+    extended_case -> extended_switch;
+    extended_switch -> handle_struct_decl [label=".struct_decl"];
+    extended_switch -> handle_union_decl [label=".union_decl"];
+    extended_switch -> handle_enum_decl [label=".enum_decl"];
+    extended_switch -> handle_typeof_peer [label=".typeof_peer"];
+    extended_switch -> handle_reify_opaque [label=".reify/.opaque_decl"];
+    extended_switch -> return [label="其他子操作码"];
+
+    handle_boring_inst -> return;
+    handle_struct_init -> return;
+    handle_reify_opaque -> return;
+    handle_typeof_peer -> return;
+    handle_struct_decl -> return;
+    handle_union_decl -> return;
+    handle_enum_decl -> return;
+    handle_func -> return;
+    handle_block -> return;
+    handle_condbr -> return;
+    handle_switch -> return;
+    handle_defer -> return;
+    handle_call -> return;
+    handle_param -> return;
+    todo_suspend -> return;
+}

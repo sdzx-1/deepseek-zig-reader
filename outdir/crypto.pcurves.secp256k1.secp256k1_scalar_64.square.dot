@@ -1,0 +1,36 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始"];
+    init [label="初始化变量\nx1=arg1[1], x2=arg1[2], x3=arg1[3], x4=arg1[0]"];
+    mul_x4 [label="乘法展开\n计算x4与arg1[3], arg1[2], arg1[1], arg1[0]的乘积"];
+    add_carry1 [label="进位累加\n处理x12+x9, x10+x7, x8+x5"];
+    montgomery_reduce1 [label="Montgomery约减\n乘以0x4b0dff665588b13f\n模数运算"];
+    mul_x1 [label="处理x1\n乘法展开与进位累加"];
+    montgomery_reduce2 [label="Montgomery约减"];
+    mul_x2 [label="处理x2\n乘法展开与进位累加"];
+    montgomery_reduce3 [label="Montgomery约减"];
+    mul_x3 [label="处理x3\n乘法展开与进位累加"];
+    montgomery_reduce4 [label="Montgomery约减"];
+    final_sub [label="最终模运算调整\n四次subborrowxU64操作"];
+    cmovznz [label="条件移动选择结果\n根据借位选择最终值"];
+    output [label="存储结果到out1[0..3]"];
+    end [label="结束"];
+
+    start -> init;
+    init -> mul_x4;
+    mul_x4 -> add_carry1;
+    add_carry1 -> montgomery_reduce1;
+    montgomery_reduce1 -> mul_x1;
+    mul_x1 -> montgomery_reduce2;
+    montgomery_reduce2 -> mul_x2;
+    mul_x2 -> montgomery_reduce3;
+    montgomery_reduce3 -> mul_x3;
+    mul_x3 -> montgomery_reduce4;
+    montgomery_reduce4 -> final_sub;
+    final_sub -> cmovznz;
+    cmovznz -> output;
+    output -> end;
+}

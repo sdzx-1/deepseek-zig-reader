@@ -1,0 +1,76 @@
+
+digraph flowchart {
+    graph [bgcolor=transparent, fontname="Arial"];
+    node [shape=rectangle, style=filled, fillcolor="lightblue", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start cTypeBitSize(target, c_type)"];
+    end [label="Return u16", shape=ellipse, fillcolor="pink"];
+    panic [label="@panic(...)", fillcolor="salmon"];
+
+    start -> os_tag_switch;
+    
+    subgraph cluster_os_tag {
+        label="switch(target.os.tag)";
+        os_tag_switch [shape=point, width=0];
+        os_tag_switch -> freestanding_other [label=".freestanding, .other"];
+        os_tag_switch -> elfiamcu_group [label=".elfiamcu,.fuchsia,..."];
+        os_tag_switch -> windows_uefi [label=".windows, .uefi"];
+        os_tag_switch -> apple_os [label=".driverkit,.ios,..."];
+        os_tag_switch -> nvcl_cuda [label=".nvcl, .cuda"];
+        os_tag_switch -> amdhsa_group [label=".amdhsa,..."];
+        os_tag_switch -> opencl_vulkan [label=".opencl, .vulkan"];
+        os_tag_switch -> ps4_ps5 [label=".ps4, .ps5"];
+        os_tag_switch -> ps3_contiki [label=".ps3,.contiki"];
+    }
+
+    // 第一主分支：Freestanding/Other
+    freestanding_other -> cpu_arch_switch1 [label="switch(target.cpu.arch)"];
+    
+    subgraph cluster_arch1 {
+        label="Architecture Switch";
+        cpu_arch_switch1 [shape=point, width=0];
+        cpu_arch_switch1 -> msp430 [label=".msp430"];
+        cpu_arch_switch1 -> avr [label=".avr"];
+        cpu_arch_switch1 -> mips64_group [label=".mips64,.mips64el"];
+        cpu_arch_switch1 -> x86_64 [label=".x86_64"];
+        cpu_arch_switch1 -> else_arch [label="else"];
+    }
+
+    // MSP430处理
+    msp430 -> ctype_switch_msp430 [label="switch(c_type)"];
+    ctype_switch_msp430 -> return_8 [label=".char"];
+    ctype_switch_msp430 -> return_16 [label=".short,.ushort,.int,.uint"];
+    ctype_switch_msp430 -> return_32 [label=".float,.long,.ulong"];
+    ctype_switch_msp430 -> return_64 [label=".longlong,.ulonglong,..."];
+
+    // ...其他架构类似处理...
+
+    // Else分支的指针宽度处理
+    else_arch -> ctype_switch_else [label="switch(c_type)"];
+    ctype_switch_else -> return_ptr_width [label=".long,.ulong"];
+    return_ptr_width [label="target.ptrBitWidth()"];
+
+    // 第二主分支：ELFIAMCU等系统
+    elfiamcu_group -> cpu_arch_switch2 [label="类似架构处理"];
+    // ...类似结构...
+
+    // Windows/UEFI分支
+    windows_uefi -> arch_switch_win [label="switch(arch)"];
+    arch_switch_win -> x86_win [label=".x86"];
+    x86_win -> ctype_win_x86 [label="c_type处理"];
+    // ...其他架构处理...
+
+    // 特殊平台处理
+    ps3_contiki -> panic;
+
+    // 连接终止节点
+    return_8 -> end;
+    return_16 -> end;
+    return_32 -> end;
+    return_64 -> end;
+    return_80 -> end;
+    return_128 -> end;
+    return_ptr_width -> end;
+    panic -> end [style=dashed];
+}

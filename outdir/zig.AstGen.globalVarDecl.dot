@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier New", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier New"];
+
+    start [label="Start globalVarDecl", shape=ellipse];
+    end [label="End", shape=ellipse];
+    init_hasher [label="Initialize src_hasher\nSave old_hasher"];
+    check_mutable [label="Check is_mutable\n(var/const)", shape=diamond];
+    handle_attributes [label="Process attributes:\nname_token, is_pub,\nis_export, is_extern"];
+    check_threadlocal [label="Check threadlocal\nwith is_mutable", shape=diamond];
+    error_threadlocal [label="Return error", shape=ellipse, fillcolor="#ffdddd"];
+    handle_libname [label="Process lib_name\n(check null/empty)"];
+    error_libname [label="Return error", shape=ellipse, fillcolor="#ffdddd"];
+    advance_cursor [label="advanceSourceCursorToNode"];
+    create_decl [label="Create decl_inst\nwip_members.nextDecl"];
+    check_init_extern [label="Check init_node\nand is_extern", shape=diamond];
+    error_init_extern [label="Return error", shape=ellipse, fillcolor="#ffdddd"];
+    check_extern_type [label="Check is_extern\nand type_node", shape=diamond];
+    error_extern_type [label="Return error", shape=ellipse, fillcolor="#ffdddd"];
+    handle_type [label="Process type_node\ncreate type_gz"];
+    handle_align [label="Process align_node\ncreate align_gz"];
+    handle_linksection [label="Process section_node\ncreate linksection_gz"];
+    handle_addrspace [label="Process addrspace_node\ncreate addrspace_gz"];
+    handle_init [label="Process init_node\ncreate init_gz"];
+    set_declaration [label="Set declaration info\nwith hash and metadata"];
+
+    start -> init_hasher;
+    init_hasher -> check_mutable;
+    check_mutable -> handle_attributes;
+    handle_attributes -> check_threadlocal;
+    
+    check_threadlocal -> error_threadlocal [label="threadlocal && !is_mutable"];
+    check_threadlocal -> handle_libname [label="Valid"];
+    
+    handle_libname -> error_libname [label="Invalid lib_name"];
+    handle_libname -> advance_cursor [label="Valid"];
+    
+    advance_cursor -> create_decl;
+    create_decl -> check_init_extern;
+    
+    check_init_extern -> error_init_extern [label="init_node && is_extern"];
+    check_init_extern -> check_extern_type [label="No init_node && !is_extern"];
+    check_init_extern -> check_extern_type [label="Valid"];
+    
+    check_extern_type -> error_extern_type [label="is_extern && type_node == .none"];
+    check_extern_type -> handle_type [label="Valid"];
+    
+    handle_type -> handle_align;
+    handle_align -> handle_linksection;
+    handle_linksection -> handle_addrspace;
+    handle_addrspace -> handle_init;
+    handle_init -> set_declaration;
+    
+    set_declaration -> end;
+
+    // Subgraph for error handling visibility
+    { rank=same; error_threadlocal; error_libname; error_init_extern; error_extern_type; }
+}

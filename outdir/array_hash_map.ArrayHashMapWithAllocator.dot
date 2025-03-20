@@ -1,0 +1,39 @@
+
+digraph G {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    start [label="调用 ArrayHashMapWithAllocator(K, V, Context, store_hash)", shape=ellipse];
+    create_struct [label="创建结构体类型"];
+    init_method [label="init(allocator)\n初始化 unmanaged、allocator、ctx"];
+    deinit_method [label="deinit()\n释放内存并重置状态"];
+    getOrPut_method [label="getOrPut(key)\n查找或插入条目"];
+    put_method [label="put(key, value)\n插入键值对（可能覆盖）"];
+    remove_methods [label="swapRemove/orderedRemove\n删除条目（交换或顺序删除）"];
+    capacity_management [label="ensureTotalCapacity/ensureUnusedCapacity\n容量管理"];
+    clone_methods [label="clone/cloneWith...\n克隆实例"];
+    reIndex_method [label="reIndex()\n重建哈希索引"];
+    sort_method [label="sort()\n排序条目并重建索引"];
+    pop_method [label="pop()\n移除最后一个条目"];
+
+    start -> create_struct;
+    create_struct -> init_method;
+    init_method -> deinit_method [label="生命周期结束"];
+    init_method -> getOrPut_method [label="插入/查询"];
+    getOrPut_method -> put_method [label="新条目"];
+    getOrPut_method -> capacity_management [label="容量不足时"];
+    put_method -> capacity_management [label="可能触发扩容"];
+    capacity_management -> put_method [label="扩容成功"];
+    init_method -> remove_methods [label="删除操作"];
+    remove_methods -> reIndex_method [label="直接修改数组后"];
+    init_method -> clone_methods [label="克隆操作"];
+    init_method -> reIndex_method [label="手动重建索引"];
+    reIndex_method -> sort_method [label="排序后"];
+    init_method -> pop_method [label="移除末尾条目"];
+    deinit_method -> end [label="资源释放完成", shape=ellipse];
+
+    // 错误处理分支
+    capacity_management -> error_handler [label="扩容失败"];
+    error_handler [label="返回错误", shape=diamond];
+    error_handler -> end [label="流程终止"];
+}

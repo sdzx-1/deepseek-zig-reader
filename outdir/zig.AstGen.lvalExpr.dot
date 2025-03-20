@@ -1,0 +1,34 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start lvalExpr", shape=ellipse];
+    get_astgen_tree [label="astgen = gz.astgen\ntree = astgen.tree"];
+    switch_node [label="switch (tree.nodeTag(node))", shape=diamond];
+    return_error [label="return astgen.failNode(...)", shape=rectangle];
+    check_builtin [label="Check builtin_call cases", shape=diamond];
+    builtin_valid [label="info.allows_lvalue?", shape=diamond];
+    call_expr [label="return expr(gz, scope, .{ .rl = .ref }, node)", shape=rectangle];
+    end [label="End", shape=ellipse];
+
+    start -> get_astgen_tree;
+    get_astgen_tree -> switch_node;
+
+    // 直接返回错误的分支
+    switch_node -> return_error [label=".root, .usingnamespace,\n.test_decl, .global_var_decl,\n... (其他无效标签)"];
+    switch_node -> return_error [label="操作符类标签:\n.assign, .add, .sub,\n.bang_equal, ..."];
+    switch_node -> check_builtin [label=".builtin_call*"];
+
+    // 处理 builtin_call 分支
+    check_builtin -> builtin_valid [label="获取 builtin_name"];
+    builtin_valid -> return_error [label="不允许左值"];
+    builtin_valid -> call_expr [label="允许左值"];
+
+    // 有效左值分支
+    switch_node -> call_expr [label=".identifier, .field_access,\n.array_access, ... (有效左值标签)"];
+
+    // 连接公共出口
+    return_error -> end;
+    call_expr -> end;
+}

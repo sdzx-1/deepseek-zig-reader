@@ -1,0 +1,80 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start: option()", shape=ellipse];
+    dup_names [label="Duplicate name and description"];
+    check_type [label="Check type_id", shape=diamond];
+    enum_processing [label="Generate enum options list"];
+    add_available_option [label="Add AvailableOption to map/list"];
+    check_option_ptr [label="Check user_input_options.getPtr(name)", shape=diamond];
+    return_null [label="Return null", shape=ellipse];
+    process_type [label="Process based on type_id", shape=diamond];
+    error_handling [label="Log error\nMark invalid input", shape=rect];
+
+    // Main flow
+    start -> dup_names;
+    dup_names -> check_type;
+
+    // Enum processing branch
+    check_type -> enum_processing [label="type_id is enum/enum_list"];
+    enum_processing -> add_available_option;
+
+    // Non-enum processing
+    check_type -> add_available_option [label="Other types"];
+    
+    // Common flow after type check
+    add_available_option -> check_option_ptr;
+    check_option_ptr -> return_null [label="Not found"];
+    check_option_ptr -> process_type [label="Found"];
+
+    // Type processing branches
+    process_type -> bool_handling [label="bool"];
+    process_type -> int_handling [label="int"];
+    process_type -> float_handling [label="float"];
+    process_type -> enum_handling [label="enum"];
+    process_type -> string_handling [label="string"];
+    process_type -> list_handling [label="list"];
+    process_type -> enum_list_handling [label="enum_list"];
+    process_type -> lazy_path_handling [label="lazy_path"];
+    process_type -> lazy_path_list_handling [label="lazy_path_list"];
+    process_type -> build_id_handling [label="build_id"];
+
+    // Generic error handling
+    bool_handling -> error_handling [label="Invalid type"];
+    int_handling -> error_handling [label="Invalid type"];
+    float_handling -> error_handling [label="Invalid type"];
+    enum_handling -> error_handling [label="Invalid value"];
+    string_handling -> error_handling [label="Invalid type"];
+    list_handling -> error_handling [label="Invalid type"];
+    enum_list_handling -> error_handling [label="Invalid value"];
+    lazy_path_handling -> error_handling [label="Invalid type"];
+    lazy_path_list_handling -> error_handling [label="Invalid type"];
+    build_id_handling -> error_handling [label="Parse error"];
+    error_handling -> return_null;
+
+    // Successful returns
+    bool_handling -> return_bool [label="Valid bool"];
+    int_handling -> return_int [label="Valid int"];
+    float_handling -> return_float [label="Valid float"];
+    enum_handling -> return_enum [label="Valid enum"];
+    string_handling -> return_string [label="Valid string"];
+    list_handling -> return_list [label="Valid list"];
+    enum_list_handling -> return_enum_list [label="Valid enum list"];
+    lazy_path_handling -> return_lazy_path [label="Valid path"];
+    lazy_path_list_handling -> return_lazy_path_list [label="Valid paths"];
+    build_id_handling -> return_build_id [label="Valid build_id"];
+
+    // Return nodes
+    return_bool [label="Return bool", shape=ellipse];
+    return_int [label="Return int", shape=ellipse];
+    return_float [label="Return float", shape=ellipse];
+    return_enum [label="Return enum", shape=ellipse];
+    return_string [label="Return string", shape=ellipse];
+    return_list [label="Return list", shape=ellipse];
+    return_enum_list [label="Return enum list", shape=ellipse];
+    return_lazy_path [label="Return LazyPath", shape=ellipse];
+    return_lazy_path_list [label="Return LazyPath list", shape=ellipse];
+    return_build_id [label="Return BuildId", shape=ellipse];
+}

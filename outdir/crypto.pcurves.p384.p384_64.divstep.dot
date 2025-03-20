@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    subgraph cluster_init {
+        label="初始化";
+        init1 [label="计算 x1 = (~arg1) + 1\nx3 = (x1 >> 63) & (arg3[0] & 1)"];
+        init2 [label="计算 x4 = (~arg1) + 1\ncmovznzU64 根据 x3 选择 x6-x13, x28-x34"];
+    }
+
+    subgraph cluster_chain1 {
+        label="进位/借位操作链";
+        chain1 [label="计算 x14-x26（取反进位链）\n计算 x41-x51（加倍进位链）\n计算 x53-x63（模减借位链）"];
+    }
+
+    subgraph cluster_arg4_arg5 {
+        label="处理 arg4/arg5";
+        arg4_arg5 [label="计算 x73-x83（arg4 反向借位）\n通过 x85 调整得到 x86-x96\ncmovznzU64 选择 x98-x103"];
+    }
+
+    subgraph cluster_final_ops {
+        label="最终运算";
+        final1 [label="根据 x104 选择 x105-x111\n计算 x112-x124（加法进位链）"];
+        final2 [label="计算 x132-x142（加法进位链）\n计算 x144-x154（模减借位链）"];
+        final3 [label="计算 x158 = x6 + 1\n位操作生成 x160-x166"];
+    }
+
+    subgraph cluster_output {
+        label="输出结果";
+        output [label="设置 out1-out5 的值"];
+    }
+
+    start -> init1;
+    init1 -> init2;
+    init2 -> chain1;
+    chain1 -> arg4_arg5;
+    arg4_arg5 -> final1;
+    final1 -> final2;
+    final2 -> final3;
+    final3 -> output;
+    output -> end;
+
+    // 条件分支示意
+    init2 -> x3_condition [style=dotted];
+    x3_condition [label="x3 条件分支", shape=diamond];
+    x3_condition -> init2_yes [label="条件成立"];
+    x3_condition -> init2_no [label="条件不成立"];
+    init2_yes [label="选择 arg1 相关值", shape=box];
+    init2_no [label="选择 x4 相关值", shape=box];
+    {init2_yes init2_no} -> chain1 [style=invis];
+}

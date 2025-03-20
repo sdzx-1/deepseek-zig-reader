@@ -1,0 +1,33 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+    edge [arrowhead=normal];
+
+    start [label="开始"];
+    check_exponent_zero [label="ieee_exponent == 0 && ieee_mantissa == 0?" shape=diamond];
+    return_zero [label="返回: {mantissa=0, exponent=0, sign=ieee_sign}"];
+    check_exponent_max [label="ieee_exponent == ((1 << exponent_bits) -1)?" shape=diamond];
+    return_special [label="返回: {mantissa=adjusted_mantissa, exponent=special, sign=ieee_sign}"];
+    compute_e2_m2 [label="根据 explicit_leading_bit 计算 e2 和 m2"];
+    step2 [label="步骤2: 计算 mv, mm_shift"];
+    check_e2_positive [label="e2 >= 0?" shape=diamond];
+    handle_e2_positive [label="处理 e2 >=0 的分支:\n计算 q, k, i, pow5\n调整 vr, vp, vm"];
+    handle_e2_negative [label="处理 e2 <0 的分支:\n计算 q, i, k, j, pow5\n调整 vr, vp, vm"];
+    step4 [label="步骤4: 移除尾随零循环"];
+    adjust_last_digit [label="调整最后一位数字\n处理舍入规则"];
+    return_result [label="返回最终结果: {mantissa, exponent, sign}"];
+
+    start -> check_exponent_zero;
+    check_exponent_zero -> return_zero [label="是"];
+    check_exponent_zero -> check_exponent_max [label="否"];
+    check_exponent_max -> return_special [label="是"];
+    check_exponent_max -> compute_e2_m2 [label="否"];
+    compute_e2_m2 -> step2;
+    step2 -> check_e2_positive;
+    check_e2_positive -> handle_e2_positive [label="是"];
+    check_e2_positive -> handle_e2_negative [label="否"];
+    handle_e2_positive -> step4;
+    handle_e2_negative -> step4;
+    step4 -> adjust_last_digit;
+    adjust_last_digit -> return_result;
+}
