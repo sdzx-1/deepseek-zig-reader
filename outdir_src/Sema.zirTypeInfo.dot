@@ -1,0 +1,56 @@
+
+digraph zirTypeInfo {
+    graph [rankdir=TB];
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    init [label="初始化变量\n(pt, zcu, gpa, ip)"];
+    resolve_type [label="解析类型 ty\nsema.resolveType"];
+    get_type_info [label="获取 type_info_ty 和 type_info_tag_ty"];
+    check_decl [label="检查 typeDeclInst\n声明依赖"];
+    switch_tag [label="switch (ty.zigTypeTag(zcu))", shape=diamond];
+
+    // 基本类型分支
+    basic_types [label="处理基本类型\n(type, void, bool 等)\n直接返回 unionInitFromEnumTag"];
+    fn_type [label="处理函数类型\n(.fn)\n构造参数列表和返回类型"];
+    int_type [label="处理整数类型\n(.int)\n构造 signedness 和 bits"];
+    float_type [label="处理浮点类型\n(.float)\n构造 bits"];
+    pointer_type [label="处理指针类型\n(.pointer)\n构造对齐、子类型等信息"];
+    array_type [label="处理数组类型\n(.array)\n构造长度和元素类型"];
+    struct_type [label="处理结构体类型\n(.struct)\n解析字段和布局"];
+    enum_type [label="处理枚举类型\n(.enum)\n构造标签和字段"];
+    error_set [label="处理错误集\n(.error_set)\n构造错误列表"];
+    other_types [label="其他类型处理分支\n(union, optional, error_union 等)"];
+
+    return [label="返回 Air.internedToRef", shape=ellipse];
+
+    // 连接节点
+    start -> init -> resolve_type -> get_type_info -> check_decl -> switch_tag;
+
+    // Switch 分支
+    switch_tag -> basic_types [label="基本类型"];
+    switch_tag -> fn_type [label=".fn"];
+    switch_tag -> int_type [label=".int"];
+    switch_tag -> float_type [label=".float"];
+    switch_tag -> pointer_type [label=".pointer"];
+    switch_tag -> array_type [label=".array"];
+    switch_tag -> struct_type [label=".struct"];
+    switch_tag -> enum_type [label=".enum"];
+    switch_tag -> error_set [label=".error_set"];
+    switch_tag -> other_types [label="其他类型"];
+
+    // 合并返回路径
+    basic_types -> return;
+    fn_type -> return;
+    int_type -> return;
+    float_type -> return;
+    pointer_type -> return;
+    array_type -> return;
+    struct_type -> return;
+    enum_type -> return;
+    error_set -> return;
+    other_types -> return;
+
+    // 隐藏相同层级
+    {rank=same; basic_types fn_type int_type float_type pointer_type array_type struct_type enum_type error_set other_types}
+}

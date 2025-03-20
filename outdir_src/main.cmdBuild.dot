@@ -1,0 +1,75 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 cmdBuild 函数"];
+    init_vars [label="初始化变量：
+    - build_file
+    - override_lib_dir
+    - 子进程参数列表 child_argv
+    - verbose_* 标志"];
+    parse_args [label="解析命令行参数：
+    - 处理 --build-file
+    - 处理 --zig-lib-dir
+    - 处理 --cache-dir
+    - 处理调试标志"];
+    setup_env [label="配置环境：
+    - 查找 Zig 可执行路径
+    - 确定构建根目录
+    - 打开全局/本地缓存目录"];
+    resolve_target [label="解析目标平台：
+    - 根据 debug_target 或默认值
+    - 生成 exe_basename"];
+    prepare_compilation [label="准备编译配置：
+    - 创建根模块和构建模块
+    - 初始化线程池
+    - 处理系统包目录"];
+    fetch_deps [label="获取依赖：
+    - 初始化 HTTP 客户端
+    - 创建任务队列
+    - 递归获取包
+    - 生成依赖模块"];
+    compile_build_runner [label="编译构建运行器：
+    - 创建 Compilation 对象
+    - 更新模块配置
+    - 生成可执行路径"];
+    spawn_child [label="生成子进程：
+    - 设置子进程参数
+    - 继承 stdin/stdout/stderr
+    - 执行构建脚本"];
+    handle_exit_code [label="处理退出码：
+    - 0: 正常退出
+    - 2: 编译错误
+    - 3: 缺少懒加载依赖"];
+    check_lazy_deps [label="检测懒加载依赖：
+    - 读取临时文件
+    - 更新 unlazy_set
+    - 重新循环处理"];
+    fatal_error [label="致命错误处理：
+    - 打印错误信息
+    - 退出进程"];
+    clean_exit [label="清理并退出"];
+
+    start -> init_vars;
+    init_vars -> parse_args;
+    parse_args -> setup_env;
+    setup_env -> resolve_target;
+    resolve_target -> prepare_compilation;
+    prepare_compilation -> fetch_deps;
+    fetch_deps -> compile_build_runner;
+    compile_build_runner -> spawn_child;
+    spawn_child -> handle_exit_code;
+
+    handle_exit_code ->|code=0| clean_exit;
+    handle_exit_code ->|code=2| fatal_error;
+    handle_exit_code ->|code=3| check_lazy_deps;
+    check_lazy_deps -> prepare_compilation [label="重新尝试编译"];
+    
+    handle_exit_code ->|其他错误码| fatal_error;
+    check_lazy_deps ->|系统包模式失败| fatal_error;
+    
+    compile_build_runner ->|编译失败| fatal_error;
+    fetch_deps ->|依赖获取失败| fatal_error;
+    setup_env ->|目录打开失败| fatal_error;
+    parse_args ->|参数解析错误| fatal_error;
+}

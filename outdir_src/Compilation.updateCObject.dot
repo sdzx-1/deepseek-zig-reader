@@ -1,0 +1,66 @@
+
+digraph updateCObject {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 updateCObject"];
+    check_aro [label="检查 comp.config.c_frontend == .aro"];
+    aro_error [label="返回错误: aro 不支持"];
+    check_llvm [label="检查 have_llvm"];
+    llvm_error [label="返回错误: 无 LLVM"];
+    check_self_exe [label="获取 self_exe_path"];
+    self_exe_error [label="返回错误: clang 禁用"];
+    log_debug [label="记录调试日志"];
+    clear_status [label="清除之前的状态"];
+    init_cache [label="初始化缓存清单"];
+    hash_setup [label="添加哈希参数"];
+    arena_init [label="创建 Arena 分配器"];
+    handle_progress [label="创建子进度节点"];
+    check_direct_o [label="判断是否为直接输出对象文件"];
+    target_setup [label="获取目标平台信息"];
+    argv_setup [label="构建命令行参数"];
+    check_passthrough [label="是否启用 passthrough 模式?"];
+    exec_clang [label="直接执行 clang (execv)"];
+    handle_exec_error [label="处理执行错误并退出"];
+    prepare_temp [label="生成临时文件路径"];
+    add_dep_diag [label="添加依赖和诊断参数"];
+    spawn_child [label="启动子进程编译"];
+    handle_compile_error [label="处理编译错误"];
+    process_dep_file [label="处理依赖文件"];
+    rename_file [label="移动文件到缓存目录"];
+    update_status [label="更新对象状态为成功"];
+    end [label="结束"];
+
+    start -> check_aro;
+    check_aro -> aro_error [label="是"];
+    check_aro -> check_llvm [label="否"];
+    check_llvm -> llvm_error [label="否"];
+    check_llvm -> check_self_exe [label="是"];
+    check_self_exe -> self_exe_error [label="无"];
+    check_self_exe -> log_debug [label="存在"];
+    log_debug -> clear_status;
+    clear_status -> init_cache;
+    init_cache -> hash_setup;
+    hash_setup -> arena_init;
+    arena_init -> handle_progress;
+    handle_progress -> check_direct_o;
+    check_direct_o -> target_setup;
+    target_setup -> argv_setup;
+    argv_setup -> check_passthrough;
+    check_passthrough -> exec_clang [label="是"];
+    exec_clang -> handle_exec_error [label="失败"];
+    exec_clang -> rename_file [label="成功"];
+    check_passthrough -> prepare_temp [label="否"];
+    prepare_temp -> add_dep_diag;
+    add_dep_diag -> spawn_child;
+    spawn_child -> handle_compile_error [label="失败"];
+    spawn_child -> process_dep_file [label="成功"];
+    process_dep_file -> rename_file;
+    rename_file -> update_status;
+    update_status -> end;
+
+    aro_error -> end;
+    llvm_error -> end;
+    self_exe_error -> end;
+    handle_exec_error -> end;
+    handle_compile_error -> end;
+}

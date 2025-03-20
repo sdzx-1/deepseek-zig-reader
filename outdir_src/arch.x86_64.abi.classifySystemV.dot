@@ -1,0 +1,135 @@
+
+digraph classifySystemV {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.3];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="Start classifySystemV", shape=ellipse, fillcolor="#ffdddd"];
+    init_memory_class [label="Initialize memory_class array"];
+    init_result [label="Initialize result array to .none"];
+    switch_ty_tag [label="Switch ty.zigTypeTag(zcu)", shape=diamond];
+
+    // Pointer branch
+    pointer_case [label="Case: .pointer"];
+    ptr_size_switch [label="Switch ty.ptrSize(zcu)", shape=diamond];
+    slice_case [label="Case: .slice\nresult[0-1] = .integer"];
+    other_ptr_case [label="Default\nresult[0] = .integer"];
+
+    // Int/Enum/ErrorSet branch
+    int_case [label="Case: .int, .enum, .error_set"];
+    check_bits [label="Check bits (<=64, <=128, <=192, <=256)", shape=diamond];
+    bits_64 [label="bits <=64\nresult[0] = .integer"];
+    bits_128 [label="bits <=128\nresult[0-1] = .integer"];
+    bits_192 [label="bits <=192\nresult[0-2] = .integer"];
+    bits_256 [label="bits <=256\nresult[0-3] = .integer"];
+    bits_overflow [label="Else\nReturn memory_class"];
+
+    // Float branch
+    float_case [label="Case: .float"];
+    float_bits_switch [label="Switch ty.floatBits(target)", shape=diamond];
+    float_16 [label="16-bit\nCheck context"];
+    float_32 [label="32-bit\nresult[0] = .float"];
+    float_64 [label="64-bit\nresult[0] = .sse"];
+    float_128 [label="128-bit\nresult[0-1] = .sse/.sseup"];
+    float_80 [label="80-bit\nresult[0-1] = .x87/.x87up"];
+
+    // Vector branch
+    vector_case [label="Case: .vector"];
+    check_elem_bits [label="Check elem_ty and bits", shape=diamond];
+    vector_bool_logic [label="Bool vector logic\nCheck bits and features"];
+    vector_general_logic [label="General vector logic\nCheck bits and AVX/AVX512"];
+
+    // Struct/Union branch
+    struct_case [label="Case: .struct, .union"];
+    check_container_layout [label="Check container layout", shape=diamond];
+    packed_layout [label=".packed\nSet integer classes"];
+    size_check [label="Check size >64\nReturn memory_class"];
+    struct_union_logic [label="Recursive classification\nCheck post-merger rules"];
+
+    // Array branch
+    array_case [label="Case: .array"];
+    array_size_check [label="Check size (<=8, <=16, >16)", shape=diamond];
+    array_8 [label="size <=8\nresult[0] = .integer"];
+    array_16 [label="size <=16\nresult[0-1] = .integer"];
+    array_overflow [label="size >16\nReturn memory_class"];
+
+    // Other cases
+    bool_void_case [label="Case: .bool, .void, .noreturn\nresult[0] = .integer"];
+    optional_case [label="Case: .optional\nRecursive check"];
+    default_case [label="Default\nUnreachable"];
+
+    // Edges
+    start -> init_memory_class -> init_result -> switch_ty_tag;
+
+    // Pointer branch
+    switch_ty_tag -> pointer_case;
+    pointer_case -> ptr_size_switch;
+    ptr_size_switch -> slice_case [label=".slice"];
+    ptr_size_switch -> other_ptr_case [label="else"];
+    slice_case -> end;
+    other_ptr_case -> end;
+
+    // Int/Enum/ErrorSet branch
+    switch_ty_tag -> int_case;
+    int_case -> check_bits;
+    check_bits -> bits_64 [label="<=64"];
+    check_bits -> bits_128 [label="<=128"];
+    check_bits -> bits_192 [label="<=192"];
+    check_bits -> bits_256 [label="<=256"];
+    check_bits -> bits_overflow [label=">256"];
+    bits_64 -> end;
+    bits_128 -> end;
+    bits_192 -> end;
+    bits_256 -> end;
+    bits_overflow -> end;
+
+    // Float branch
+    switch_ty_tag -> float_case;
+    float_case -> float_bits_switch;
+    float_bits_switch -> float_16 [label="16"];
+    float_bits_switch -> float_32 [label="32"];
+    float_bits_switch -> float_64 [label="64"];
+    float_bits_switch -> float_128 [label="128"];
+    float_bits_switch -> float_80 [label="80"];
+    float_16 -> end;
+    float_32 -> end;
+    float_64 -> end;
+    float_128 -> end;
+    float_80 -> end;
+
+    // Vector branch
+    switch_ty_tag -> vector_case;
+    vector_case -> check_elem_bits;
+    check_elem_bits -> vector_bool_logic [label="elem_ty is bool"];
+    check_elem_bits -> vector_general_logic [label="else"];
+    vector_bool_logic -> end;
+    vector_general_logic -> end;
+
+    // Struct/Union branch
+    switch_ty_tag -> struct_case;
+    struct_case -> check_container_layout;
+    check_container_layout -> packed_layout [label=".packed"];
+    check_container_layout -> size_check [label=".auto/.extern"];
+    packed_layout -> end;
+    size_check -> struct_union_logic [label="size <=64"];
+    size_check -> end [label="size >64"];
+    struct_union_logic -> end;
+
+    // Array branch
+    switch_ty_tag -> array_case;
+    array_case -> array_size_check;
+    array_size_check -> array_8 [label="<=8"];
+    array_size_check -> array_16 [label="<=16"];
+    array_size_check -> array_overflow [label=">16"];
+    array_8 -> end;
+    array_16 -> end;
+    array_overflow -> end;
+
+    // Other branches
+    switch_ty_tag -> bool_void_case -> end;
+    switch_ty_tag -> optional_case -> end;
+    switch_ty_tag -> default_case -> end;
+
+    // End node
+    end [label="Return result", shape=ellipse, fillcolor="#ddffdd"];
+}

@@ -1,0 +1,88 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 genIntMulComplexOpMir", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    subgraph cluster_main {
+        label="主流程";
+        
+        start -> spill_eflags;
+        spill_eflags [label="调用 spillEflagsIfOccupied()"];
+        spill_eflags -> switch_dst_mcv;
+
+        switch_dst_mcv [label="switch(dst_mcv)", shape=diamond];
+        switch_dst_mcv -> handle_register [label=".register"];
+        switch_dst_mcv -> handle_memory [label=".memory/.indirect/..."];
+        switch_dst_mcv -> unimplemented [label=".register_pair/..."];
+
+        handle_register [label="处理寄存器目标"];
+        handle_register -> lock_reg;
+        lock_reg [label="锁定目标寄存器"];
+        lock_reg -> handle_abi_size;
+
+        handle_abi_size [label="switch(abi_size)", shape=diamond];
+        handle_abi_size -> movzx_1byte [label="1"];
+        handle_abi_size -> no_action [label="其他"];
+        movzx_1byte [label="生成movzx指令"];
+        no_action [label="无操作"];
+
+        handle_abi_size -> resolve_src;
+        resolve_src [label="解析src_mcv"];
+        resolve_src -> switch_resolved_src;
+
+        switch_resolved_src [label="switch(resolved_src_mcv)", shape=diamond];
+        switch_resolved_src -> src_reg [label=".register"];
+        switch_resolved_src -> src_imm [label=".immediate"];
+        switch_resolved_src -> src_other [label="其他内存类型"];
+
+        src_reg [label="处理源寄存器"];
+        src_reg -> maybe_movzx_src;
+        maybe_movzx_src [label="abi_size=1时生成movzx"];
+        maybe_movzx_src -> gen_mul_reg;
+
+        gen_mul_reg [label="生成mul指令"];
+        gen_mul_reg -> unlock_reg;
+
+        src_imm [label="处理立即数"];
+        src_imm -> check_imm_size;
+        check_imm_size [label="是否可放入i32?", shape=diamond];
+        check_imm_size -> gen_mul_imm [label="是"];
+        check_imm_size -> copy_to_tmp_reg [label="否"];
+        
+        gen_mul_imm [label="生成立即数mul指令"];
+        copy_to_tmp_reg [label="复制到临时寄存器并递归调用"];
+        copy_to_tmp_reg -> unlock_reg;
+
+        src_other [label="处理内存/符号地址"];
+        src_other -> copy_to_tmp_src;
+        copy_to_tmp_src [label="复制到临时寄存器"];
+        copy_to_tmp_src -> maybe_movzx_src_mem;
+        maybe_movzx_src_mem [label="abi_size=1时生成movzx"];
+        maybe_movzx_src_mem -> gen_mul_mem;
+
+        gen_mul_mem [label="生成内存mul指令"];
+
+        unlock_reg [label="解锁目标寄存器"];
+        unlock_reg -> end;
+
+        handle_memory [label="处理内存目标"];
+        handle_memory -> copy_to_tmp;
+        copy_to_tmp [label="复制到临时寄存器"];
+        copy_to_tmp -> recursive_call;
+        recursive_call [label="递归调用genIntMulComplexOpMir"];
+        recursive_call -> gen_copy;
+        gen_copy [label="写回结果到内存"];
+        gen_copy -> end;
+
+        unimplemented [label="标记为unreachable", shape=note];
+    }
+
+    start -> switch_dst_mcv;
+    handle_abi_size -> resolve_src [weight=10];
+    switch_resolved_src -> src_other [label=".register_offset/..."];
+    gen_mul_mem -> unlock_reg;
+    unimplemented -> end;
+}

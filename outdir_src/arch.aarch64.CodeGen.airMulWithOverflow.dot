@@ -1,0 +1,41 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start airMulWithOverflow"];
+    check_unused [label="Check if instruction is unused"];
+    mark_dead [label="finishAir(inst, .dead, ...)", shape=box];
+    get_ty_pl [label="Get ty_pl and extra data"];
+    check_vector [label="Check if type is vector"];
+    vector_error [label="fail(\"TODO vectors\")", shape=box];
+    check_int_bits_32 [label="int_info.bits <= 32?"];
+    check_int_bits_64 [label="int_info.bits <= 64?"];
+    handle_32bit [label="Handle 32-bit integers\n(smull/umull, truncate, compare)"];
+    handle_64bit_signed [label="Signed 64-bit:\n mul, smulh, shift, compare"];
+    handle_64bit_unsigned [label="Unsigned 64-bit:\n umulh, mul, shift, compare"];
+    gen_stack [label="Generate stack operations"];
+    set_result [label="Set result to stack_offset"];
+    error_large_int [label="fail(\"TODO >64-bit\")", shape=box];
+    end [label="finishAir and return"];
+
+    start -> check_unused;
+    check_unused -> mark_dead [label="Yes"];
+    check_unused -> get_ty_pl [label="No"];
+    get_ty_pl -> check_vector;
+    check_vector -> vector_error [label="Vector"];
+    check_vector -> check_int_bits_32 [label="Int"];
+    check_int_bits_32 -> handle_32bit [label="Yes"];
+    check_int_bits_32 -> check_int_bits_64 [label="No"];
+    check_int_bits_64 -> handle_64bit_signed [label="Signed"];
+    check_int_bits_64 -> handle_64bit_unsigned [label="Unsigned"];
+    check_int_bits_64 -> error_large_int [label="No (bits >64)"];
+    handle_32bit -> gen_stack;
+    handle_64bit_signed -> gen_stack;
+    handle_64bit_unsigned -> gen_stack;
+    gen_stack -> set_result;
+    set_result -> end;
+    vector_error -> end;
+    mark_dead -> end;
+    error_large_int -> end;
+}

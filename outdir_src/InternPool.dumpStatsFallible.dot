@@ -1,0 +1,48 @@
+
+digraph D {
+    node [shape=rectangle fontname="Courier" fontsize=12];
+    edge [fontname="Courier" fontsize=12];
+
+    start [label="开始 dumpStatsFallible"];
+    init_vars [label="初始化 items_len, extra_len, limbs_len = 0"];
+    loop_locals_1 [label="遍历 ip.locals 中的每个 local"];
+    accumulate_lengths [label="累加 items_len, extra_len, limbs_len"];
+    compute_sizes [label="计算 items_size, extra_size, limbs_size, total_size"];
+    print_stats [label="打印总内存统计"];
+    init_counts [label="初始化 counts（TagStats 哈希表）"];
+    loop_locals_2 [label="再次遍历 ip.locals 中的每个 local"];
+    process_items [label="处理 items 和 extra_list"];
+    loop_tags [label="遍历每个 item 的 tag 和 data"];
+    calculate_bytes [label="根据 tag 计算字节数\n更新 counts 统计"];
+    sort_counts [label="按字节数排序 counts"];
+    print_top50 [label="打印 Top 50 标签统计"];
+    end [label="结束"];
+
+    start -> init_vars;
+    init_vars -> loop_locals_1;
+    loop_locals_1 -> accumulate_lengths [label="对每个 local"];
+    accumulate_lengths -> loop_locals_1 [label="继续循环"];
+    loop_locals_1 -> compute_sizes [label="循环结束"];
+    compute_sizes -> print_stats;
+    print_stats -> init_counts;
+    init_counts -> loop_locals_2;
+    loop_locals_2 -> process_items [label="对每个 local"];
+    process_items -> loop_tags;
+    loop_tags -> calculate_bytes [label="对每个 tag/data"];
+    calculate_bytes -> loop_tags [label="继续循环"];
+    loop_tags -> loop_locals_2 [label="循环结束"];
+    loop_locals_2 -> sort_counts [label="循环结束"];
+    sort_counts -> print_top50;
+    print_top50 -> end;
+
+    // 处理循环结构的样式
+    subgraph cluster_loop1 {
+        label = "第一次遍历 locals（长度统计）";
+        loop_locals_1 -> accumulate_lengths;
+    }
+    subgraph cluster_loop2 {
+        label = "第二次遍历 locals（Tag 统计）";
+        loop_locals_2 -> process_items;
+        process_items -> loop_tags;
+    }
+}

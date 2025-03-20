@@ -1,0 +1,99 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+    start [label="开始运行 run(f)"];
+    end [label="结束/返回"];
+    init_error_bundle [label="初始化错误包 eb.init(gpa)"];
+    check_location [label="检查 f.location 类型", shape=diamond];
+
+    // 主要分支节点
+    relative_path [label="处理相对路径分支"];
+    remote_branch [label="处理远程依赖"];
+    path_or_url [label="处理路径/URL分支"];
+    
+    // 错误处理通用节点
+    fail_node [label="调用 f.fail() 并返回错误"];
+    fetch_failed [label="返回 error.FetchFailed"];
+
+    start -> init_error_bundle;
+    init_error_bundle -> check_location;
+
+    // Location 类型分支
+    check_location -> relative_path [label=".relative_path"];
+    check_location -> remote_branch [label=".remote"];
+    check_location -> path_or_url [label=".path_or_url"];
+
+    // --- relative_path 分支逻辑 ---
+    subgraph cluster_relative {
+        label="相对路径分支处理";
+        check_absolute [label="路径是绝对路径？", shape=diamond];
+        check_hash [label="存在哈希值？", shape=diamond];
+        check_cache_root [label="路径根目录是缓存？", shape=diamond];
+        verify_prefix [label="验证路径前缀是否合法"];
+        load_manifest [label="加载清单 loadManifest()"];
+        check_build_file [label="检查 build.zig 存在"];
+        queue_deps [label="递归处理依赖 queueJobsForDeps()"];
+
+        relative_path -> check_absolute;
+        check_absolute -> fail_node [label="是"];
+        check_absolute -> check_hash [label="否"];
+        check_hash -> fail_node [label="存在哈希"];
+        check_hash -> check_cache_root [label="无哈希"];
+        check_cache_root -> verify_prefix [label="是"];
+        verify_prefix -> fail_node [label="前缀不合法"];
+        verify_prefix -> load_manifest [label="合法"];
+        load_manifest -> check_build_file;
+        check_build_file -> queue_deps [label="递归模式"];
+        check_build_file -> end [label="非递归模式"];
+    }
+
+    // --- path_or_url 分支逻辑 ---
+    subgraph cluster_path_or_url {
+        label="路径/URL分支处理";
+        try_open_dir [label="尝试打开目录"];
+        try_open_file [label="尝试打开文件"];
+        parse_uri [label="解析 URI"];
+        init_resource [label="初始化资源 initResource()"];
+        run_resource [label="执行资源处理 runResource()"];
+
+        path_or_url -> try_open_dir;
+        try_open_dir -> run_resource [label="成功"];
+        try_open_dir -> try_open_file [label="失败且错误是 NotDir"];
+        try_open_file -> run_resource [label="成功"];
+        try_open_file -> parse_uri [label="失败"];
+        parse_uri -> init_resource [label="URI 有效"];
+        parse_uri -> fail_node [label="URI 无效"];
+        init_resource -> run_resource;
+        run_resource -> end;
+    }
+
+    // --- remote 分支逻辑 ---
+    subgraph cluster_remote {
+        label="远程依赖处理";
+        check_hash_exists [label="存在远程哈希？", shape=diamond];
+        check_cache [label="检查缓存是否存在"];
+        cache_hit [label="缓存命中"];
+        cache_miss [label="缓存未命中"];
+        fetch_resource [label="获取并解压资源"];
+        check_readonly [label="只读模式？", shape=diamond];
+
+        remote_branch -> check_hash_exists;
+        check_hash_exists -> check_cache [label="存在"];
+        check_hash_exists -> check_readonly [label="不存在"];
+        check_readonly -> fail_node [label="是"];
+        check_readonly -> fetch_resource [label="否"];
+        check_cache -> cache_hit [label="存在"];
+        cache_hit -> load_manifest;
+        load_manifest -> check_build_file;
+        check_build_file -> queue_deps [label="递归模式"];
+        check_build_file -> end [label="非递归模式"];
+        check_cache -> cache_miss [label="不存在"];
+        cache_miss -> fetch_resource;
+        fetch_resource -> run_resource;
+    }
+
+    // 错误处理连接
+    fail_node -> end;
+    check_cache -> fetch_failed [label="其他错误"];
+    fetch_failed -> end;
+}

@@ -1,0 +1,51 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 finishStructInit"];
+    check_type [label="检查 struct_ty 类型"];
+    tuple_type [label="处理元组类型"];
+    struct_type [label="处理结构体类型"];
+    resolve_fields [label="解析结构体字段初始化"];
+    check_missing_fields [label="检查缺失字段"];
+    collect_errors [label="收集错误信息"];
+    check_runtime [label="检查运行时字段"];
+    handle_comptime [label="处理仅编译时类型错误"];
+    runtime_validation [label="验证运行时值"];
+    is_ref_check [label="检查 is_ref 标志"];
+    alloc_memory [label="分配内存并初始化指针"];
+    store_fields [label="存储字段值"];
+    return_ref [label="返回引用"];
+    handle_runtime [label="处理运行时初始化"];
+    return_result [label="返回结果"];
+    error_handling [label="错误处理", shape=diamond];
+    end_error [label="返回错误", shape=ellipse];
+    end_ok [label="返回成功", shape=ellipse];
+
+    start -> check_type;
+    check_type -> tuple_type [label="tuple_type"];
+    check_type -> struct_type [label="struct_type"];
+    
+    tuple_type -> check_missing_fields;
+    struct_type -> resolve_fields -> check_missing_fields;
+    
+    check_missing_fields -> collect_errors [label="有缺失字段"];
+    collect_errors -> error_handling;
+    check_missing_fields -> check_runtime [label="无缺失"];
+    
+    check_runtime -> handle_comptime [label="需要编译时"];
+    check_runtime -> runtime_validation [label="允许运行时"];
+    
+    handle_comptime -> error_handling;
+    
+    runtime_validation -> is_ref_check;
+    
+    is_ref_check -> alloc_memory [label="true"];
+    alloc_memory -> store_fields -> return_ref -> end_ok;
+    
+    is_ref_check -> handle_runtime [label="false"];
+    handle_runtime -> return_result -> end_ok;
+    
+    error_handling -> end_error;
+}

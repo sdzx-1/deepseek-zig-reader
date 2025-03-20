@@ -1,0 +1,94 @@
+
+digraph initSyntheticSections {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 initSyntheticSections"];
+    end [label="结束 initSyntheticSections"];
+
+    subgraph cluster_main {
+        label = "initSyntheticSections 流程";
+
+        start -> check_eh_frame;
+        
+        check_eh_frame [label="检查是否需要 .eh_frame"];
+        check_eh_frame -> add_eh_frame [label="需要"];
+        check_eh_frame -> check_eh_frame_hdr [label="不需要"];
+        
+        add_eh_frame [label="添加 .eh_frame 节"];
+        add_eh_frame -> check_eh_frame_hdr;
+        
+        check_eh_frame_hdr [label="检查是否需要 .eh_frame_hdr"];
+        check_eh_frame_hdr -> add_eh_frame_hdr [label="需要"];
+        check_eh_frame_hdr -> check_got [label="不需要"];
+        
+        add_eh_frame_hdr [label="添加 .eh_frame_hdr 节"];
+        add_eh_frame_hdr -> check_got;
+
+        check_got [label="检查是否需要 .got 节"];
+        check_got -> add_got [label="需要"];
+        check_got -> check_got_plt [label="不需要"];
+        
+        add_got [label="添加 .got 节"];
+        add_got -> check_got_plt;
+
+        check_got_plt [label="检查是否需要 .got.plt 节"];
+        check_got_plt -> add_got_plt [label="需要"];
+        check_got_plt -> check_rela_dyn [label="不需要"];
+        
+        add_got_plt [label="添加 .got.plt 节"];
+        add_got_plt -> check_rela_dyn;
+
+        check_rela_dyn [label="检查是否需要 .rela.dyn 节"];
+        check_rela_dyn -> add_rela_dyn [label="需要"];
+        check_rela_dyn -> check_plt [label="不需要"];
+        
+        add_rela_dyn [label="添加 .rela.dyn 节"];
+        add_rela_dyn -> check_plt;
+
+        check_plt [label="检查是否需要 .plt 节"];
+        check_plt -> add_plt [label="需要"];
+        check_plt -> check_plt_got [label="不需要"];
+        
+        add_plt [label="添加 .plt 节"];
+        add_plt -> check_plt_got;
+
+        check_plt_got [label="检查是否需要 .plt.got 节"];
+        check_plt_got -> add_plt_got [label="需要"];
+        check_plt_got -> check_copy_rel [label="不需要"];
+        
+        add_plt_got [label="添加 .plt.got 节"];
+        add_plt_got -> check_copy_rel;
+
+        check_copy_rel [label="检查是否需要 .copyrel 节"];
+        check_copy_rel -> add_copy_rel [label="需要"];
+        check_copy_rel -> check_interp [label="不需要"];
+        
+        add_copy_rel [label="添加 .copyrel 节"];
+        add_copy_rel -> check_interp;
+
+        check_interp [label="检查是否需要 .interp 节"];
+        check_interp -> add_interp [label="需要"];
+        check_interp -> check_dynamic_sections [label="不需要"];
+        
+        add_interp [label="添加 .interp 节"];
+        add_interp -> check_dynamic_sections;
+
+        check_dynamic_sections [label="检查是否是动态库/PIE"];
+        check_dynamic_sections -> add_dynstrtab [label="是"];
+        check_dynamic_sections -> check_versions [label="否"];
+        
+        add_dynstrtab [label="添加 .dynstr/.dynamic/.dynsym 等节"];
+        add_dynstrtab -> check_versions;
+
+        check_versions [label="检查是否需要版本节"];
+        check_versions -> add_versions [label="需要"];
+        check_versions -> final_steps [label="不需要"];
+        
+        add_versions [label="添加 .gnu.version 等节"];
+        add_versions -> final_steps;
+
+        final_steps [label="执行 initSymtab 和 initShStrtab"];
+        final_steps -> end;
+    }
+}

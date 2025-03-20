@@ -1,0 +1,40 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 airOverflow"];
+    check_unused [label="检查指令是否未被使用 (liveness.isUnused(inst))"];
+    result_dead [label="结果为 .dead"];
+    process_inst [label="处理指令"];
+    get_ty_pl [label="获取 ty_pl 和 extra 数据"];
+    switch_ty_tag [label="根据 lhs_ty 的类型进行分支"];
+    handle_vector [label="向量类型: 返回错误 (TODO 向量支持)"];
+    handle_int [label="整数类型"];
+    check_bits [label="检查 int_info.bits 的值"];
+    bits_less_32 [label="bits < 32"];
+    bits_eq_32 [label="bits == 32"];
+    bits_gt_32 [label="bits > 32: 返回错误"];
+    subprocess_less_32 [label="分配内存\n生成截断指令\n比较结果\n设置栈和溢出位"];
+    subprocess_eq_32 [label="处理立即数\n生成 adds/subs 指令\n设置标志寄存器"];
+    finish [label="结束并返回结果 (finishAir)"];
+
+    start -> check_unused;
+    check_unused -> result_dead [label="是"];
+    check_unused -> process_inst [label="否"];
+    process_inst -> get_ty_pl;
+    get_ty_pl -> switch_ty_tag;
+    switch_ty_tag -> handle_vector [label=".vector"];
+    switch_ty_tag -> handle_int [label=".int"];
+    handle_vector -> finish [label="抛出错误"];
+    handle_int -> check_bits;
+    check_bits -> bits_less_32 [label="bits < 32"];
+    check_bits -> bits_eq_32 [label="bits = 32"];
+    check_bits -> bits_gt_32 [label="bits > 32"];
+    bits_less_32 -> subprocess_less_32;
+    subprocess_less_32 -> finish;
+    bits_eq_32 -> subprocess_eq_32;
+    subprocess_eq_32 -> finish;
+    bits_gt_32 -> finish [label="抛出错误"];
+    result_dead -> finish;
+}

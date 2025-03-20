@@ -1,0 +1,44 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 genCall"];
+    get_pt_zcu [label="获取 pt 和 zcu"];
+    determine_fn_ty [label="根据 info 类型确定 fn_ty"];
+    get_fn_info [label="获取 fn_info"];
+    alloc_var_args [label="分配 var_args 并填充参数"];
+    resolve_call_info [label="解析调用约定 call_info"];
+    adjust_frame [label="调整调用帧大小和对齐"];
+    init_reg_locks [label="初始化寄存器锁列表"];
+    handle_return [label="处理返回值位置"];
+    process_args [label="遍历参数处理寄存器和栈帧"];
+    gen_arg_instructions [label="生成参数传递指令"];
+    gen_call_inst [label="根据 info 生成调用指令"];
+    reset_vector [label="重置向量设置"];
+    return_result [label="返回 call_info.return_value.short"];
+    handle_lib_call [label="处理 lib 调用（TODO）", shape=diamond];
+    error_path [label="返回错误", shape=ellipse];
+
+    start -> get_pt_zcu;
+    get_pt_zcu -> determine_fn_ty;
+    determine_fn_ty -> get_fn_info;
+    get_fn_info -> alloc_var_args;
+    alloc_var_args -> resolve_call_info;
+    resolve_call_info -> adjust_frame;
+    adjust_frame -> init_reg_locks;
+    init_reg_locks -> handle_return;
+    handle_return -> process_args;
+    process_args -> gen_arg_instructions;
+    gen_arg_instructions -> gen_call_inst;
+    gen_call_inst -> reset_vector [label="调用成功"];
+    reset_vector -> return_result;
+
+    determine_fn_ty -> handle_lib_call [label="info 是 .lib"];
+    handle_lib_call -> error_path [label="返回 TODO 错误"];
+
+    gen_call_inst -> error_path [label="生成指令失败"];
+    process_args -> error_path [label="处理参数失败"];
+    resolve_call_info -> error_path [label="解析调用约定失败"];
+    alloc_var_args -> error_path [label="分配失败"];
+}

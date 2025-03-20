@@ -1,0 +1,59 @@
+
+digraph updateWin32Resource {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle, style=rounded];
+    edge [fontname="Arial"];
+
+    start [label="开始 updateWin32Resource", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    check_spawn [label="检查能否生成子进程"];
+    check_self_exe [label="获取 self_exe_path"];
+    handle_manifest [label="处理 .manifest 文件"];
+    handle_rc [label="处理 .rc 文件"];
+    write_manifest_cache [label="写入缓存清单"];
+    error_oom [label="返回错误: 无法生成子进程", shape=diamond];
+    error_self_exe [label="返回错误: 找不到自身路径", shape=diamond];
+    common_init [label="初始化跟踪/日志/内存池"];
+    manifest_gen_rc [label="生成临时 .rc 文件"];
+    spawn_zig_rc [label="调用 spawnZigRc 编译"];
+    cache_hit_check [label="检查缓存是否命中", shape=diamond];
+    read_depfile [label="读取依赖文件更新缓存"];
+    rename_res [label="重命名生成文件到缓存目录"];
+    update_status [label="更新 win32_resource.status"];
+
+    start -> check_spawn;
+    check_spawn -> error_oom [label="不支持"];
+    check_spawn -> check_self_exe [label="支持"];
+    check_self_exe -> error_self_exe [label="不存在"];
+    check_self_exe -> common_init [label="存在"];
+    common_init -> handle_manifest [label="src=manifest"];
+    common_init -> handle_rc [label="src=rc"];
+    
+    subgraph cluster_manifest {
+        label=".manifest 处理流程";
+        handle_manifest -> manifest_gen_rc;
+        manifest_gen_rc -> cache_hit_check;
+        cache_hit_check -> spawn_zig_rc [label="未命中"];
+        cache_hit_check -> write_manifest_cache [label="命中"];
+        spawn_zig_rc -> write_manifest_cache;
+        write_manifest_cache -> update_status;
+    }
+
+    subgraph cluster_rc {
+        label=".rc 文件处理流程";
+        handle_rc -> cache_hit_check_rc [label="添加额外参数"];
+        cache_hit_check_rc [label="检查缓存", shape=diamond];
+        cache_hit_check_rc -> spawn_zig_rc_rc [label="未命中"];
+        cache_hit_check_rc -> read_depfile_rc [label="命中"];
+        spawn_zig_rc_rc [label="调用 spawnZigRc 编译"];
+        spawn_zig_rc_rc -> read_depfile;
+        read_depfile -> rename_res;
+        rename_res -> write_manifest_cache_rc;
+        write_manifest_cache_rc [label="更新缓存清单"];
+        write_manifest_cache_rc -> update_status;
+    }
+
+    update_status -> end;
+    error_oom -> end;
+    error_self_exe -> end;
+}

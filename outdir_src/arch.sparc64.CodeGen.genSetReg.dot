@@ -1,0 +1,89 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 genSetReg"];
+    end [label="返回/结束"];
+    switch_mcv [label="switch(mcv)", shape=diamond];
+    
+    start -> switch_mcv;
+
+    // case .dead
+    dead_case [label="case .dead\nunreachable"];
+    switch_mcv -> dead_case [label=".dead"];
+    dead_case -> end [style=invis]; // unreachable实际不会流向end
+
+    // case .unreach, .none
+    unreach_none_case [label="case .unreach/.none\nreturn"];
+    switch_mcv -> unreach_none_case [label=".unreach/.none"];
+    unreach_none_case -> end;
+
+    // case .condition_flags
+    cond_flags [label="case .condition_flags\n生成mov和movcc指令"];
+    switch_mcv -> cond_flags [label=".condition_flags"];
+    cond_flags -> end;
+
+    // case .condition_register
+    cond_reg [label="case .condition_register\n生成mov和movr指令"];
+    switch_mcv -> cond_reg [label=".condition_register"];
+    cond_reg -> end;
+
+    // case .undef
+    undef_case [label="case .undef\n安全检查\n生成0xaaaaaaaa或返回"];
+    switch_mcv -> undef_case [label=".undef"];
+    undef_case -> end;
+
+    // case .ptr_stack_offset
+    ptr_stack [label="case .ptr_stack_offset\n计算real_offset\n生成add指令或fail"];
+    switch_mcv -> ptr_stack [label=".ptr_stack_offset"];
+    ptr_stack -> end;
+
+    // case .immediate
+    imm_case [label="case .immediate\n根据x大小分4种情况"];
+    switch_mcv -> imm_case [label=".immediate"];
+    imm_case -> end;
+
+    // case .register
+    reg_case [label="case .register\n检查寄存器相同性\n生成mov指令或返回"];
+    switch_mcv -> reg_case [label=".register"];
+    reg_case -> end;
+
+    // case .register_with_overflow
+    reg_overflow [label="case .register_with_overflow\nunreachable"];
+    switch_mcv -> reg_overflow [label=".register_with_overflow"];
+    reg_overflow -> end [style=invis];
+
+    // case .memory
+    memory_case [label="case .memory\n生成地址加载指令"];
+    switch_mcv -> memory_case [label=".memory"];
+    memory_case -> end;
+
+    // case .stack_offset
+    stack_offset_case [label="case .stack_offset\n计算偏移量并加载"];
+    switch_mcv -> stack_offset_case [label=".stack_offset"];
+    stack_offset_case -> end;
+
+    // 错误处理分支示例（以.ptr_stack_offset为例）
+    fail_node [label="调用self.fail()"];
+    ptr_stack -> fail_node [label="real_offset\n超出i13范围"];
+    fail_node -> end [label="返回错误"];
+
+    // .immediate子分支
+    sub_imm0 [label="x ≤ u12\n生成mov指令"];
+    sub_imm1 [label="x ≤ u32\n生成sethi+or"];
+    sub_imm2 [label="x ≤ u44\n生成移位+or"];
+    sub_imm3 [label="其他情况\n分配临时寄存器\n分两步加载"];
+
+    imm_case -> sub_imm0 [label="条件1"];
+    imm_case -> sub_imm1 [label="条件2"];
+    imm_case -> sub_imm2 [label="条件3"];
+    imm_case -> sub_imm3 [label="条件4"];
+
+    // 递归调用示例
+    sub_imm3 -> genSetReg1 [label="genSetReg(tmp_reg)"];
+    sub_imm3 -> genSetReg2 [label="genSetReg(reg)"];
+    genSetReg1 [label="genSetReg(低位)"];
+    genSetReg2 [label="genSetReg(高位)"];
+    genSetReg1 -> genSetReg2 -> end;
+}

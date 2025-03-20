@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 getFuncDeclIes"];
+    validate_input [label="验证输入参数\nassert(bare_return_type和所有param_types非空)"];
+    get_local [label="获取本地线程数据\nlocal = ip.getLocal(tid)"];
+    ensure_capacity [label="确保items和extra容量\ntry items.ensureUnusedCapacity(4)\n确保extra容量"];
+    prepare_indices [label="准备索引\nfunc_index, error_union_type,\nerror_set_type, func_ty"];
+    add_func_decl [label="向extra添加FuncDecl信息\nfunc_decl_extra_index"];
+    add_func_type [label="向extra添加TypeFunction信息\nfunc_type_extra_index"];
+    append_items [label="向items追加4个元素\nfunc_decl, type_error_union,\ntype_inferred_error_set, type_function"];
+    errdefer_block [label="errdefer回滚操作\nitems和extra长度复原"];
+    get_or_put_func [label="尝试获取或插入func条目\nip.getOrPutKeyEnsuring..."];
+    check_existing [label="检查是否已存在？"];
+    rollback_existing [label="回滚items和extra长度\n更新zir_body_inst"];
+    return_existing [label="返回existing索引"];
+    put_tentative [label="暂存新索引\nfunc_gop.putTentative..."];
+    handle_error_union [label="处理error_union_type\n获取或插入条目"];
+    handle_error_set [label="处理error_set_type\n获取或插入条目"];
+    handle_func_ty [label="处理func_ty\n获取或插入条目"];
+    finalize_entries [label="确认所有新条目\nfunc_gop.putFinal..."];
+    return_new [label="返回新func_index"];
+
+    start -> validate_input;
+    validate_input -> get_local;
+    get_local -> ensure_capacity;
+    ensure_capacity -> prepare_indices;
+    prepare_indices -> add_func_decl;
+    add_func_decl -> add_func_type;
+    add_func_type -> append_items;
+    append_items -> errdefer_block [style=dotted];
+    append_items -> get_or_put_func;
+    get_or_put_func -> check_existing;
+    check_existing -> rollback_existing [label="存在"];
+    rollback_existing -> return_existing;
+    check_existing -> put_tentative [label="不存在"];
+    put_tentative -> handle_error_union;
+    handle_error_union -> handle_error_set;
+    handle_error_set -> handle_func_ty;
+    handle_func_ty -> finalize_entries;
+    finalize_entries -> return_new;
+
+    // Error handling paths
+    edge [color=red, style=dashed];
+    ensure_capacity -> errdefer_block [label="分配失败"];
+    add_func_decl -> errdefer_block [label="添加失败"];
+    add_func_type -> errdefer_block [label="添加失败"];
+    append_items -> errdefer_block [label="追加失败"];
+    get_or_put_func -> errdefer_block [label="失败"];
+    handle_error_union -> errdefer_block [label="失败"];
+    handle_error_set -> errdefer_block [label="失败"];
+    handle_func_ty -> errdefer_block [label="失败"];
+}

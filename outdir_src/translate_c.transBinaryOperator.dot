@@ -1,0 +1,59 @@
+
+digraph transBinaryOperator {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始处理transBinaryOperator"];
+    get_op [label="获取操作符op和类型qt"];
+    switch_op [label="switch(op)", shape=diamond];
+
+    // 主要操作分支
+    assign [label="调用transCreateNodeAssign"];
+    comma [label="创建block_scope\n处理LHS和RHS\n构建break节点"];
+    div_signed [label="生成@divTrunc"];
+    rem_signed [label="生成signedRemainder"];
+    shift_ops [label="调用transCreateNodeShiftOp"];
+    bool_ops [label="调用transCreateNodeBoolInfixOp"];
+    ptr_arith [label="处理指针算术运算\ntransCreatePointerArithmeticSignedOp"];
+    default_ops [label="设置op_id\n匹配基本操作符"];
+
+    // 公共处理路径
+    handle_operands [label="转换LHS/RHS\n处理布尔/指针转换"];
+    build_infix [label="构建中缀操作节点"];
+    check_ptr_diff [label="检查isPointerDiffExpr", shape=diamond];
+    ptr_diff_handling [label="生成指针差运算特殊处理"];
+    return_node [label="返回结果节点"];
+
+    start -> get_op;
+    get_op -> switch_op;
+
+    // Switch分支
+    switch_op -> assign [label="Assign"];
+    switch_op -> comma [label="Comma"];
+    switch_op -> div_signed [label="Div\n且符号整数"];
+    switch_op -> rem_signed [label="Rem\n且符号整数"];
+    switch_op -> shift_ops [label="Shl/Shr"];
+    switch_op -> bool_ops [label="LAnd/LOr"];
+    switch_op -> ptr_arith [label="Add/Sub\n且指针类型"];
+    switch_op -> default_ops [label="其他操作"];
+
+    // 各分支最终路径
+    assign -> return_node;
+    comma -> return_node;
+    div_signed -> return_node;
+    rem_signed -> return_node;
+    shift_ops -> return_node;
+    bool_ops -> return_node;
+    ptr_arith -> return_node;
+
+    // 默认操作处理流程
+    default_ops -> handle_operands;
+    handle_operands -> build_infix;
+    build_infix -> check_ptr_diff;
+    check_ptr_diff -> ptr_diff_handling [label="是"];
+    check_ptr_diff -> return_node [label="否"];
+    ptr_diff_handling -> return_node;
+
+    // 公共返回点
+    return_node [label="返回最终节点", shape=ellipse];
+}

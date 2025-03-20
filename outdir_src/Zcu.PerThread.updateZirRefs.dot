@@ -1,0 +1,100 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 updateZirRefs"];
+    init [label="初始化变量\n(zcu, comp, ip, gpa)\n创建 updated_files"];
+    cleanup [label="defer cleanupUpdatedFiles"];
+
+    start -> init -> cleanup;
+
+    loop_files [label="遍历 zcu.import_table 中的每个文件"];
+    init -> loop_files;
+
+    check_file_mode [label="检查文件模式", shape=diamond];
+    loop_files -> check_file_mode;
+
+    handle_zon [label="处理 .zon 文件\n检查 zoir_invalidated\n标记依赖失效"];
+    handle_zig [label="处理 .zig 文件\n检查旧ZIR是否存在\n创建新旧ZIR映射"];
+    check_file_mode -> handle_zon [label=".zon"];
+    check_file_mode -> handle_zig [label=".zig"];
+
+    zon_invalid [label="标记zon文件失效", shape=diamond];
+    handle_zon -> zon_invalid;
+    zon_invalid -> loop_files [label="继续循环"];
+
+    handle_zig -> updated_files_put [label="存入 updated_files"];
+    updated_files_put [label="更新到 updated_files"];
+
+    loop_files_end [label="循环结束"];
+    handle_zon -> loop_files_end [label="继续"];
+    handle_zig -> loop_files_end [label="继续"];
+    loop_files_end -> check_empty [label="所有文件处理完毕"];
+
+    check_empty [label="updated_files 是否为空?", shape=diamond];
+    check_empty -> process_locals [label="非空"];
+    check_empty -> end [label="空"];
+
+    process_locals [label="遍历 ip.locals 的每个本地变量"];
+    check_empty -> process_locals [label="非空"];
+
+    loop_locals [label="处理每个 tracked_inst"];
+    process_locals -> loop_locals;
+
+    check_file_in_updated [label="文件是否在 updated_files 中?", shape=diamond];
+    loop_locals -> check_file_in_updated;
+
+    handle_mapping [label="检查新旧inst映射"];
+    check_file_in_updated -> handle_mapping [label="存在"];
+    check_file_in_updated -> loop_locals [label="不存在，继续"];
+
+    mapping_failed [label="映射失败\n标记为 lost\n触发依赖失效"];
+    mapping_success [label="更新inst引用"];
+    handle_mapping -> mapping_failed [label="无映射"];
+    handle_mapping -> mapping_success [label="有映射"];
+
+    check_line_change [label="检查声明行号变更", shape=diamond];
+    mapping_success -> check_line_change;
+
+    queue_job [label="加入队列 update_line_number"];
+    check_line_change -> queue_job [label="行号变化"];
+    check_line_change -> check_hash [label="未变化"];
+
+    check_hash [label="检查源哈希变化", shape=diamond];
+    queue_job -> check_hash;
+    check_hash -> mark_hash_dep [label="哈希变化"];
+    check_hash -> check_namespace [label="未变化"];
+
+    mark_hash_dep [label="标记依赖失效 (src_hash)"];
+    mark_hash_dep -> check_namespace;
+
+    check_namespace [label="是否为结构体/联合体声明?", shape=diamond];
+    check_namespace -> compare_namespaces [label="是"];
+    check_namespace -> loop_locals [label="否，继续"];
+
+    compare_namespaces [label="比较新旧命名空间\n检查名称增减和pub状态"];
+    compare_namespaces -> mark_namespace_changes [label="有变化"];
+    compare_namespaces -> loop_locals [label="无变化"];
+
+    mark_namespace_changes [label="标记命名空间依赖失效"];
+    mark_namespace_changes -> loop_locals;
+
+    loop_locals_end [label="所有 tracked_inst 处理完毕"];
+    loop_locals -> loop_locals_end [label="循环结束"];
+
+    rehash [label="rehashTrackedInsts"];
+    loop_locals_end -> rehash;
+
+    cleanup_old_zir [label="清理旧ZIR并更新命名空间"];
+    rehash -> cleanup_old_zir;
+
+    end [label="返回"];
+    cleanup_old_zir -> end;
+
+    // 处理循环结构
+    { rank=same; loop_files check_file_mode }
+    { rank=same; process_locals loop_locals }
+    { rank=same; check_file_in_updated handle_mapping }
+    { rank=same; check_hash check_namespace }
+}

@@ -1,0 +1,53 @@
+
+digraph updateExports {
+    node [shape=rectangle, style=rounded];
+    start [label="开始"];
+    check_panic [label="检查 build_options.skip_non_native 和 builtin.object_format"];
+    panic [label="@panic"];
+    init_vars [label="初始化变量 (zcu, ip, comp, target)"];
+    check_use_llvm [label="comp.config.use_llvm 为真?"];
+    process_exports_llvm [label="遍历 export_indices:\n检查符号名称并设置 stage1_flags"];
+    check_llvm_object [label="coff.llvm_object 存在?"];
+    call_llvm_update [label="调用 llvm_object.updateExports\n并返回"];
+    handle_metadata [label="处理 metadata"];
+    nav_block [label="metadata = nav:\ngetOrCreateAtomForNav"];
+    uav_block [label="metadata = uav:\nlowerUav 处理"];
+    handle_lowerUav_fail [label="记录失败到 failed_exports"];
+    get_atom [label="获取 atom_index 和 atom"];
+    loop_exports [label="遍历 export_indices"];
+    check_section [label="检查 exp.opts.section 是否为 .text?"];
+    section_error [label="记录错误: 未实现的 section"];
+    check_linkage [label="检查 exp.opts.linkage == .link_once?"];
+    linkage_error [label="记录错误: 未实现的 link_once"];
+    process_symbol [label="处理符号名称和属性\n设置 sym 的值、段、类型"];
+    resolve_global [label="解析全局符号"];
+    end [label="结束"];
+
+    start -> check_panic;
+    check_panic -> panic [label="条件成立"];
+    check_panic -> init_vars [label="条件不成立"];
+    init_vars -> check_use_llvm;
+    check_use_llvm -> process_exports_llvm [label="是"];
+    process_exports_llvm -> check_llvm_object;
+    check_use_llvm -> check_llvm_object [label="否"];
+    check_llvm_object -> call_llvm_update [label="存在"];
+    call_llvm_update -> end;
+    check_llvm_object -> handle_metadata [label="不存在"];
+    handle_metadata -> nav_block [label="exported 是 .nav"];
+    handle_metadata -> uav_block [label="exported 是 .uav"];
+    uav_block -> handle_lowerUav_fail [label="lowerUav 失败"];
+    handle_lowerUav_fail -> end;
+    uav_block -> get_atom [label="成功"];
+    nav_block -> get_atom;
+    get_atom -> loop_exports;
+    loop_exports -> check_section;
+    check_section -> section_error [label="非 .text"];
+    section_error -> end;
+    check_section -> check_linkage [label="是 .text"];
+    check_linkage -> linkage_error [label="是 link_once"];
+    linkage_error -> end;
+    check_linkage -> process_symbol [label="否"];
+    process_symbol -> resolve_global;
+    resolve_global -> loop_exports [label="继续遍历"];
+    loop_exports -> end [label="遍历完成"];
+}

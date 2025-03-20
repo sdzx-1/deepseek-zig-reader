@@ -1,0 +1,106 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: zirOverflowArithmetic"];
+    parse_extra [label="解析extra数据\n获取src、lhs_src、rhs_src"];
+    resolve_operands [label="解析操作数\nuncasted_lhs和uncasted_rhs"];
+    check_types [label="检查类型\nlhs_ty和rhs_ty\n调用checkVectorizableBinaryOperands"];
+    determine_dest_ty [label="根据zir_tag确定目标类型\ndest_ty和rhs_dest_ty"];
+    coerce_operands [label="强制转换操作数\nlhs和rhs"];
+    check_scalar_type [label="检查dest_ty是否为整数类型"];
+    resolve_values [label="尝试解析lhs和rhs的值"];
+    handle_zir_tag [label="根据zir_tag分支处理"];
+
+    start -> parse_extra;
+    parse_extra -> resolve_operands;
+    resolve_operands -> check_types;
+    check_types -> determine_dest_ty;
+    determine_dest_ty -> coerce_operands;
+    coerce_operands -> check_scalar_type;
+    check_scalar_type -> resolve_values [label="成功"];
+    check_scalar_type -> fail [label="类型不匹配"];
+
+    resolve_values -> handle_zir_tag;
+
+    // 处理不同zir_tag的分支
+    subgraph cluster_operations {
+        label="处理具体算术操作";
+        node [shape=diamond];
+
+        handle_add [label="zir_tag == add_with_overflow?"];
+        handle_sub [label="zir_tag == sub_with_overflow?"];
+        handle_mul [label="zir_tag == mul_with_overflow?"];
+        handle_shl [label="zir_tag == shl_with_overflow?"];
+        
+        // 加法逻辑
+        handle_add -> add_check_zero_lhs [label="是"];
+        add_check_zero_lhs [label="检查lhs是否为0"];
+        add_check_zero_lhs -> add_handle_zero_lhs [label="是"];
+        add_handle_zero_lhs [label="返回rhs和0溢出位"];
+        add_check_zero_lhs -> add_check_zero_rhs [label="否"];
+        add_check_zero_rhs [label="检查rhs是否为0"];
+        add_check_zero_rhs -> add_handle_zero_rhs [label="是"];
+        add_handle_zero_rhs [label="返回lhs和0溢出位"];
+        add_check_zero_rhs -> add_handle_normal [label="否"];
+        add_handle_normal [label="调用addWithOverflow"];
+
+        // 减法逻辑
+        handle_sub -> sub_check_zero_rhs [label="是"];
+        sub_check_zero_rhs [label="检查rhs是否为0"];
+        sub_check_zero_rhs -> sub_handle_zero_rhs [label="是"];
+        sub_handle_zero_rhs [label="返回lhs和0溢出位"];
+        sub_check_zero_rhs -> sub_handle_normal [label="否"];
+        sub_handle_normal [label="调用subWithOverflow"];
+
+        // 乘法逻辑
+        handle_mul -> mul_check_zero_one [label="是"];
+        mul_check_zero_one [label="检查lhs或rhs为0/1"];
+        mul_check_zero_one -> mul_handle_special [label="是"];
+        mul_handle_special [label="返回对应操作数和0溢出位"];
+        mul_check_zero_one -> mul_handle_normal [label="否"];
+        mul_handle_normal [label="调用mulWithOverflow"];
+
+        // 左移逻辑
+        handle_shl -> shl_check_zero_lhs [label="是"];
+        shl_check_zero_lhs [label="检查lhs是否为0"];
+        shl_check_zero_lhs -> shl_handle_zero_lhs [label="是"];
+        shl_handle_zero_lhs [label="返回0和0溢出位"];
+        shl_check_zero_lhs -> shl_check_zero_rhs [label="否"];
+        shl_check_zero_rhs [label="检查rhs是否为0"];
+        shl_check_zero_rhs -> shl_handle_zero_rhs [label="是"];
+        shl_handle_zero_rhs [label="返回lhs和0溢出位"];
+        shl_check_zero_rhs -> shl_handle_normal [label="否"];
+        shl_handle_normal [label="调用shlWithOverflow"];
+    }
+
+    handle_zir_tag -> handle_add;
+    handle_zir_tag -> handle_sub;
+    handle_zir_tag -> handle_mul;
+    handle_zir_tag -> handle_shl;
+
+    // 公共结束路径
+    construct_result [label="构造结果元组tuple_ty"];
+    check_inst_none [shape=diamond, label="result.inst == .none?"];
+    return_interned [label="返回Air.internedToRef"];
+    return_aggregate [label="返回block.addAggregateInit"];
+
+    add_handle_zero_lhs -> construct_result;
+    add_handle_zero_rhs -> construct_result;
+    add_handle_normal -> construct_result;
+    sub_handle_zero_rhs -> construct_result;
+    sub_handle_normal -> construct_result;
+    mul_handle_special -> construct_result;
+    mul_handle_normal -> construct_result;
+    shl_handle_zero_lhs -> construct_result;
+    shl_handle_zero_rhs -> construct_result;
+    shl_handle_normal -> construct_result;
+
+    construct_result -> check_inst_none;
+    check_inst_none -> return_interned [label="是"];
+    check_inst_none -> return_aggregate [label="否"];
+
+    // 错误处理路径
+    fail [label="返回类型错误", color=red];
+}

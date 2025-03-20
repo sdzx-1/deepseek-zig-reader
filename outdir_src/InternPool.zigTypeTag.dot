@@ -1,0 +1,52 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", style="filled", fillcolor="lightgray"];
+    start [label="Start zigTypeTag(ip, index)", shape=ellipse, fillcolor="skyblue"];
+    end [label="Return TypeId", shape=ellipse, fillcolor="skyblue"];
+    unreachable_node [label="unreachable", fillcolor="pink"];
+
+    // 外层 switch 分支
+    start -> switch_outer [label="index"];
+    switch_outer [label="外层 switch(index)", shape=diamond];
+
+    // 直接返回的分支（部分示例）
+    switch_outer -> return_int [label=".u0_type, .i0_type,..."];
+    return_int [label="return .int"];
+    return_int -> end;
+
+    switch_outer -> return_float [label=".c_longdouble_type, .f16_type,..."];
+    return_float [label="return .float"];
+    return_float -> end;
+
+    switch_outer -> return_bool [label=".bool_type"];
+    return_bool [label="return .bool"];
+    return_bool -> end;
+
+    // 其他直接返回分支（省略部分类似节点）
+
+    // 触发 unreachable 的分支
+    switch_outer -> unreachable_node [label=".generic_poison_type, .undef等"];
+
+    // 默认分支：进入内部 switch
+    switch_outer -> inner_switch [label="其他情况"];
+    inner_switch [label="index.unwrap(ip).getTag(ip)", shape=diamond];
+
+    // 内部 switch 分支（部分示例）
+    inner_switch -> return_int_inner [label=".type_int_signed, .type_int_unsigned"];
+    return_int_inner [label="return .int"];
+    return_int_inner -> end;
+
+    inner_switch -> return_array [label=".type_array_big, .type_array_small"];
+    return_array [label="return .array"];
+    return_array -> end;
+
+    inner_switch -> unreachable_node [label=".undef, .simple_value等"];
+    inner_switch -> return_struct [label=".type_struct, .type_tuple等"];
+    return_struct [label="return .struct"];
+    return_struct -> end;
+
+    // .none 分支
+    switch_outer -> unreachable_node [label=".none"];
+
+    // 其他内部分支（省略类似节点）
+}

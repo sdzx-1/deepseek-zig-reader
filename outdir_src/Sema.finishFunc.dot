@@ -1,0 +1,53 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style=rounded];
+    edge [fontname="Helvetica"];
+    
+    start [label="Start finishFunc"];
+    determine_return_type [label="Determine return_type based on opt_func_index and ret_poison"];
+    check_valid_return_type [label="Check return_type.isValidReturnType()", shape=diamond];
+    error_invalid_return [label="Fail with 'invalid return type' error"];
+    check_extern_conv [label="Check extern calling convention allows return type", shape=diamond];
+    error_extern_return [label="Fail with 'extern return type not allowed' error"];
+    check_comptime_params [label="Check if all params are comptime (if required)", shape=diamond];
+    error_comptime_params [label="Fail with 'non-comptime params' error"];
+    validate_stack_align [label="Validate incoming stack alignment", shape=diamond];
+    error_stack_align [label="Fail with 'stack alignment not power of two' error"];
+    check_special_cc_return [label="Check special calling conventions (e.g. interrupt)", shape=diamond];
+    error_cc_return [label="Fail with 'invalid return type for CC' error"];
+    check_cc_support [label="Check calling convention architecture/backend support", shape=diamond];
+    error_cc_support [label="Fail with 'CC not supported' error"];
+    resolve_stack_trace [label="Resolve StackTrace fields (if needed)"];
+    return_result [label="Return Air.internedToRef"];
+    
+    start -> determine_return_type;
+    determine_return_type -> check_valid_return_type;
+    
+    check_valid_return_type -> error_invalid_return [label="No"];
+    check_valid_return_type -> check_extern_conv [label="Yes"];
+    
+    check_extern_conv -> error_extern_return [label="Invalid"];
+    check_extern_conv -> check_comptime_params [label="Valid"];
+    
+    check_comptime_params -> error_comptime_params [label="Non-comptime param exists"];
+    check_comptime_params -> validate_stack_align [label="All comptime"];
+    
+    validate_stack_align -> error_stack_align [label="Not power of two"];
+    validate_stack_align -> check_special_cc_return [label="Valid"];
+    
+    check_special_cc_return -> error_cc_return [label="Invalid return type"];
+    check_special_cc_return -> check_cc_support [label="Valid"];
+    
+    check_cc_support -> error_cc_support [label="Unsupported"];
+    check_cc_support -> resolve_stack_trace [label="Supported"];
+    
+    resolve_stack_trace -> return_result;
+    
+    // Error edges (common exit points)
+    error_invalid_return -> return_result [style=invis];
+    error_extern_return -> return_result [style=invis];
+    error_comptime_params -> return_result [style=invis];
+    error_stack_align -> return_result [style=invis];
+    error_cc_return -> return_result [style=invis];
+    error_cc_support -> return_result [style=invis];
+}

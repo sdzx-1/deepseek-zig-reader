@@ -1,0 +1,125 @@
+
+digraph comptimeOnlyInner {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.5];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="Start comptimeOnlyInner(ty, strat, zcu, tid)", shape=ellipse, fillcolor="#b3e2cd"];
+    end [label="Return bool", shape=ellipse, fillcolor="#fdccac"];
+
+    subgraph cluster_main {
+        label="Main Logic";
+        color=transparent;
+
+        switch_ty [label="Switch ty.toIntern()", shape=diamond];
+        empty_tuple [label="case .empty_tuple_type\nreturn false"];
+        default_ty [label="default", shape=diamond];
+
+        switch_ip_key [label="Switch ip.indexToKey()", shape=diamond];
+        int_type [label="case .int_type\nreturn false"];
+        ptr_type [label="case .ptr_type"];
+        anyframe_type [label="case .anyframe_type"];
+        array_type [label="case .array_type"];
+        vector_type [label="case .vector_type"];
+        opt_type [label="case .opt_type"];
+        error_union_type [label="case .error_union_type"];
+        error_set_types [label="case .error_set_type/.inferred_error_set_type\nreturn false"];
+        func_type [label="case .func_type\nreturn true"];
+        simple_type [label="case .simple_type"];
+        struct_type [label="case .struct_type"];
+        tuple_type [label="case .tuple_type"];
+        union_type [label="case .union_type"];
+        opaque_type [label="case .opaque_type\nreturn false"];
+        enum_type [label="case .enum_type"];
+        unreachable_cases [label="cases: .undef/.simple_value/etc.\nunreachable"];
+
+        // PTR_TYPE subflow
+        ptr_child_check [label="Check child_ty.zigTypeTag()", shape=diamond];
+        ptr_child_fn [label=".fn: return !fnHasRuntimeBits"];
+        ptr_child_opaque [label=".opaque: return false"];
+        ptr_child_else [label="else: recurse child_ty"];
+
+        // SIMPLE_TYPE subflow
+        simple_switch [label="Switch simple_type variant", shape=diamond];
+        simple_runtime [label="f16/f32/.../noreturn\nreturn false"];
+        simple_comptime [label="type/comptime_int/...\nreturn true"];
+
+        // STRUCT_TYPE subflow
+        struct_layout_check [label="if (struct_type.layout == .packed)\nreturn false", shape=diamond];
+        strat_normal [label="strat.normal\ncheck requiresComptime"];
+        strat_sema [label="strat.sema\nresolve fields and check"];
+        
+        // TUPLE_TYPE subflow
+        tuple_loop [label="Loop through tuple fields\nif any field needs comptime: return true"];
+        
+        // UNION_TYPE subflow
+        union_strat_check [label="Switch strat", shape=diamond];
+        union_normal [label="strat.normal\ncheck requiresComptime"];
+        union_sema [label="strat.sema\nresolve fields and check"];
+    }
+
+    start -> switch_ty;
+    switch_ty -> empty_tuple [label=".empty_tuple_type"];
+    switch_ty -> default_ty [label="else"];
+
+    default_ty -> switch_ip_key;
+
+    switch_ip_key -> int_type [label=".int_type"];
+    switch_ip_key -> ptr_type [label=".ptr_type"];
+    switch_ip_key -> anyframe_type [label=".anyframe_type"];
+    switch_ip_key -> array_type [label=".array_type"];
+    switch_ip_key -> vector_type [label=".vector_type"];
+    switch_ip_key -> opt_type [label=".opt_type"];
+    switch_ip_key -> error_union_type [label=".error_union_type"];
+    switch_ip_key -> error_set_types [label=".error_set_type/.inferred_error_set_type"];
+    switch_ip_key -> func_type [label=".func_type"];
+    switch_ip_key -> simple_type [label=".simple_type"];
+    switch_ip_key -> struct_type [label=".struct_type"];
+    switch_ip_key -> tuple_type [label=".tuple_type"];
+    switch_ip_key -> union_type [label=".union_type"];
+    switch_ip_key -> opaque_type [label=".opaque_type"];
+    switch_ip_key -> enum_type [label=".enum_type"];
+    switch_ip_key -> unreachable_cases [label="values (undef/.simple_value/etc.)"];
+
+    // PTR_TYPE flow
+    ptr_type -> ptr_child_check;
+    ptr_child_check -> ptr_child_fn [label=".fn"];
+    ptr_child_check -> ptr_child_opaque [label=".opaque"];
+    ptr_child_check -> ptr_child_else [label="else"];
+    ptr_child_else -> end [label="recurse child_ty"];
+
+    // SIMPLE_TYPE flow
+    simple_type -> simple_switch;
+    simple_switch -> simple_runtime [label="runtime types"];
+    simple_switch -> simple_comptime [label="comptime types"];
+    
+    // STRUCT_TYPE flow
+    struct_type -> struct_layout_check;
+    struct_layout_check -> strat_normal [label="non-packed"];
+    struct_layout_check -> end [label="return false"];
+    strat_normal -> end [label="check .requiresComptime"];
+    strat_sema -> end [label="resolve fields and check"];
+
+    // TUPLE_TYPE flow
+    tuple_type -> tuple_loop -> end;
+
+    // UNION_TYPE flow
+    union_type -> union_strat_check;
+    union_strat_check -> union_normal [label=".normal"];
+    union_strat_check -> union_sema [label=".sema"];
+    union_normal -> end [label="check .requiresComptime"];
+    union_sema -> end [label="resolve fields and check"];
+
+    // Common endpoints
+    empty_tuple -> end;
+    int_type -> end;
+    ptr_child_fn -> end;
+    ptr_child_opaque -> end;
+    error_set_types -> end;
+    func_type -> end;
+    simple_runtime -> end;
+    simple_comptime -> end;
+    opaque_type -> end;
+    enum_type -> end [label="recurse tag_ty"];
+    unreachable_cases -> end [style=dashed];
+}

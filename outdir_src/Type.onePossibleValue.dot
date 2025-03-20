@@ -1,0 +1,80 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 onePossibleValue"];
+    loop [label="进入循环 while(true)"];
+    switch_ty [label="switch (ty.toIntern())"];
+    empty_tuple [label="case .empty_tuple_type\n返回 Value.empty_tuple"];
+    default_case [label="default case\nswitch (ip.indexToKey(...))"];
+    
+    // 主要类型分支
+    int_type [label="case .int_type\n检查bits==0"];
+    ptr_types [label="case .ptr_type等\n返回null"];
+    array_vec [label="case .array_type/.vector_type\n检查长度/sentinel"];
+    opt_type [label="case .opt_type\n检查child类型"];
+    simple_type [label="case .simple_type\n根据具体类型返回"];
+    struct_type [label="case .struct_type\n遍历字段检查OPV"];
+    tuple_type [label="case .tuple_type\n检查所有字段值"];
+    union_type [label="case .union_type\n检查tag和字段"];
+    enum_type [label="case .enum_type\n处理tag模式"];
+
+    // 结果节点
+    return_val [label="返回Value"];
+    return_null [label="返回null"];
+    return_error [label="抛出错误"];
+    unreachable [label="unreachable"];
+
+    // 结构连接
+    start -> loop;
+    loop -> switch_ty;
+    
+    switch_ty -> empty_tuple [label=".empty_tuple_type"];
+    switch_ty -> default_case [label="其他"];
+    
+    default_case -> int_type [label=".int_type"];
+    default_case -> ptr_types [label=".ptr_type等"];
+    default_case -> array_vec [label=".array_type/.vector_type"];
+    default_case -> opt_type [label=".opt_type"];
+    default_case -> simple_type [label=".simple_type"];
+    default_case -> struct_type [label=".struct_type"];
+    default_case -> tuple_type [label=".tuple_type"];
+    default_case -> union_type [label=".union_type"];
+    default_case -> enum_type [label=".enum_type"];
+    default_case -> unreachable [label="values/memoization"];
+
+    // int_type分支
+    int_type -> return_val [label="bits==0\n返回0"];
+    int_type -> return_null [label="bits!=0"];
+
+    // array/vector分支
+    array_vec -> return_val [label="长度+sentinel==0"];
+    array_vec -> check_child [label="递归检查child类型"];
+    check_child [label="调用child.onePossibleValue()"];
+    check_child -> return_val [label="有OPV"];
+    check_child -> return_null [label="无OPV"];
+
+    // struct_type分支
+    struct_type -> check_fields [label="遍历所有字段"];
+    check_fields [label="检查字段是否为comptime或OPV"];
+    check_fields -> return_val [label="所有字段满足条件"];
+    check_fields -> return_null [label="任意字段不满足"];
+
+    // enum_type分支
+    enum_type -> return_null [label="non-exhaustive且无OPV"];
+    enum_type -> return_val [label="找到唯一tag或空枚举"];
+
+    // 公共出口
+    return_val -> end;
+    return_null -> end;
+    return_error -> end;
+    
+    end [label="函数出口", shape=doublecircle];
+    
+    // 隐藏边处理布局
+    edge [style=invis];
+    {rank=same; loop switch_ty}
+    {rank=same; int_type ptr_types array_vec opt_type}
+    {rank=same; check_child struct_type check_fields}
+}

@@ -1,0 +1,70 @@
+
+digraph genBinOp_flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="genBinOp 入口"];
+    promote_reg [label="提升 lhs/rhs 到寄存器\n解锁寄存器 defer"];
+    check_tag [label="检查 tag 类型", shape=diamond];
+
+    // 主分支定义
+    start -> promote_reg;
+    promote_reg -> check_tag;
+
+    // 算术运算分支 (add/sub/mul/div/rem)
+    check_tag -> arithmetic_ops [label="add/sub/mul/div/rem 等"];
+    arithmetic_ops [label="处理算术运算", shape=rectangle];
+    arithmetic_ops -> int_float_vector [label="类型检查", shape=diamond];
+    
+    int_float_vector -> int_case [label="整数类型"];
+    int_float_vector -> float_case [label="浮点类型"];
+    int_float_vector -> vector_case [label="向量类型"];
+    
+    int_case [label="选择整数指令\n根据 bit_size 生成指令"];
+    float_case [label="选择浮点指令\n根据 bit_size 生成指令"];
+    vector_case [label="设置 VL 寄存器\n生成向量指令"];
+    
+    // add_sat 分支
+    check_tag -> add_sat [label=".add_sat"];
+    add_sat [label="检查 bit_size=64\n且无符号"];
+    add_sat -> add_sat_logic [label="条件成立"];
+    add_sat_logic [label="生成 add/sltu/sub/or 指令序列"];
+    
+    // 指针运算分支
+    check_tag -> ptr_ops [label=".ptr_add/.ptr_sub"];
+    ptr_ops [label="计算元素大小\n生成乘法和加减指令"];
+    
+    // 位运算分支
+    check_tag -> bit_ops [label="bit_and/bit_or\nbool_and/bool_or"];
+    bit_ops [label="生成 AND/OR 指令\n处理布尔截断"];
+    
+    // 位移分支
+    check_tag -> shift_ops [label="shr/shl 等"];
+    shift_ops [label="截断 rhs 寄存器\n生成 SLL/SRL 指令"];
+    
+    // 比较分支
+    check_tag -> compare_ops [label="cmp_eq/cmp_lt 等"];
+    compare_ops [label="生成伪比较指令"];
+    
+    // min/max 分支
+    check_tag -> minmax [label=".min/.max"];
+    minmax [label="生成分支最小/最大值指令序列"];
+    
+    // 默认分支
+    check_tag -> fail [label="其他未实现操作"];
+    fail [label="调用 func.fail 返回错误"];
+    
+    // 公共结束
+    int_case -> end;
+    float_case -> end;
+    vector_case -> end;
+    add_sat_logic -> end;
+    ptr_ops -> end;
+    bit_ops -> end;
+    shift_ops -> end;
+    compare_ops -> end;
+    minmax -> end;
+    fail -> end [style=dashed];
+    
+    end [label="返回 void", shape=ellipse];
+}

@@ -1,0 +1,135 @@
+
+digraph print_value_flow {
+    node [shape=rectangle, style=rounded];
+
+    start [label="Start print(val, writer, level, pt, opt_sema)"];
+    end [label="End"];
+
+    switch_ip_index [label="Switch ip.indexToKey(val.toIntern())"];
+    type_cases [label="Type.print(val.toType(), writer, pt)"];
+    undef [label="Write 'undefined'"];
+    simple_value_switch [label="Switch simple_value"];
+    variable [label="Write '(variable)'"];
+    extern [label="Write extern name"];
+    func [label="Write function name"];
+    int_switch [label="Switch int.storage"];
+    err [label="Write error.name"];
+    error_union_switch [label="Switch error_union.val"];
+    enum_literal [label="Write .enum_literal"];
+    enum_tag [label="Process enum_tag"];
+    empty_enum [label="Write '(empty enum value)'"];
+    float [label="Write float value"];
+    slice [label="Process slice"];
+    ptr [label="Process ptr"];
+    opt_switch [label="Switch opt.val"];
+    aggregate [label="Process aggregate"];
+    un_switch [label="Process union"];
+    memoized_call [label="Unreachable (memoized_call)"];
+
+    start -> switch_ip_index;
+
+    switch_ip_index -> type_cases [label="int_type, ptr_type, ..."];
+    switch_ip_index -> undef [label="undef"];
+    switch_ip_index -> simple_value_switch [label="simple_value"];
+    switch_ip_index -> variable [label="variable"];
+    switch_ip_index -> extern [label="extern"];
+    switch_ip_index -> func [label="func"];
+    switch_ip_index -> int_switch [label="int"];
+    switch_ip_index -> err [label="err"];
+    switch_ip_index -> error_union_switch [label="error_union"];
+    switch_ip_index -> enum_literal [label="enum_literal"];
+    switch_ip_index -> enum_tag [label="enum_tag"];
+    switch_ip_index -> empty_enum [label="empty_enum_value"];
+    switch_ip_index -> float [label="float"];
+    switch_ip_index -> slice [label="slice"];
+    switch_ip_index -> ptr [label="ptr"];
+    switch_ip_index -> opt_switch [label="opt"];
+    switch_ip_index -> aggregate [label="aggregate"];
+    switch_ip_index -> un_switch [label="un"];
+    switch_ip_index -> memoized_call [label="memoized_call"];
+
+    // Simple value sub-switch
+    simple_value_switch -> write_void [label="void"];
+    simple_value_switch -> write_empty_tuple [label="empty_tuple"];
+    simple_value_switch -> write_tag_name [label="else"];
+    write_void [label="Write '{}'"];
+    write_empty_tuple [label="Write '.{}'"];
+    write_tag_name [label="Write tag name"];
+
+    // Int storage sub-switch
+    int_switch -> write_number [label="u64/i64/big_int"];
+    int_switch -> write_align [label="lazy_align"];
+    int_switch -> write_size [label="lazy_size"];
+    write_number [label="Write numeric value"];
+    write_align [label="Write alignment"];
+    write_size [label="Write size"];
+
+    // Error union sub-switch
+    error_union_switch -> write_err_name [label="err_name"];
+    error_union_switch -> recurse_payload [label="payload"];
+    recurse_payload [label="Recursive print(payload)"];
+
+    // Enum tag logic
+    enum_tag -> check_tag_index;
+    check_tag_index [label="tagValueIndex found?" shape=diamond];
+    check_tag_index -> write_enum_tag [label="Yes"];
+    check_tag_index -> check_level [label="No"];
+    write_enum_tag [label="Write .{tag_name}"];
+    check_level [label="level == 0?" shape=diamond];
+    check_level -> write_enumfromint [label="Yes"];
+    check_level -> write_enumfromint_expr [label="No"];
+    write_enumfromint [label="Write '@enumFromInt(...)'"];
+    write_enumfromint_expr [label="Write '@enumFromInt(' + print(int) + ')'"];
+
+    // Slice logic
+    slice -> check_undef [label="Is ptr undef?"];
+    check_undef [shape=diamond];
+    check_undef -> write_empty_slice [label="Yes && len=0"];
+    check_undef -> print_ptr [label="Yes && len≠0"];
+    check_undef -> check_backing_addr [label="No"];
+    write_empty_slice [label="Write '&.{}'"];
+    print_ptr [label="Print ptr"];
+    check_backing_addr [label="Check backing addr tag"];
+    check_backing_addr -> print_ptr_contents [label="uav/comptime_alloc"];
+    check_backing_addr -> print_ptr [label="nav/int"];
+    print_ptr_contents [label="TODO: Load slice contents"];
+
+    // Union logic
+    un_switch -> check_union_tag [label="un.tag == .none?"];
+    check_union_tag [shape=diamond];
+    check_union_tag -> write_bitcast [label="Yes"];
+    check_union_tag -> write_union_fields [label="No"];
+    write_bitcast [label="Write '@bitCast(...)'"];
+    write_union_fields [label="Write '.{ tag = val }'"];
+
+    // Connect all terminal nodes to end
+    type_cases -> end;
+    undef -> end;
+    write_void -> end;
+    write_empty_tuple -> end;
+    write_tag_name -> end;
+    variable -> end;
+    extern -> end;
+    func -> end;
+    write_number -> end;
+    write_align -> end;
+    write_size -> end;
+    err -> end;
+    write_err_name -> end;
+    recurse_payload -> end;
+    enum_literal -> end;
+    write_enum_tag -> end;
+    write_enumfromint -> end;
+    write_enumfromint_expr -> end;
+    empty_enum -> end;
+    float -> end;
+    write_empty_slice -> end;
+    print_ptr -> end [label="After slice processing"];
+    print_ptr_contents -> end [label="After slice processing"];
+    ptr -> end;
+    opt_switch -> end [label="none → 'null' | payload → print(payload)"];
+    aggregate -> end;
+    write_bitcast -> end;
+    write_union_fields -> end;
+    memoized_call -> end [label="Unreachable"];
+}

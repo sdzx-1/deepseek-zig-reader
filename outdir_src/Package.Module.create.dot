@@ -1,0 +1,86 @@
+
+digraph create_flowchart {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+    edge [arrowhead=normal];
+
+    start [label="开始", shape=ellipse];
+    end [label="返回mod", shape=ellipse];
+    error [label="返回错误", shape=ellipse];
+
+    // 初始断言检查
+    subgraph cluster_asserts {
+        label="前置断言检查";
+        style=dashed;
+        assert1 [label="assert(options.global.any_sanitize_thread)"];
+        assert2 [label="assert(options.global.any_fuzz)"];
+        assert3 [label="assert(options.global.any_non_single_threaded)"];
+        assert4 [label="assert(options.global.any_unwind_tables)"];
+        assert5 [label="assert(options.global.any_error_tracing)"];
+    }
+
+    // 参数解析部分
+    subgraph cluster_params {
+        label="参数解析";
+        style=dashed;
+
+        resolved_target [label="解析resolved_target"];
+        optimize_mode [label="确定optimize_mode"];
+        strip [label="确定strip参数", shape=diamond];
+        valgrind [label="确定valgrind参数", shape=diamond];
+        single_threaded [label="确定single_threaded", shape=diamond];
+        error_tracing [label="确定error_tracing"];
+        pic [label="确定PIC参数", shape=diamond];
+        red_zone [label="确定red_zone", shape=diamond];
+        omit_frame_pointer [label="确定omit_frame_pointer"];
+        unwind_tables [label="确定unwind_tables"];
+        stack_check [label="确定stack_check", shape=diamond];
+        code_model [label="确定code_model"];
+        sanitize_c [label="确定sanitize_c"];
+        stack_protector [label="确定stack_protector", shape=diamond];
+    }
+
+    // 模块初始化
+    init_mod [label="初始化mod结构体"];
+
+    // 内置模块处理
+    subgraph cluster_builtin {
+        label="内置模块生成";
+        style=dashed;
+        check_builtin [label="builtin_mod存在？", shape=diamond];
+        generate_source [label="生成builtin源代码"];
+        create_new_mod [label="创建新builtin模块"];
+        setup_builtin_file [label="配置builtin文件"];
+        add_dependency [label="将builtin添加到deps"];
+    }
+
+    // 主流程连接
+    start -> assert1;
+    assert1 -> assert2 -> assert3 -> assert4 -> assert5;
+    assert5 -> resolved_target;
+
+    resolved_target -> optimize_mode -> strip;
+    strip -> valgrind -> single_threaded -> error_tracing -> pic;
+    pic -> red_zone -> omit_frame_pointer -> unwind_tables -> stack_check;
+    stack_check -> code_model -> sanitize_c -> stack_protector;
+
+    stack_protector -> init_mod;
+    init_mod -> check_builtin;
+
+    // 内置模块分支
+    check_builtin -> generate_source [label="不存在"];
+    generate_source -> create_new_mod -> setup_builtin_file -> add_dependency -> end;
+    check_builtin -> end [label="存在"];
+
+    // 错误处理路径
+    valgrind -> error [label="Valgrind不支持"];
+    single_threaded -> error [label="目标需要单线程"];
+    pic -> error [label="目标需要PIC"];
+    red_zone -> error [label="目标无Red Zone"];
+    stack_check -> error [label="不支持StackCheck"];
+    stack_protector -> error [label="StackProtector不支持"];
+    
+    // 正常结束路径
+    add_dependency -> end;
+    init_mod -> end [label="直接返回（无builtin）"];
+}

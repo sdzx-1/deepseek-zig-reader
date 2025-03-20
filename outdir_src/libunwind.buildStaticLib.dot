@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 buildStaticLib", shape=ellipse];
+    check_llvm [label="检查 LLVM 扩展"];
+    init_tracing [label="初始化性能追踪"];
+    arena_init [label="创建 Arena 分配器"];
+    config_setup [label="配置编译参数\n(output_mode, target, unwind_tables)"];
+    resolve_config [label="解析配置 (Compilation.Config.resolve)"];
+    create_root_mod [label="创建根模块 (Module.create)"];
+    generate_basename [label="生成输出文件名 (std.zig.binNameAlloc)"];
+    process_sources [label="处理 unwind_src_list\n填充 C 源文件参数"];
+    create_sub_comp [label="创建子编译实例 (Compilation.create)"];
+    update_sub_comp [label="更新子编译 (comp.updateSubCompilation)"];
+    queue_link [label="将结果加入链接队列"];
+    end [label="返回成功", shape=ellipse];
+    
+    error_llvm [label="返回错误\nZigCompilerNotBuiltWithLLVMExtensions", shape=hexagon];
+    error_config [label="设置配置失败错误\n返回 SubCompilationFailed", shape=hexagon];
+    error_module [label="设置模块创建失败错误\n返回 SubCompilationFailed", shape=hexagon];
+    error_comp_create [label="设置编译创建失败错误\n返回 SubCompilationFailed", shape=hexagon];
+    error_comp_update [label="设置编译更新失败错误\n返回 SubCompilationFailed", shape=hexagon];
+
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="未启用 LLVM"];
+    check_llvm -> init_tracing [label="LLVM 可用"];
+    init_tracing -> arena_init;
+    arena_init -> config_setup;
+    config_setup -> resolve_config;
+    
+    resolve_config -> error_config [label="解析失败"];
+    resolve_config -> create_root_mod [label="成功"];
+    
+    create_root_mod -> error_module [label="创建失败"];
+    create_root_mod -> generate_basename [label="成功"];
+    
+    generate_basename -> process_sources;
+    process_sources -> create_sub_comp;
+    
+    create_sub_comp -> error_comp_create [label="创建失败"];
+    create_sub_comp -> update_sub_comp [label="成功"];
+    
+    update_sub_comp -> error_comp_update [label="更新失败"];
+    update_sub_comp -> queue_link [label="成功"];
+    
+    queue_link -> end;
+    
+    // Error handling connections
+    error_config -> error_comp_update [style=dashed, color=red];
+    error_module -> error_comp_update [style=dashed, color=red];
+    error_comp_create -> error_comp_update [style=dashed, color=red];
+    error_comp_update -> end [label="返回 SubCompilationFailed", style=dashed, color=red];
+}

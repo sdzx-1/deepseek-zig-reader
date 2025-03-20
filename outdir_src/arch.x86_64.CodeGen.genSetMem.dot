@@ -1,0 +1,93 @@
+
+digraph genSetMem {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    Start [label="开始 genSetMem"];
+    End [label="结束"];
+    
+    subgraph cluster_base_handling {
+        label="处理base参数";
+        ComputeDstPtr [label="构造dst_ptr_mcv\n根据base类型"];
+    }
+    
+    subgraph cluster_switch_src_mcv {
+        label="根据src_mcv类型分支";
+        node [style=filled, fillcolor="#F0F8FF"];
+        
+        SwitchSrcMCV [label="switch(src_mcv)", shape=diamond];
+        
+        // 分支节点
+        CaseUndef [label="case .undef:\n安全模式下调用genInlineMemset"];
+        CaseImmediate [label="case .immediate:\n根据abi_size生成mov指令"];
+        CaseEflags [label="case .eflags:\n调用asmSetccMemory"];
+        CaseRegister [label="case .register:\n处理寄存器到内存的移动"];
+        CaseRegisterPair [label="case .register_pair等:\n分解类型递归处理"];
+        CaseRegOverflow [label="case .register_overflow:\n处理结构体/可选类型"];
+        CaseRegOffset [label="case .register_offset:\n调整偏移递归处理"];
+        CaseMemory [label="case 内存类型:\n根据abi_size选择复制方式"];
+        CaseAirRef [label="case .air_ref:\n解析指令递归处理"];
+        DefaultUnreachable [label="default:\nunreachable"];
+        
+        // 子分支处理
+        subgraph cluster_immediate_handling {
+            label="处理immediate分支";
+            ImmediateSwitchSize [label="switch(abi_size)", shape=diamond];
+            Size124 [label="1/2/4:\n直接生成mov指令"];
+            Size357 [label="3/5-7:\nunreachable"];
+            SizeOther [label="其他大小:\n分段写入"];
+        }
+        
+        subgraph cluster_register_handling {
+            label="处理register分支";
+            CheckMemSize [label="计算mem_size\n判断寄存器与内存大小"];
+            BiggerThanMem [label="src_size > mem_size?\n使用临时帧索引"];
+            CopyViaStrategy [label="调用moveStrategy写入"];
+        }
+    }
+    
+    // 主流程连接
+    Start -> ComputeDstPtr -> SwitchSrcMCV;
+    
+    // 分支连接
+    SwitchSrcMCV -> CaseUndef;
+    SwitchSrcMCV -> CaseImmediate;
+    SwitchSrcMCV -> CaseEflags;
+    SwitchSrcMCV -> CaseRegister;
+    SwitchSrcMCV -> CaseRegisterPair;
+    SwitchSrcMCV -> CaseRegOverflow;
+    SwitchSrcMCV -> CaseRegOffset;
+    SwitchSrcMCV -> CaseMemory;
+    SwitchSrcMCV -> CaseAirRef;
+    SwitchSrcMCV -> DefaultUnreachable;
+    
+    // immediate子分支
+    CaseImmediate -> ImmediateSwitchSize;
+    ImmediateSwitchSize -> Size124 [label="1/2/4"];
+    ImmediateSwitchSize -> Size357 [label="3/5-7"];
+    ImmediateSwitchSize -> SizeOther [label="其他"];
+    Size124 -> End;
+    Size357 -> End;
+    SizeOther -> End;
+    
+    // register子分支
+    CaseRegister -> CheckMemSize;
+    CheckMemSize -> BiggerThanMem [label="是"];
+    CheckMemSize -> CopyViaStrategy [label="否"];
+    BiggerThanMem -> CopyViaStrategy -> End;
+    
+    // 其他分支连接
+    CaseUndef -> End;
+    CaseEflags -> End;
+    CaseRegisterPair -> End;
+    CaseRegOverflow -> End;
+    CaseRegOffset -> End;
+    CaseMemory -> End;
+    CaseAirRef -> End;
+    DefaultUnreachable -> End;
+    
+    // 错误处理和资源释放
+    edge [color=red];
+    BiggerThanMem -> "freeValue(frame_mcv)" [label="释放临时帧"];
+    "freeValue(frame_mcv)" -> End;
+}

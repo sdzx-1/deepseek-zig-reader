@@ -1,0 +1,61 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始: zirValidatePtrArrayInit"];
+    parse_inst [label="解析指令:\n获取validate_inst, init_src, instrs等"];
+    check_len [label="检查instrs.len与array_len是否匹配"];
+    handle_struct [label="处理结构体类型:\n遍历缺失字段，生成错误或填充默认值"];
+    handle_array [label="处理数组类型:\n返回元素数量不匹配错误"];
+    handle_vector [label="处理向量类型:\n返回元素数量不匹配错误"];
+    check_comptime [label="检查block.isComptime()\n且array_ptr已定义"];
+    handle_sentinel [label="处理哨兵值:\n生成sentinel_ptr并存储"];
+    check_opv [label="检查typeHasOnePossibleValue"];
+    store_opv [label="存储单可能值到array_ptr"];
+    collect_vals [label="遍历instrs收集元素值:\n判断是否为comptime"];
+    update_flags [label="更新array_is_comptime标志"];
+    check_comptime_flag [label="array_is_comptime为真?"];
+    optimize_store [label="优化存储指令:\n删除冗余指令，合并存储"];
+    end [label="返回"];
+
+    // 错误处理节点
+    error_struct [label="生成错误消息\n(missing tuple field)"];
+    error_array [label="返回数组元素数量错误"];
+    error_vector [label="返回向量元素数量错误"];
+
+    start -> parse_inst;
+    parse_inst -> check_len;
+
+    check_len -> handle_struct [label="instrs.len < array_len\n且类型为struct"];
+    check_len -> handle_array [label="类型为array"];
+    check_len -> handle_vector [label="类型为vector"];
+    check_len -> check_comptime [label="长度匹配"];
+
+    handle_struct -> error_struct [label="存在缺失字段"];
+    error_struct -> end [label="返回错误"];
+    handle_struct -> check_comptime [label="填充默认值完成"];
+
+    handle_array -> error_array;
+    error_array -> end;
+    handle_vector -> error_vector;
+    error_vector -> end;
+
+    check_comptime -> handle_sentinel [label="条件成立"];
+    check_comptime -> check_opv [label="条件不成立"];
+
+    handle_sentinel -> check_opv;
+
+    check_opv -> store_opv [label="存在单可能值"];
+    check_opv -> collect_vals [label="无单可能值"];
+
+    store_opv -> end;
+
+    collect_vals -> update_flags [label="遍历所有元素"];
+    update_flags -> check_comptime_flag;
+
+    check_comptime_flag -> optimize_store [label="是"];
+    check_comptime_flag -> end [label="否"];
+
+    optimize_store -> end;
+}

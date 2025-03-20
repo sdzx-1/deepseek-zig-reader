@@ -1,0 +1,46 @@
+
+digraph funcCommonFlow {
+    graph [fontname="Arial", nodesep=0.2, ranksep=0.5];
+    node [fontname="Arial", shape=box, style="rounded,filled", fillcolor="#e0e0e0", penwidth=2];
+    edge [fontname="Arial", color="#666666", arrowsize=0.7];
+
+    start [label="Start funcCommon", shape=ellipse, fillcolor="#b3e2cd"];
+    init_vars [label="Initialize variables\n(pt, zcu, gpa, target, ip)"];
+    check_ret_type [label="Check return type\n(is_generic = ret_poison || comptime_required)"];
+    param_loop [label="For each parameter", shape=diamond];
+    process_param [label="Process parameter:\n- comptime/noalias checks\n- validate type\n- call conv checks"];
+    handle_varargs [label="Check var_args\n(validate calling convention)"];
+    check_inferred_error [label="inferred_error_set?", shape=diamond];
+    handle_inferred_error [label="Validate error union\nCreate func_index with ies"];
+    create_func_ty [label="Create func_ty\n(without inferred errors)"];
+    check_has_body [label="has_body?", shape=diamond];
+    create_func_decl [label="Create func_index\nwith body tracking"];
+    finish_func [label="Call finishFunc", shape=parallelogram];
+    error_exit [label="Return error", shape=ellipse, fillcolor="#fdcdac"];
+
+    start -> init_vars;
+    init_vars -> check_ret_type;
+    check_ret_type -> param_loop;
+
+    param_loop -> process_param [label="next param"];
+    process_param -> param_loop [label="more params?"];
+    param_loop -> handle_varargs [label="all params processed"];
+
+    process_param -> error_exit [label="invalid param\ne.g. comptime in C CC"];
+
+    handle_varargs -> check_inferred_error;
+    check_inferred_error -> handle_inferred_error [label="yes"];
+    check_inferred_error -> create_func_ty [label="no"];
+
+    handle_inferred_error -> finish_func;
+    
+    create_func_ty -> check_has_body;
+    check_has_body -> create_func_decl [label="yes"];
+    check_has_body -> finish_func [label="no"];
+    create_func_decl -> finish_func;
+
+    finish_func -> end [label="Return Air.Inst.Ref"];
+    error_exit -> end;
+
+    end [label="End", shape=ellipse, fillcolor="#b3e2cd"];
+}

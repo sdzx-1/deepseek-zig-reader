@@ -1,0 +1,54 @@
+
+digraph runResource {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    create_temp_dir [label="创建临时目录 tmp_dir_sub_path"];
+    check_temp_dir_creation [label="临时目录创建成功？", shape=diamond];
+    unpack_resource [label="解包资源到临时目录"];
+    handle_btrfs_workaround [label="处理Btrfs问题（Linux特定）"];
+    load_manifest [label="加载并验证build.zig.zon清单"];
+    apply_filter [label="应用过滤规则删除文件"];
+    compute_hash [label="计算包哈希"];
+    rename_temp_to_cache [label="将临时目录重命名为缓存目录"];
+    check_rename_success [label="重命名成功？", shape=diamond];
+    validate_hash [label="验证哈希是否匹配"];
+    check_hash_match [label="哈希匹配？", shape=diamond];
+    handle_hash_mismatch [label="报告哈希不匹配错误"];
+    check_recursive [label="需要递归获取依赖？", shape=diamond];
+    queue_deps_jobs [label="为依赖项排队新任务"];
+    end [label="结束"];
+
+    error_fetch_failed [label="返回FetchFailed错误"];
+    error_hash_mismatch [label="返回哈希错误"];
+    error_missing_hash [label="报告缺少哈希字段错误"];
+
+    start -> create_temp_dir;
+    create_temp_dir -> check_temp_dir_creation;
+    check_temp_dir_creation -> unpack_resource [label="是"];
+    check_temp_dir_creation -> error_fetch_failed [label="否"];
+
+    unpack_resource -> handle_btrfs_workaround;
+    handle_btrfs_workaround -> load_manifest;
+    load_manifest -> apply_filter;
+    apply_filter -> compute_hash;
+    compute_hash -> rename_temp_to_cache;
+    rename_temp_to_cache -> check_rename_success;
+    check_rename_success -> validate_hash [label="是"];
+    check_rename_success -> error_fetch_failed [label="否"];
+
+    validate_hash -> check_hash_match;
+    check_hash_match -> check_recursive [label="是"];
+    check_hash_match -> handle_hash_mismatch [label="否"];
+
+    check_recursive -> queue_deps_jobs [label="是"];
+    check_recursive -> end [label="否"];
+    queue_deps_jobs -> end;
+
+    handle_hash_mismatch -> error_hash_mismatch;
+    error_hash_mismatch -> end;
+
+    // 处理缺少哈希的情况
+    validate_hash -> error_missing_hash [label="无远程哈希且需要报错"];
+    error_missing_hash -> end;
+}

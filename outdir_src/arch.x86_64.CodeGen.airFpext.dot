@@ -1,0 +1,40 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airFpext"];
+    get_types [label="获取类型信息\ndst_ty, src_ty, src_bits, dst_bits"];
+    check_combination [label="检查 src_bits 和 dst_bits 的组合", shape=diamond];
+    call_libfunc [label="生成库函数调用\n如 __extend?f?f2"];
+    handle_registers [label="处理寄存器分配\n重用或复制寄存器"];
+    gen_avx [label="生成 AVX 指令\n根据 vec_len 和 src_mcv 类型"];
+    gen_non_avx [label="生成非 AVX 指令\n根据 vec_len 和 src_mcv 类型"];
+    check_vector [label="是否为向量类型？", shape=diamond];
+    check_features [label="检查 CPU 特性\n如 .f16c, .avx", shape=diamond];
+    result_null [label="break :result null"];
+    fail [label="返回错误\nself.fail(...)"];
+    finish [label="返回结果\nself.finishAir(...)"];
+
+    start -> get_types;
+    get_types -> check_combination;
+
+    check_combination -> call_libfunc [label="条件满足\n需要调用库函数"];
+    call_libfunc -> check_vector;
+
+    check_combination -> handle_registers [label="直接生成指令"];
+    handle_registers -> check_features;
+
+    check_features -> gen_avx [label="支持 AVX"];
+    check_features -> gen_non_avx [label="不支持 AVX"];
+
+    gen_avx -> check_vector;
+    gen_non_avx -> check_vector;
+
+    check_vector -> result_null [label="是向量类型\n或未处理情况"];
+    check_vector -> finish [label="处理完成"];
+
+    result_null -> fail;
+    call_libfunc -> result_null [label="dst_ty 是向量类型"];
+    handle_registers -> result_null [label="无法处理时"];
+}

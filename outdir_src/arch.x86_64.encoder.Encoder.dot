@@ -1,0 +1,96 @@
+
+digraph EncoderFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    // 入口节点
+    start [label="Encoder 函数入口 (泛型结构体构造)"];
+    
+    // 主要模块
+    subgraph cluster_legacy_prefixes {
+        label="Legacy 前缀处理";
+        legacy_start [label="legacyPrefixes(prefixes)"];
+        check_prefixes [label="检查 prefixes 是否为非零"];
+        write_prefixes [label="依次写入 F0/F2/F3, 2E/36/26/64/65, 3E/66/67"];
+        legacy_start -> check_prefixes;
+        check_prefixes -> write_prefixes [label="是"];
+        check_prefixes -> legacy_end [label="否"];
+        legacy_end [label="返回"];
+    }
+
+    subgraph cluster_rex {
+        label="REX 前缀处理";
+        rex_start [label="rex(fields)"];
+        check_rex_fields [label="检查 fields 是否设置"];
+        build_rex_byte [label="构造 REX 字节 (0x40 | W|R|X|B)"];
+        rex_start -> check_rex_fields;
+        check_rex_fields -> build_rex_byte [label="是"];
+        build_rex_byte -> write_rex [label="写入字节"];
+        check_rex_fields -> rex_end [label="否"];
+        rex_end [label="返回"];
+    }
+
+    subgraph cluster_vex {
+        label="VEX 前缀处理";
+        vex_start [label="vex(fields)"];
+        check_3byte [label="检查是否是 3 字节 VEX"];
+        write_3byte [label="写入 0xC4\n构造后续两个字节"];
+        write_2byte [label="写入 0xC5\n构造后续一个字节"];
+        vex_start -> check_3byte;
+        check_3byte -> write_3byte [label="是"];
+        check_3byte -> write_2byte [label="否"];
+        write_3byte -> vex_end;
+        write_2byte -> vex_end;
+        vex_end [label="返回"];
+    }
+
+    subgraph cluster_opcode {
+        label="操作码处理";
+        opcode_1byte [label="opcode_1byte(opcode)"];
+        opcode_2byte [label="opcode_2byte(prefix, opcode)"];
+        opcode_3byte [label="opcode_3byte(p1, p2, opcode)"];
+        opcode_withreg [label="opcode_withReg(opcode | reg)"];
+    }
+
+    subgraph cluster_modrm {
+        label="ModR/M 处理";
+        modrm_general [label="modRm(mod, reg, rm)"];
+        modrm_direct [label="modRm_direct(reg, rm)"];
+        modrm_indirect [label="modRm_indirectDisp0/8/32(...)"];
+        modrm_sib [label="modRm_SIBDisp0/8/32(...)"];
+        modrm_rip [label="modRm_RIPDisp32(...)"];
+    }
+
+    subgraph cluster_sib {
+        label="SIB 处理";
+        sib_general [label="sib(scale, index, base)"];
+        sib_scale_index [label="sib_scaleIndexDisp32(...)"];
+        sib_base_only [label="sib_base(...)"];
+        sib_disp32 [label="sib_disp32()"];
+    }
+
+    subgraph cluster_data {
+        label="数据编码";
+        disp8 [label="disp8(i8)"];
+        disp32 [label="disp32(i32)"];
+        imm8 [label="imm8(u8)"];
+        imm64 [label="imm64(u64)"];
+    }
+
+    // 连接主流程
+    start -> legacy_prefixes;
+    start -> rex;
+    start -> vex;
+    start -> opcode;
+    start -> modrm;
+    start -> sib;
+    start -> data;
+
+    // 模块间关系（示例）
+    legacy_prefixes -> rex [label="可选步骤"];
+    rex -> opcode [label="设置操作码"];
+    opcode -> modrm [label="添加 ModR/M"];
+    modrm -> sib [label="需要 SIB 时"];
+    modrm -> data [label="添加 disp/imm"];
+    sib -> data [label="添加 disp/imm"];
+}

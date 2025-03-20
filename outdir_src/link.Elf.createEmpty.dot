@@ -1,0 +1,42 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 createEmpty()", shape=ellipse];
+    validate_target [label="断言 target.ofmt == .elf"];
+    setup_config [label="设置配置选项\n(use_lld, use_llvm, output_mode, link_mode)"];
+    page_size_switch [label="根据目标架构设置 page_size\n（多分支 switch）", shape=diamond];
+    dynamic_lib_check [label="检查是否为动态库\n(is_dyn_lib)"];
+    sym_version [label="设置 default_sym_version"];
+    create_rpath [label="创建 rpath_table\n并复制 entries"];
+    init_elf [label="初始化 Elf 结构体\n填充所有配置参数"];
+    llvm_lld_handling [label="处理 LLVM/LLD 路径\n（zcu_object_sub_path）"];
+    create_file [label="创建输出文件\n（base.file）"];
+    errdefer [label="注册 errdefer\nself.base.destroy()"];
+    handle_lld_llvm [label="使用 LLD/LLVM 时的特殊处理", shape=diamond];
+    verbose_link [label="处理 --verbose-link"];
+    obj_or_ar_check [label="检查 output_mode 是否为 Obj 或静态库", shape=diamond];
+    phdr_init [label="初始化 PT_PHDR 和 PT_LOAD\n程序头"];
+    zig_object_init [label="初始化 ZigObject\n（非 LLVM 路径）"];
+    return [label="返回 self", shape=ellipse];
+
+    start -> validate_target;
+    validate_target -> setup_config;
+    setup_config -> page_size_switch;
+    page_size_switch -> dynamic_lib_check;
+    dynamic_lib_check -> sym_version;
+    sym_version -> create_rpath;
+    create_rpath -> init_elf;
+    init_elf -> llvm_lld_handling;
+    llvm_lld_handling -> create_file;
+    create_file -> errdefer;
+    errdefer -> handle_lld_llvm [label="use_lld && (use_llvm || !have_zcu)"];
+    handle_lld_llvm -> return [label="直接返回"];
+    handle_lld_llvm -> verbose_link [label="否则"];
+    verbose_link -> obj_or_ar_check;
+    obj_or_ar_check -> phdr_init [label="非 Obj/静态库"];
+    obj_or_ar_check -> zig_object_init [label="Obj/静态库"];
+    phdr_init -> zig_object_init;
+    zig_object_init -> return;
+}

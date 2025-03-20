@@ -1,0 +1,49 @@
+
+digraph populateTestFunctions {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    end [label="结束"];
+    init_vars [label="初始化变量\n(zcu, gpa, ip, builtin_mod)"];
+    import_pkg [label="导入内置模块\n获取builtin_file_index"];
+    ensure_analyzed [label="确保文件分析完成"];
+    handle_analysis_error [label="处理错误\nOutOfMemory → 返回"];
+    get_root_type [label="获取builtin_root_type\n和builtin_namespace"];
+    find_nav_index [label="查找nav_index"];
+    ensure_nav_update [label="调用ensureNavValUpToDate"];
+    handle_nav_error [label="处理错误\nAnalysisFail → 返回"];
+    get_test_vals [label="获取test_fns_val和test_fn_ty"];
+    create_test_fn_vals [label="创建test_fn_vals数组"];
+    loop_start [label="遍历每个test_functions", shape=diamond];
+    check_analysis_fail [label="检查分析是否失败", shape=diamond];
+    create_name_decl [label="创建测试名称的匿名声明"];
+    build_fields [label="构建test_fn_fields"];
+    fill_test_val [label="填充test_fn_val"];
+    create_array [label="创建数组类型和值"];
+    update_init [label="更新test_fns_val的初始化值"];
+    codegen [label="代码生成阶段\n调用linkerUpdateNav"];
+
+    start -> init_vars;
+    init_vars -> import_pkg;
+    import_pkg -> ensure_analyzed;
+    ensure_analyzed -> handle_analysis_error [label="错误"];
+    ensure_analyzed -> get_root_type [label="成功"];
+    handle_analysis_error -> end;
+    get_root_type -> find_nav_index;
+    find_nav_index -> ensure_nav_update;
+    ensure_nav_update -> handle_nav_error [label="错误"];
+    ensure_nav_update -> get_test_vals [label="成功"];
+    handle_nav_error -> end;
+    get_test_vals -> create_test_fn_vals;
+    create_test_fn_vals -> loop_start;
+    loop_start -> check_analysis_fail [label="遍历每个元素"];
+    check_analysis_fail -> end [label="是"];
+    check_analysis_fail -> create_name_decl [label="否"];
+    create_name_decl -> build_fields;
+    build_fields -> fill_test_val;
+    fill_test_val -> loop_start [label="继续下一个"];
+    loop_start -> create_array [label="遍历完成"];
+    create_array -> update_init;
+    update_init -> codegen;
+    codegen -> end;
+}

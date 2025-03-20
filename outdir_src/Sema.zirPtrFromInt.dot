@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始: zirPtrFromInt"];
+    get_context [label="获取上下文(pt, zcu, inst_data, src)"];
+    parse_operands [label="解析操作数(extra.rhs)"];
+    resolve_types [label="解析目标类型(dest_ty)"];
+    check_vector [label="检查是否是向量类型(is_vector)"];
+    handle_slice_error [label="检查目标类型是否为切片"];
+    slice_error [label="生成切片类型错误消息", shape=diamond];
+    resolve_value [label="尝试解析操作数值为常量"];
+    const_value [label="处理常量值\n生成指针或向量指针"];
+    runtime_check [label="运行安全检查\n(非零检查、对齐检查)"];
+    handle_vector [label="向量处理\n逐个元素生成指针"];
+    check_comptime [label="检查comptime-only类型"];
+    comptime_error [label="生成comptime错误", shape=diamond];
+    finalize [label="生成最终结果\n(bitcast或聚合初始化)"];
+    end [label="返回结果"];
+
+    start -> get_context;
+    get_context -> parse_operands;
+    parse_operands -> resolve_types;
+    resolve_types -> check_vector;
+    check_vector -> handle_slice_error;
+    
+    handle_slice_error -> slice_error [label="是切片"];
+    slice_error -> end [label="返回错误"];
+    
+    handle_slice_error -> resolve_value [label="不是切片"];
+    resolve_value -> const_value [label="有常量值"];
+    resolve_value -> check_comptime [label="无常量值"];
+    
+    const_value -> finalize [label="标量"];
+    const_value -> handle_vector [label="向量"];
+    handle_vector -> finalize;
+    
+    check_comptime -> comptime_error [label="comptime-only类型"];
+    comptime_error -> end [label="返回错误"];
+    
+    check_comptime -> runtime_check [label="非comptime-only"];
+    runtime_check -> finalize;
+    
+    finalize -> end;
+}

@@ -1,0 +1,73 @@
+
+digraph updateLazyValue {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle, style=rounded];
+    edge [fontname="Arial"];
+
+    start [label="开始 updateLazyValue"];
+    init_wip_nav [label="初始化 wip_nav 结构体"];
+    switch_value_index [label="根据 value_index 类型分支", shape=diamond];
+    handle_undef [label="处理 undef 类型\n写类型引用和空值"];
+    handle_int [label="处理 int 类型\n写入大整数常量值"];
+    handle_err [label="处理 err 类型\n写错误值和类型"];
+    handle_error_union [label="处理 error_union 类型\n处理错误和有效负载字段"];
+    handle_enum_literal [label="处理 enum_literal 类型\n写入字符串常量"];
+    handle_ptr [label="处理 ptr 类型\n计算基地址和偏移量"];
+    handle_slice [label="处理 slice 类型\n写入指针和长度字段"];
+    handle_opt [label="处理 opt 类型\n处理可选值状态和有效负载"];
+    handle_aggregate [label="处理 aggregate 类型\n遍历结构体/数组字段"];
+    handle_un [label="处理 un 类型\n处理联合体字段"];
+    other_cases [label="其他类型处理\n（如 float、enum_tag 等）"];
+    defer_cleanup [label="清理资源\n恢复 pending_lazy"];
+    replace_entry [label="替换调试信息条目"];
+    end [label="函数结束"];
+
+    start -> init_wip_nav;
+    init_wip_nav -> switch_value_index;
+
+    switch_value_index -> handle_undef [label="undef"];
+    switch_value_index -> handle_int [label="int"];
+    switch_value_index -> handle_err [label="err"];
+    switch_value_index -> handle_error_union [label="error_union"];
+    switch_value_index -> handle_enum_literal [label="enum_literal"];
+    switch_value_index -> handle_ptr [label="ptr"];
+    switch_value_index -> handle_slice [label="slice"];
+    switch_value_index -> handle_opt [label="opt"];
+    switch_value_index -> handle_aggregate [label="aggregate"];
+    switch_value_index -> handle_un [label="un"];
+    switch_value_index -> other_cases [label="其他类型"];
+
+    handle_undef -> defer_cleanup;
+    handle_int -> defer_cleanup;
+    handle_err -> defer_cleanup;
+    handle_error_union -> defer_cleanup;
+    handle_enum_literal -> defer_cleanup;
+    handle_ptr -> defer_cleanup;
+    handle_slice -> defer_cleanup;
+    handle_opt -> defer_cleanup;
+    handle_aggregate -> defer_cleanup;
+    handle_un -> defer_cleanup;
+    other_cases -> defer_cleanup;
+
+    defer_cleanup -> replace_entry;
+    replace_entry -> end;
+
+    // 复杂类型子流程示例
+    subgraph cluster_error_union {
+        label="error_union 处理细节";
+        eu_start [label="开始处理 error_union"];
+        check_val [label="val 类型判断", shape=diamond];
+        handle_err_name [label="写入错误值字段"];
+        handle_payload [label="处理有效负载字段"];
+        write_error_field [label="写入 error 字段"];
+        
+        eu_start -> check_val;
+        check_val -> handle_err_name [label="err_name"];
+        check_val -> handle_payload [label="payload"];
+        handle_err_name -> write_error_field;
+        handle_payload -> write_error_field;
+    }
+
+    handle_error_union -> eu_start [lhead=cluster_error_union];
+    eu_start -> eu_start [style=invis]; // 保持子图连接
+}

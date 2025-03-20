@@ -1,0 +1,90 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start getStructType"];
+    construct_key [label="Construct key based on ini.key"];
+    check_replace [label="replace_existing?"];
+    put_replace [label="ip.putKeyReplace(tid, key)"];
+    get_or_put [label="try ip.getOrPutKey(gpa, tid, key)"];
+    defer_gop [label="defer gop.deinit()"];
+    check_gop [label="gop == .existing?"];
+    return_existing [label="Return .existing"];
+    get_local [label="ip.getLocal(tid)"];
+    get_items_extra [label="Get items and extra from local"];
+    add_names_map [label="ip.addMap(gpa, tid, ini.fields_len)"];
+    check_layout [label="ini.layout?" shape=diamond];
+    handle_packed [label="Handle .packed layout"];
+    handle_extern_auto [label="Handle .extern or .auto layout"];
+    append_packed_data [label="Append packed-specific data to extra"];
+    append_non_packed_data [label="Append non-packed data to extra"];
+    return_result [label="Return WipNamespaceType.Result"];
+
+    start -> construct_key;
+    construct_key -> check_replace;
+    check_replace -> put_replace [label="Yes"];
+    check_replace -> get_or_put [label="No"];
+    put_replace -> defer_gop;
+    get_or_put -> defer_gop;
+    defer_gop -> check_gop;
+    check_gop -> return_existing [label="Yes"];
+    check_gop -> get_local [label="No"];
+    get_local -> get_items_extra;
+    get_items_extra -> add_names_map;
+    add_names_map -> check_layout;
+
+    check_layout -> handle_packed [label=".packed"];
+    check_layout -> handle_extern_auto [label=".extern/.auto"];
+
+    handle_packed -> append_packed_data;
+    handle_extern_auto -> append_non_packed_data;
+
+    append_packed_data -> return_result;
+    append_non_packed_data -> return_result;
+
+    // Error handling and edge cases
+    subgraph cluster_error_handling {
+        label="Error Handling";
+        style=dashed;
+        add_names_map -> errdefer [label="errdefer maps.len -=1"];
+        errdefer [label="errdefer local.mutate.maps.len -=1"];
+    }
+
+    // Packed layout details
+    subgraph cluster_packed {
+        label="Packed Layout Logic";
+        style=dashed;
+        packed_ensure_extra [label="Ensure extra capacity"];
+        add_packed_metadata [label="Add TypeStructPacked metadata"];
+        handle_key_captures [label="Append captures data based on ini.key"];
+        append_fields [label="Append field types, names, inits"];
+        packed_return [label="Set return .wip with packed indices"];
+
+        handle_packed -> packed_ensure_extra;
+        packed_ensure_extra -> add_packed_metadata;
+        add_packed_metadata -> handle_key_captures;
+        handle_key_captures -> append_fields;
+        append_fields -> packed_return;
+        packed_return -> return_result;
+    }
+
+    // Non-packed layout details
+    subgraph cluster_non_packed {
+        label="Non-Packed Layout Logic";
+        style=dashed;
+        non_packed_ensure_extra [label="Ensure extra capacity"];
+        add_struct_metadata [label="Add TypeStruct metadata"];
+        handle_align_comptime [label="Handle alignment/comptime fields"];
+        append_runtime_data [label="Append runtime order/offsets"];
+        non_packed_return [label="Set return .wip with struct indices"];
+
+        handle_extern_auto -> non_packed_ensure_extra;
+        non_packed_ensure_extra -> add_struct_metadata;
+        add_struct_metadata -> handle_key_captures_np [label="Append captures"];
+        handle_key_captures_np -> handle_align_comptime;
+        handle_align_comptime -> append_runtime_data;
+        append_runtime_data -> non_packed_return;
+        non_packed_return -> return_result;
+    }
+}

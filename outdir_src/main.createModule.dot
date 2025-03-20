@@ -1,0 +1,44 @@
+
+digraph createModuleFlowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 createModule"];
+    check_resolved [label="检查 cli_mod.resolved 是否存在"];
+    get_name [label="获取模块名称 name"];
+    resolve_target [label="解析目标配置"];
+    check_parent_null [label="检查 parent 是否为 null"];
+    handle_parent_null [label="初始化编译配置\n处理系统库/链接输入\n路径解析/库目录处理"];
+    create_mod_instance [label="创建 Package.Module 实例"];
+    handle_c_rc_files [label="处理 C/RC 源文件归属"];
+    process_dependencies [label="递归处理依赖模块"];
+    error_handling [label="错误处理 (fatal)"];
+    end [label="返回模块 mod"];
+
+    start -> check_resolved;
+    check_resolved -> get_name [label="不存在"];
+    check_resolved -> end [label="存在，直接返回 m"];
+    
+    get_name -> resolve_target;
+    
+    resolve_target -> check_parent_null;
+    
+    check_parent_null -> handle_parent_null [label="是"];
+    check_parent_null -> create_mod_instance [label="否"];
+    
+    handle_parent_null -> create_mod_instance;
+    
+    create_mod_instance -> handle_c_rc_files;
+    create_mod_instance -> error_handling [label="创建失败" color="red"];
+    
+    handle_c_rc_files -> process_dependencies;
+    
+    process_dependencies -> end [label="所有依赖处理完成"];
+    process_dependencies -> process_dependencies [label="递归调用 createModule" color="blue"];
+    
+    error_handling -> end [style="dashed" color="red"];
+    
+    // 添加条件分支的虚线连接
+    edge [style=dashed];
+    resolve_target -> error_handling [label="解析目标失败"];
+    handle_parent_null -> error_handling [label="路径解析/库处理失败"];
+}

@@ -1,0 +1,52 @@
+
+digraph G {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+
+    start [label="开始 performAllAllWorkInner"];
+    init_vars [label="初始化变量:\nwork_queue_wait_group\nlink_task_wait_group"];
+    link_task_queue [label="启动 link_task_queue\n生成 link.flushTaskQueue"];
+    docs_emit_check [label="检查 comp.docs_emit 是否存在"];
+    spawn_docs_tasks [label="生成 workerDocsCopy\n和 workerDocsWasm 任务"];
+    rt_checks [label="检查并生成多个运行时库任务\n(compiler_rt, fuzzer, ubsan, etc.)"];
+    crt_files [label="遍历并生成不同C运行库的\nCrtFile构建任务\n(musl, glibc, wasi, mingw)"];
+    astgen_phase [label="进入AST生成阶段\n处理 builtin.zig\n和文件队列"];
+    c_objects [label="处理C对象和Win32资源队列"];
+    zcu_processing [label="Zig编译单元(zcu)处理:\n缓存管理、错误报告"];
+    check_errors [label="检查致命错误或内存分配失败"];
+    skip_analysis [label="跳过分析阶段\n直接返回"];
+    incremental_phase [label="增量编译阶段\n更新ZIR引用"];
+    sema_codegen [label="启动语义分析\n和代码生成节点"];
+    wait_link_tasks [label="等待所有链接任务完成"];
+    work_loop [label="主工作循环处理作业队列\n检查是否需要分析旧数据"];
+    end [label="函数结束"];
+
+    start -> init_vars;
+    init_vars -> link_task_queue;
+    link_task_queue -> docs_emit_check;
+
+    docs_emit_check -> spawn_docs_tasks [label="是"];
+    docs_emit_check -> rt_checks [label="否"];
+
+    spawn_docs_tasks -> rt_checks;
+
+    rt_checks -> crt_files;
+    crt_files -> astgen_phase;
+
+    astgen_phase -> c_objects;
+    c_objects -> zcu_processing;
+
+    zcu_processing -> check_errors;
+    check_errors -> skip_analysis [label="存在错误"];
+    check_errors -> incremental_phase [label="无错误"];
+
+    skip_analysis -> end;
+
+    incremental_phase -> sema_codegen;
+    sema_codegen -> wait_link_tasks;
+
+    wait_link_tasks -> work_loop;
+
+    work_loop -> end [label="所有任务完成"];
+    work_loop -> work_loop [label="继续处理作业"];
+}

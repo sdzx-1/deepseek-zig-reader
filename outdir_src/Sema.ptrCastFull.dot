@@ -1,0 +1,36 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 ptrCastFull"];
+    checkPtrType [label="检查目标指针类型 (checkPtrType)"];
+    checkPtrOperand [label="检查操作数指针类型 (checkPtrOperand)"];
+    resolveLayout [label="解析源和目标子类型布局 (resolveLayout)"];
+    checkSliceLike [label="判断源和目标是否为切片类型"];
+    checkSliceLenChange [label="检查切片长度是否需要改变"];
+    validatePtrAttributes [label="验证指针属性（对齐、地址空间等）"];
+    runtimeChecks [label="运行时检查（空指针、对齐等）"];
+    handleSliceConversion [label="处理切片转换逻辑"];
+    generateResult [label="生成最终结果"];
+    errorHandling [label="错误处理", shape=diamond];
+
+    start -> checkPtrType;
+    checkPtrType -> checkPtrOperand;
+    checkPtrOperand -> resolveLayout;
+    resolveLayout -> checkSliceLike;
+    checkSliceLike -> checkSliceLenChange;
+    checkSliceLenChange -> validatePtrAttributes;
+    validatePtrAttributes -> runtimeChecks;
+    runtimeChecks -> handleSliceConversion;
+    handleSliceConversion -> generateResult;
+
+    // 错误处理路径
+    checkPtrType -> errorHandling [label="类型检查失败"];
+    checkPtrOperand -> errorHandling [label="操作数检查失败"];
+    checkSliceLenChange -> errorHandling [label="切片长度不兼容"];
+    validatePtrAttributes -> errorHandling [label="属性验证失败"];
+    runtimeChecks -> errorHandling [label="运行时检查失败"];
+    
+    errorHandling -> generateResult [label="返回错误"];
+    generateResult [label="返回Air指令或错误"];
+}

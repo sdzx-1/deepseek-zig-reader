@@ -1,0 +1,80 @@
+
+digraph parse_flowchart {
+    node [shape=rectangle, style=rounded];
+    edge [fontsize=10];
+
+    start [label="开始解析函数"];
+    check_magic [label="检查魔数是否匹配"];
+    read_version [label="读取版本号"];
+    init_indices [label="初始化起始索引"];
+    main_loop [label="进入主循环处理各个节"];
+    process_section [label="处理当前节"];
+    check_section_type [label="判断节类型", shape=diamond];
+    custom_section [label="处理.custom节"];
+    check_custom_type [label="判断.custom子类型", shape=diamond];
+    linking_section [label="处理linking子节"];
+    reloc_section [label="处理reloc子节"];
+    target_features [label="处理target_features"];
+    debug_section [label="处理.debug段"];
+    other_custom [label="跳过其他.custom节"];
+    type_section [label="处理type节"];
+    import_section [label="处理import节"];
+    function_section [label="处理function节"];
+    code_section [label="处理code节"];
+    data_section [label="处理data节"];
+    post_process [label="后处理"];
+    return_object [label="返回Object结构"];
+    error_nodes [label="错误处理节点群", shape=ellipse];
+
+    start -> check_magic;
+    check_magic -> read_version [label="魔数正确"];
+    check_magic -> error_nodes [label="错误: BadObjectMagic"];
+    read_version -> init_indices;
+    init_indices -> main_loop;
+
+    main_loop -> process_section [label="pos < bytes.len"];
+    process_section -> check_section_type;
+
+    check_section_type -> custom_section [label=".custom"];
+    check_section_type -> type_section [label=".type"];
+    check_section_type -> import_section [label=".import"];
+    check_section_type -> function_section [label=".function"];
+    check_section_type -> code_section [label=".code"];
+    check_section_type -> data_section [label=".data"];
+    check_section_type -> main_loop [label="其他节类型"];
+
+    custom_section -> check_custom_type;
+    check_custom_type -> linking_section [label="linking"];
+    check_custom_type -> reloc_section [label="reloc.*"];
+    check_custom_type -> target_features [label="target_features"];
+    check_custom_type -> debug_section [label=".debug*"];
+    check_custom_type -> other_custom [label="其他"];
+    linking_section -> process_subsections;
+    reloc_section -> validate_relocations;
+    target_features -> parse_features;
+    debug_section -> store_debug_data;
+    other_custom -> main_loop;
+
+    type_section -> read_func_types;
+    import_section -> process_imports;
+    function_section -> map_function_types;
+    code_section -> handle_code_payloads;
+    data_section -> handle_data_segments;
+
+    main_loop -> post_process [label="循环结束"];
+    post_process -> check_tls_features;
+    check_tls_features -> apply_symbol_table;
+    apply_symbol_table -> validate_table_imports;
+    validate_table_imports -> return_object;
+
+    error_nodes [label="错误处理:\n- 魔数错误\n- 版本不支持\n- 缺少linking节\n- 特性冲突\n- 重定位顺序错误"];
+    process_subsections -> error_nodes [label="段信息不匹配"];
+    validate_relocations -> error_nodes [label="重定位顺序错误"];
+    parse_features -> error_nodes [label="特性不支持"];
+    check_tls_features -> error_nodes [label="缺少原子/批量内存特性"];
+    apply_symbol_table -> error_nodes [label="符号冲突/类型不匹配"];
+    validate_table_imports -> error_nodes [label="表符号数量不匹配"];
+
+    {rank=same; check_section_type; custom_section}
+    {rank=same; linking_section; reloc_section}
+}

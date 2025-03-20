@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始finish函数"];
+    init_vars [label="初始化变量\n(comp, shared_memory, diags等)"];
+    check_entry [label="检查入口符号entry_name"];
+    process_zcu [label="处理Zcu相关逻辑\n检测内部函数和标签名称调用"];
+    handle_imports [label="处理函数/数据导入\n标记未定义的符号"];
+    handle_exports [label="处理导出符号\n解析NAV导出和错误检查"];
+    check_undefined [label="检查未定义符号\n(函数、全局变量、数据等)"];
+    merge_tables [label="合并间接函数表"];
+    process_init_funcs [label="处理初始化函数\n排序构造函数"];
+    merge_data_segments [label="合并和排序数据段"];
+    memory_layout [label="计算内存布局\n栈、堆、TLS地址分配"];
+    handle_memory_config [label="处理内存配置\n初始/最大内存检查"];
+    generate_sections [label="生成二进制段\n(类型、导入、函数、表等)"];
+    write_binary [label="写入二进制文件到磁盘"];
+    error_check [label="错误检查\n返回LinkFailure或其他错误"];
+    end [label="结束"];
+
+    // 流程连接
+    start -> init_vars;
+    init_vars -> check_entry;
+    check_entry -> process_zcu [label="comp.zcu存在"];
+    process_zcu -> handle_imports;
+    handle_imports -> handle_exports;
+    handle_exports -> check_undefined;
+    check_undefined -> error_check [label="存在未定义符号"];
+    error_check -> end [label="返回错误"];
+
+    check_undefined -> merge_tables [label="允许未定义"];
+    merge_tables -> process_init_funcs;
+    process_init_funcs -> merge_data_segments;
+    merge_data_segments -> memory_layout;
+    memory_layout -> handle_memory_config;
+    handle_memory_config -> generate_sections;
+    generate_sections -> write_binary;
+    write_binary -> end;
+
+    // 条件分支标注
+    check_entry -> handle_imports [label="comp.zcu不存在"];
+    handle_memory_config -> error_check [label="内存对齐/大小错误"];
+    generate_sections -> error_check [label="段生成错误"];
+}

@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier New", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier New"];
+
+    start [label="开始 genByteSwap"];
+    check_vector [label="检查 src_ty 是否为向量类型", shape=diamond];
+    vector_error [label="返回未实现错误"];
+    get_abi_size [label="获取 abi_size = src_ty.abiSize(zcu)"];
+    switch_abi_size [label="根据 abi_size 分支", shape=diamond];
+    size_1 [label="abi_size == 1"];
+    size_2 [label="abi_size == 2"];
+    size_3_8 [label="3 ≤ abi_size ≤ 8"];
+    size_9_16 [label="9 ≤ abi_size ≤ 16"];
+    size_other [label="abi_size > 16"];
+    handle_size1 [label="检查 mem_ok/src_mcv.isRegister()\n尝试重用操作数或复制到寄存器"];
+    handle_size2 [label="生成移位指令 (rol 8)"];
+    handle_size3_8 [label="生成 bswap 指令"];
+    handle_size9_16 [label="处理寄存器对或内存加载\n交换寄存器对或生成 movbe/mov + bswap"];
+    handle_large [label="分配临时寄存器\n循环交换内存中的字节"];
+    allocate_dst [label="分配目标寄存器/内存 (dst_mcv)"];
+    gen_movbe_or_bswap [label="生成 movbe 或 bswap 指令"];
+    return [label="返回 dst_mcv"];
+
+    start -> check_vector;
+    check_vector -> vector_error [label="是"];
+    check_vector -> get_abi_size [label="否"];
+    get_abi_size -> switch_abi_size;
+    switch_abi_size -> size_1 [label="1"];
+    switch_abi_size -> size_2 [label="2"];
+    switch_abi_size -> size_3_8 [label="3-8"];
+    switch_abi_size -> size_9_16 [label="9-16"];
+    switch_abi_size -> size_other [label="其他"];
+    
+    size_1 -> handle_size1;
+    handle_size1 -> allocate_dst;
+    
+    size_2 -> handle_size2;
+    handle_size2 -> allocate_dst;
+    
+    size_3_8 -> handle_size3_8;
+    handle_size3_8 -> allocate_dst;
+    
+    size_9_16 -> handle_size9_16;
+    handle_size9_16 -> allocate_dst;
+    
+    size_other -> handle_large;
+    handle_large -> allocate_dst;
+    
+    allocate_dst -> gen_movbe_or_bswap;
+    gen_movbe_or_bswap -> return;
+    
+    vector_error -> return [style=invis];  // 错误路径单独处理
+}

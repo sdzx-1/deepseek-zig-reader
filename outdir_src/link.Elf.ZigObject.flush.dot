@@ -1,0 +1,51 @@
+
+digraph flush_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始flush函数"];
+    handle_lazy_syms [label="检查self.lazy_syms中的anyerror_type元数据"];
+    check_anyerror [label="存在anyerror_type元数据?"];
+    activate_pt [label="激活PerThread上下文"];
+    update_text_symbol [label="更新text符号"];
+    update_rodata_symbol [label="更新rodata符号"];
+    deactivate_pt [label="释放PerThread上下文"];
+    mark_flushed [label="标记所有lazy_syms状态为flushed"];
+    logging_check [label="build_options.enable_logging为真?"];
+    check_navs_uavs [label="检查navs和uavs的分配"];
+    dwarf_processing [label="处理dwarf调试信息"];
+    flush_dwarf_module [label="调用dwarf.flushModule()"];
+    process_debug_sections [label="遍历调试节并处理重定位"];
+    handle_relocs [label="处理跨单元/跨节/外部重定位"];
+    mark_sections_clean [label="标记调试节为干净状态"];
+    final_asserts [label="断言调试节不再脏"];
+    end [label="结束flush函数"];
+
+    start -> handle_lazy_syms;
+    handle_lazy_syms -> check_anyerror;
+    check_anyerror -> activate_pt [label="是"];
+    check_anyerror -> mark_flushed [label="否"];
+
+    activate_pt -> update_text_symbol;
+    update_text_symbol -> update_rodata_symbol;
+    update_rodata_symbol -> deactivate_pt;
+    deactivate_pt -> mark_flushed;
+
+    mark_flushed -> logging_check;
+    logging_check -> check_navs_uavs [label="是"];
+    logging_check -> dwarf_processing [label="否"];
+
+    check_navs_uavs -> dwarf_processing;
+
+    dwarf_processing -> flush_dwarf_module;
+    flush_dwarf_module -> process_debug_sections;
+    process_debug_sections -> handle_relocs [label="遍历所有调试节"];
+    handle_relocs -> mark_sections_clean;
+    mark_sections_clean -> final_asserts;
+    final_asserts -> end;
+
+    // 错误处理分支
+    update_text_symbol -> error_link_failure [label="CodegenFail"];
+    update_rodata_symbol -> error_link_failure [label="CodegenFail"];
+    error_link_failure [label="返回LinkFailure", shape=ellipse];
+    error_link_failure -> deactivate_pt [style=dashed];
+}

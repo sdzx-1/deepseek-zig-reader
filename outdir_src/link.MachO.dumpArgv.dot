@@ -1,0 +1,66 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    
+    start [label="开始"];
+    init_alloc [label="初始化分配器\n(arena_allocator)"];
+    get_paths [label="获取输出路径\n(full_out_path)\n和模块对象路径\n(module_obj_path)"];
+    create_argv [label="创建argv列表\n并添加'zig'命令"];
+    check_static_lib [label="检查是否是静态库？"];
+    add_ar [label="添加'ar'到argv"];
+    add_ld [label="添加'ld'到argv"];
+    check_object [label="检查是否是对象文件？"];
+    add_r_flag [label="添加'-r'到argv"];
+    check_relocatable [label="检查是否可重定位？"];
+    handle_reloc_inputs [label="遍历comp.link_inputs\n添加对象/归档/资源路径"];
+    add_c_objects [label="添加C对象文件路径"];
+    add_module_obj [label="添加模块对象路径\n(如果存在)"];
+    handle_non_reloc [label="处理非可重定位链接"];
+    add_dynamic [label="添加'-dynamic'"];
+    check_dynlib [label="检查是否是动态库？"];
+    add_dylib [label="添加'-dylib'\n处理install_name"];
+    platform_version [label="添加-platform_version\n和系统版本号"];
+    handle_sysroot [label="添加-syslibroot"];
+    handle_rpath [label="遍历rpath列表\n添加'-rpath'"];
+    handle_pagezero [label="处理pagezero_size"];
+    handle_headerpad [label="处理headerpad参数"];
+    handle_gc_sections [label="添加-dead_strip"];
+    handle_entry [label="处理-entry参数"];
+    add_output [label="添加'-o'和输出路径"];
+    handle_undefined [label="处理动态库未定义符号"];
+    process_link_inputs [label="再次处理link_inputs\n排除DSO，添加-force_load"];
+    add_compiler_rt [label="添加编译器运行时库"];
+    lib_dirs [label="遍历lib_directories\n添加'-L'参数"];
+    handle_dso [label="处理DSO链接参数\n(-needed-l/-weak-l)"];
+    framework_handling [label="处理框架目录和框架参数"];
+    add_system_lib [label="添加-lSystem"];
+    dump_argv [label="调用dump_argv输出参数"];
+    end [label="结束"];
+
+    start -> init_alloc -> get_paths -> create_argv;
+    create_argv -> check_static_lib;
+    check_static_lib -> add_ar [label="是"];
+    check_static_lib -> add_ld [label="否"];
+    add_ar -> check_object;
+    add_ld -> check_object;
+    check_object -> add_r_flag [label="是"];
+    check_object -> check_relocatable [label="否"];
+    add_r_flag -> check_relocatable;
+    check_relocatable -> handle_reloc_inputs [label="是"];
+    check_relocatable -> handle_non_reloc [label="否"];
+    handle_reloc_inputs -> add_c_objects -> add_module_obj -> dump_argv;
+    
+    handle_non_reloc -> add_dynamic [label="非静态"];
+    add_dynamic -> check_dynlib;
+    check_dynlib -> add_dylib [label="是"];
+    check_dynlib -> platform_version [label="否"];
+    add_dylib -> platform_version;
+    platform_version -> handle_sysroot -> handle_rpath -> handle_pagezero;
+    handle_pagezero -> handle_headerpad -> handle_gc_sections -> handle_entry;
+    handle_entry -> add_output -> handle_undefined -> process_link_inputs;
+    process_link_inputs -> add_compiler_rt -> lib_dirs -> handle_dso;
+    handle_dso -> framework_handling -> add_system_lib -> dump_argv;
+    
+    dump_argv -> end;
+}

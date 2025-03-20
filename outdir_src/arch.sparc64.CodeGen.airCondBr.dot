@@ -1,0 +1,37 @@
+
+digraph airCondBr_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始: 解析pl_op、condition、extra数据"];
+    handle_liveness [label="处理条件分支活跃性(liveness_condbr)"];
+    emit_condBr [label="发出条件分支指令(condBr)"];
+    check_operand_death [label="检查操作数是否消亡"];
+    process_death [label="处理死亡操作数(processDeath)"];
+    save_parent_state [label="保存父级状态(栈、寄存器)"];
+    then_branch [label="处理then分支: 处理死亡、生成代码(genBody)"];
+    restore_parent_state [label="恢复父级状态"];
+    perform_reloc [label="执行重定位(performReloc)"];
+    else_branch [label="处理else分支: 处理死亡、生成代码(genBody)"];
+    merge_tables [label="合并then和else分支的指令表"];
+    finish_air [label="完成Air指令(finishAir)"];
+    end [label="结束"];
+
+    start -> handle_liveness;
+    handle_liveness -> emit_condBr;
+    emit_condBr -> check_operand_death;
+    check_operand_death -> process_death [label="操作数消亡"];
+    check_operand_death -> save_parent_state [label="未消亡"];
+    process_death -> save_parent_state;
+    save_parent_state -> then_branch;
+    then_branch -> restore_parent_state;
+    restore_parent_state -> perform_reloc;
+    perform_reloc -> else_branch;
+    else_branch -> merge_tables;
+    merge_tables -> finish_air;
+    finish_air -> end;
+
+    // 错误处理路径
+    save_parent_state -> then_branch_error [label="errdefer分支回滚" style=dotted];
+    then_branch -> then_branch_error [style=invis];
+    then_branch_error [label="弹出branch_stack\n恢复状态" shape=note, style=dotted];
+}

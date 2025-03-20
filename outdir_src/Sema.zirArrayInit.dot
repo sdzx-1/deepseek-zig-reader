@@ -1,0 +1,69 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: zirArrayInit()"];
+    resolve_type [label="解析参数类型 args[0]"];
+    check_type_known [label="类型是否已知？", shape=diamond];
+    anon_array [label="调用 arrayInitAnon()\n返回匿名数组"];
+    get_array_type [label="获取数组/元组类型 array_ty"];
+    check_tuple [label="是否是元组？", shape=diamond];
+    handle_sentinel [label="处理哨兵值 sentinel_val"];
+    alloc_resolved_args [label="分配 resolved_args 数组"];
+    loop_start [label="遍历元素 (i from 0)"];
+    check_element_count [label="i+1 >= args.len？", shape=diamond];
+    handle_missing_field [label="处理缺失字段\n设置默认值或错误"];
+    check_comptime_field [label="处理编译时字段\n验证字段值"];
+    resolve_element [label="解析元素值\n并类型检查"];
+    next_element [label="i++"];
+    check_errors [label="存在错误？", shape=diamond];
+    add_error_notes [label="添加错误信息并返回"];
+    check_runtime_index [label="检查运行时索引"];
+    all_comptime [label="所有元素编译时已知？", shape=diamond];
+    create_const_array [label="创建常量数组\n返回结果"];
+    require_runtime_block [label="需要运行时块"];
+    check_is_ref [label="is_ref?", shape=diamond];
+    alloc_memory [label="分配内存\n生成指针"];
+    store_elements [label="遍历存储元素到内存"];
+    make_ptr_const [label="返回指针常量"];
+    create_aggregate [label="创建聚合初始化\n返回数组值"];
+
+    start -> resolve_type;
+    resolve_type -> check_type_known;
+    check_type_known -> anon_array [label="否"];
+    check_type_known -> get_array_type [label="是"];
+    get_array_type -> check_tuple;
+    check_tuple -> handle_sentinel [label="否"];
+    check_tuple -> handle_missing_field [label="是"];
+    handle_sentinel -> alloc_resolved_args;
+    alloc_resolved_args -> loop_start;
+    loop_start -> check_element_count;
+    check_element_count -> handle_missing_field [label="是"];
+    check_element_count -> resolve_element [label="否"];
+    handle_missing_field -> check_comptime_field;
+    resolve_element -> check_comptime_field;
+    check_comptime_field -> next_element;
+    next_element -> loop_start [label="继续循环"];
+    loop_start -> check_errors [label="循环结束"];
+    check_errors -> add_error_notes [label="是"];
+    check_errors -> check_runtime_index [label="否"];
+    check_runtime_index -> all_comptime;
+    all_comptime -> create_const_array [label="是"];
+    all_comptime -> require_runtime_block [label="否"];
+    require_runtime_block -> check_is_ref;
+    check_is_ref -> alloc_memory [label="是"];
+    check_is_ref -> create_aggregate [label="否"];
+    alloc_memory -> store_elements;
+    store_elements -> make_ptr_const;
+    make_ptr_const -> end;
+    create_aggregate -> end;
+    add_error_notes -> end;
+
+    edge [style=invis];
+    { rank=same; anon_array -> end; }
+    { rank=same; create_const_array -> end; }
+    { rank=same; make_ptr_const -> create_aggregate; }
+
+    end [label="结束", shape=doublecircle];
+}

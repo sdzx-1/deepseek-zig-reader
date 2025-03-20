@@ -1,0 +1,57 @@
+
+digraph analyzeShuffle {
+    node [shape=rectangle, fontname="Courier New"];
+    start [label="Start analyzeShuffle"];
+    init [label="Initialize variables:\npt, zcu, a_src, b_src, mask_src"];
+    create_res_ty [label="Create res_ty (result vector type)"];
+    check_a_type [label="Check type of a\n(get maybe_a_len)"];
+    check_b_type [label="Check type of b\n(get maybe_b_len)"];
+    check_both_null [label="maybe_a_len and maybe_b_len both null?"];
+    return_undef [label="Return pt.undefRef(res_ty)", shape=oval];
+    determine_lengths [label="Determine a_len and b_len"];
+    create_a_b_ty [label="Create a_ty and b_ty"];
+    coerce_a_b [label="Coerce a and b to a_ty/b_ty\nor set to undef"];
+    loop_mask_start [label="Loop over mask elements (0..mask_len)"];
+    check_undef [label="Current mask element is undef?"];
+    process_element [label="Resolve element value\ndetermine chosen vector and index"];
+    check_bounds [label="Index >= vector length?"];
+    generate_error [label="Generate error message\nreturn error", shape=oval];
+    static_analysis [label="Resolve a and b values"];
+    check_static [label="Both a and b are comptime-known?"];
+    create_aggregate [label="Create aggregate with resolved values\nreturn it", shape=oval];
+    check_lengths [label="a_len == b_len?"];
+    expand_vector [label="Expand shorter vector via recursion\nupdate a or b"];
+    generate_shuffle [label="Generate .shuffle instruction\nreturn result", shape=oval];
+
+    start -> init;
+    init -> create_res_ty;
+    create_res_ty -> check_a_type;
+    check_a_type -> check_b_type;
+    check_b_type -> check_both_null;
+    
+    check_both_null -> return_undef [label="Yes"];
+    check_both_null -> determine_lengths [label="No"];
+    
+    determine_lengths -> create_a_b_ty;
+    create_a_b_ty -> coerce_a_b;
+    coerce_a_b -> loop_mask_start;
+    
+    loop_mask_start -> check_undef [label="For each i"];
+    check_undef -> loop_mask_start [label="Yes"];
+    check_undef -> process_element [label="No"];
+    
+    process_element -> check_bounds;
+    check_bounds -> generate_error [label="Yes"];
+    check_bounds -> loop_mask_start [label="No"];
+    
+    loop_mask_start -> static_analysis [label="Loop end"];
+    
+    static_analysis -> check_static;
+    check_static -> create_aggregate [label="Yes"];
+    check_static -> check_lengths [label="No"];
+    
+    check_lengths -> expand_vector [label="No"];
+    check_lengths -> generate_shuffle [label="Yes"];
+    
+    expand_vector -> generate_shuffle;
+}

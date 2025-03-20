@@ -1,0 +1,48 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 airAggregateInit"];
+    get_info [label="获取类型信息\n(result_ty, len, elements)"];
+    switch_type [label="根据result_ty.zigTypeTag(zcu)选择分支"];
+    struct_node [label="结构体类型处理"];
+    packed_check [label="检查是否为packed结构体"];
+    gen_memset [label="生成内存置零指令\n(genInlineMemset)"];
+    loop_packed [label="循环处理每个元素"];
+    bit_ops [label="处理位偏移\n(位运算、寄存器操作)"];
+    non_packed_loop [label="循环处理每个元素\n(直接内存写入)"];
+    array_vector_node [label="数组/向量类型处理"];
+    bool_vector_check [label="检查是否为布尔向量"];
+    reg_ops [label="寄存器位操作\n(xor/and/sh/or)"];
+    frame_store [label="栈帧内存存储元素"];
+    sentinel_check [label="处理哨兵值\n(genSetMem)"];
+    finish [label="返回结果\n(finishAir/finishAirResult)"];
+
+    start -> get_info;
+    get_info -> switch_type;
+    
+    switch_type -> struct_node [label="struct"];
+    struct_node -> packed_check;
+    
+    packed_check -> gen_memset [label="packed"];
+    gen_memset -> loop_packed;
+    loop_packed -> bit_ops [label="处理每个元素"];
+    bit_ops -> loop_packed [label="下一个元素"];
+    
+    packed_check -> non_packed_loop [label="非packed"];
+    non_packed_loop -> non_packed_loop [label="处理字段偏移\n内存写入"];
+    
+    switch_type -> array_vector_node [label="array/vector"];
+    array_vector_node -> bool_vector_check;
+    
+    bool_vector_check -> reg_ops [label="是布尔向量"];
+    reg_ops -> finish [label="结果存入寄存器"];
+    
+    bool_vector_check -> frame_store [label="非布尔向量"];
+    frame_store -> sentinel_check;
+    sentinel_check -> finish [label="结果存入栈帧"];
+    
+    loop_packed -> finish [label="完成所有元素"];
+    non_packed_loop -> finish [label="完成所有字段"];
+}

@@ -1,0 +1,66 @@
+
+digraph printPtrDerivation {
+    node [shape=rectangle, fontname="Courier"];
+    edge [fontname="Courier"];
+
+    start [label="Start printPtrDerivation"];
+    check_ptr_depth [label="ptr_depth == 0?", shape=diamond];
+    write_ellipsis [label="writer.writeAll(\"...\")"];
+    determine_result_kind [label="Determine result_kind based on derivation"];
+    check_need_kind [label="need_kind = want_kind ? result_kind"];
+    check_add_ampersand [label="need_kind == .rvalue && result_kind == .lvalue?", shape=diamond];
+    write_ampersand [label="writer.writeByte('&')"];
+    handle_derivation [label="Handle derivation cases"];
+    handle_root_strat [label="Handle root_strat (str or print_val)"];
+    check_add_deref [label="need_kind == .lvalue && result_kind == .rvalue?", shape=diamond];
+    write_deref [label="writer.writeAll(\".*\")"];
+    return [label="Return root_or_null or derivation"];
+
+    start -> check_ptr_depth;
+    check_ptr_depth -> write_ellipsis [label="Yes"];
+    check_ptr_depth -> determine_result_kind [label="No"];
+    write_ellipsis -> return;
+
+    determine_result_kind -> check_need_kind;
+    check_need_kind -> check_add_ampersand;
+    check_add_ampersand -> write_ampersand [label="Yes"];
+    check_add_ampersand -> handle_derivation [label="No"];
+
+    write_ampersand -> handle_derivation;
+
+    handle_derivation -> handle_root_strat [label="Process each derivation case"];
+    handle_root_strat -> check_add_deref;
+
+    check_add_deref -> write_deref [label="Yes"];
+    check_add_deref -> return [label="No"];
+    write_deref -> return;
+
+    // Subgraph for derivation cases
+    subgraph cluster_derivation {
+        label="Derivation Cases Handling";
+        style=dashed;
+        
+        case_eu_payload [label="case .eu_payload_ptr"];
+        case_opt_payload [label="case .opt_payload_ptr"];
+        case_field_ptr [label="case .field_ptr"];
+        case_elem_ptr [label="case .elem_ptr"];
+        case_offset_cast [label="case .offset_and_cast"];
+        case_other [label="case int/nav/uav/comptime..."];
+
+        handle_derivation -> case_eu_payload;
+        handle_derivation -> case_opt_payload;
+        handle_derivation -> case_field_ptr;
+        handle_derivation -> case_elem_ptr;
+        handle_derivation -> case_offset_cast;
+        handle_derivation -> case_other;
+
+        // Recursive calls
+        case_eu_payload -> recursive_call [label="printPtrDerivation(...)"];
+        case_opt_payload -> recursive_call;
+        case_field_ptr -> recursive_call;
+        case_elem_ptr -> recursive_call;
+        case_offset_cast -> recursive_call;
+        recursive_call [label="Recursive printPtrDerivation", shape=box3d];
+        recursive_call -> handle_root_strat;
+    }
+}

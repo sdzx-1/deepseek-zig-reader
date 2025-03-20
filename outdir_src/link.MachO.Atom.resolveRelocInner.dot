@@ -1,0 +1,48 @@
+
+digraph resolveRelocInner {
+    node [shape=rectangle, fontname="Courier"];
+    start [label="开始"];
+    init_vars [label="初始化变量: t, cpu_arch, rel_offset, P, A, S, G, TLS, SUB"];
+    log_debug [label="根据rel.tag记录调试信息（.local 或 .extern）"];
+    switch_rel_type [label="根据rel.type分支处理", shape=diamond];
+    handle_unsigned [label="处理.unsigned类型"];
+    handle_got [label="处理.got类型"];
+    handle_branch [label="处理.branch类型"];
+    handle_got_load [label="处理.got_load类型"];
+    handle_tlv [label="处理.tlv类型"];
+    handle_signed [label="处理.signed系列类型"];
+    handle_page [label="处理.page系列类型"];
+    handle_pageoff [label="处理.pageoff类型"];
+    handle_got_load_pageoff [label="处理.got_load_pageoff类型"];
+    handle_tlvp_pageoff [label="处理.tlvp_pageoff类型"];
+    error_handling [label="错误处理（如Overflow、UnexpectedRemainder）"];
+    end [label="函数结束"];
+
+    start -> init_vars;
+    init_vars -> log_debug;
+    log_debug -> switch_rel_type;
+
+    switch_rel_type -> handle_unsigned [label=".unsigned"];
+    switch_rel_type -> handle_got [label=".got"];
+    switch_rel_type -> handle_branch [label=".branch"];
+    switch_rel_type -> handle_got_load [label=".got_load"];
+    switch_rel_type -> handle_tlv [label=".tlv"];
+    switch_rel_type -> handle_signed [label=".signed/.signed1/2/4"];
+    switch_rel_type -> handle_page [label=".page/.got_load_page/.tlvp_page"];
+    switch_rel_type -> handle_pageoff [label=".pageoff"];
+    switch_rel_type -> handle_got_load_pageoff [label=".got_load_pageoff"];
+    switch_rel_type -> handle_tlvp_pageoff [label=".tlvp_pageoff"];
+    switch_rel_type -> error_handling [label="其他未处理类型或错误"];
+
+    handle_unsigned -> end [label="完成写入操作"];
+    handle_got -> end [label="完成写入i32"];
+    handle_branch -> end [label="处理分支指令"];
+    handle_got_load -> end [label="处理GOT加载"];
+    handle_tlv -> end [label="处理TLV逻辑"];
+    handle_signed -> end [label="写入i32"];
+    handle_page -> end [label="计算并写入页地址"];
+    handle_pageoff -> end [label="处理页偏移"];
+    handle_got_load_pageoff -> end [label="处理GOT页偏移"];
+    handle_tlvp_pageoff -> end [label="处理TLV页偏移"];
+    error_handling -> end [label="抛出错误或返回"];
+}

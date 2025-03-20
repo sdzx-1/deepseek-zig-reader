@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname=Helvetica];
+    edge [fontname=Helvetica];
+
+    start [label="开始 analyzeFnBodyInner"];
+    init [label="初始化 tracy、zcu、gpa、ip"];
+    setup_anal_unit [label="设置分析单元 anal_unit\n获取 func 和 inst_info"];
+    start_analysis [label="注册分析单元到 zcu.analysis_in_progress"];
+    init_sema [label="初始化 sema 结构体"];
+    handle_params [label="处理参数（comptime 和 runtime）"];
+    gen_arg_air [label="生成 AIR arg 指令"];
+    setup_err_trace [label="设置错误返回跟踪"];
+    analyze_body [label="分析函数体 sema.analyzeFnBody"];
+    handle_unresolved [label="处理未解决的推断分配"];
+    set_branch_hint [label="设置分支提示"];
+    check_err_trace [label="是否需要错误跟踪？", shape=diamond];
+    setup_err_ret_trace [label="设置错误返回跟踪"];
+    build_main_block [label="构建主块 main_block"];
+    resolve_error_set [label="解决推断错误集"];
+    resolve_fn_types [label="解析函数类型"];
+    flush_exports [label="处理导出 sema.flushExports"];
+    return_result [label="返回 Air 结果"];
+    error_handling [label="错误处理路径", shape=ellipse];
+
+    start -> init;
+    init -> setup_anal_unit;
+    setup_anal_unit -> start_analysis;
+    start_analysis -> init_sema;
+    init_sema -> handle_params;
+    handle_params -> gen_arg_air;
+    gen_arg_air -> setup_err_trace;
+    setup_err_trace -> analyze_body;
+    analyze_body -> handle_unresolved;
+    handle_unresolved -> set_branch_hint;
+    set_branch_hint -> check_err_trace;
+
+    check_err_trace -> setup_err_ret_trace [label="是"];
+    check_err_trace -> build_main_block [label="否"];
+    setup_err_ret_trace -> build_main_block;
+
+    build_main_block -> resolve_error_set;
+    resolve_error_set -> resolve_fn_types;
+    resolve_fn_types -> flush_exports;
+    flush_exports -> return_result;
+
+    // 错误处理路径
+    start_analysis -> error_handling [label="errdefer\n移除分析单元"];
+    handle_params -> error_handling [label="错误返回"];
+    analyze_body -> error_handling [label="错误返回"];
+    setup_err_ret_trace -> error_handling [label="错误返回"];
+    resolve_error_set -> error_handling [label="错误返回"];
+    resolve_fn_types -> error_handling [label="错误返回"];
+    error_handling -> return_result [style=dashed];
+}

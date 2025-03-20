@@ -1,0 +1,64 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: 初始化跟踪器、获取pt/zcu、解析指令数据"];
+    resolve_elem_ty [label="解析elem_ty并检查错误"];
+    check_noreturn [label="检查elem_ty是否为noreturn", shape=diamond];
+    process_sentinel [label="处理sentinel"];
+    check_has_sentinel [label="flags.has_sentinel?", shape=diamond];
+    process_align [label="处理对齐(align)"];
+    check_has_align [label="flags.has_align?", shape=diamond];
+    process_addrspace [label="处理地址空间"];
+    check_has_addrspace [label="flags.has_addrspace?", shape=diamond];
+    process_bitrange [label="处理bit_offset/host_size"];
+    check_has_bitrange [label="flags.has_bit_range?", shape=diamond];
+    validate_bitrange [label="验证bit_offset和host_size有效性"];
+    check_fn_ptr [label="检查函数指针类型限制", shape=diamond];
+    check_c_ptr [label="验证C指针类型限制", shape=diamond];
+    check_packed_type [label="验证packed类型"];
+    create_ptr_type [label="创建指针类型并返回"];
+    error_noreturn [label="返回错误: noreturn指针"];
+    error_fn_ptr [label="返回错误: 函数指针限制"];
+    error_c_ptr [label="返回错误: C指针限制"];
+    error_packed [label="返回错误: packed类型无效"];
+
+    start -> resolve_elem_ty;
+    resolve_elem_ty -> check_noreturn;
+    
+    check_noreturn -> error_noreturn [label="是"];
+    check_noreturn -> check_has_sentinel [label="否"];
+    
+    check_has_sentinel -> process_sentinel [label="是"];
+    check_has_sentinel -> check_has_align [label="否"];
+    process_sentinel -> check_has_align;
+    
+    check_has_align -> process_align [label="是"];
+    check_has_align -> check_has_addrspace [label="否"];
+    process_align -> check_has_addrspace;
+    
+    check_has_addrspace -> process_addrspace [label="是"];
+    check_has_addrspace -> check_has_bitrange [label="否"];
+    process_addrspace -> check_has_bitrange;
+    
+    check_has_bitrange -> process_bitrange [label="是"];
+    check_has_bitrange -> check_fn_ptr [label="否"];
+    process_bitrange -> validate_bitrange;
+    validate_bitrange -> check_fn_ptr;
+    
+    check_fn_ptr -> error_fn_ptr [label="类型为函数且size != .one"];
+    check_fn_ptr -> check_c_ptr [label="通过检查"];
+    
+    check_c_ptr -> error_c_ptr [label="类型不兼容C ABI"];
+    check_c_ptr -> check_packed_type [label="通过检查"];
+    
+    check_packed_type -> error_packed [label="无效packed类型"];
+    check_packed_type -> create_ptr_type [label="通过检查"];
+    
+    create_ptr_type [shape=oval];
+    error_noreturn [shape=octagon];
+    error_fn_ptr [shape=octagon];
+    error_c_ptr [shape=octagon];
+    error_packed [shape=octagon];
+}

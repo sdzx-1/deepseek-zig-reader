@@ -1,0 +1,76 @@
+
+digraph DataLayoutFunction {
+    graph [rankdir=TB];
+    node [shape=rectangle, style=rounded];
+    edge [arrowhead=normal];
+
+    start [label="Start dataLayout(target)", shape=ellipse];
+    end [label="Return data layout string", shape=ellipse];
+    arch_switch [label="Switch(target.cpu.arch)", shape=diamond];
+
+    start -> arch_switch;
+
+    // Common nodes
+    subgraph cluster_main {
+        label="Architecture Switch Cases";
+        
+        // Simple cases
+        arc [label=".arc\nReturn ARC layout"];
+        xcore [label=".xcore\nReturn XCore layout"];
+        hexagon [label=".hexagon\nReturn Hexagon layout"];
+        lanai [label=".lanai\nReturn Lanai layout"];
+        // ... (other simple cases)
+
+        // Complex cases with nested conditions
+        subgraph cluster_aarch64 {
+            label=".aarch64";
+            aarch64_check_ofmt [label="target.ofmt == .macho?", shape=diamond];
+            aarch64_windows [label="target.os.tag == .windows?\nReturn Windows/Macho layout"];
+            aarch64_ilp32 [label="target.abi == .ilp32?\nReturn ILP32 layout"];
+            aarch64_default_macho [label="Return default Mach-O layout"];
+            aarch64_linux [label="Return Linux/Non-Macho layout"];
+            
+            aarch64_check_ofmt -> aarch64_windows [label="Yes"];
+            aarch64_check_ofmt -> aarch64_linux [label="No"];
+            aarch64_windows -> aarch64_ilp32 [label="No"];
+            aarch64_ilp32 -> aarch64_default_macho [label="No"];
+        }
+
+        subgraph cluster_x86_64 {
+            label=".x86_64";
+            x8664_check_darwin [label="Darwin/Macho?", shape=diamond];
+            x8664_abi_switch [label="Switch(target.abi)"];
+            x8664_gnux32 [label=".gnux32/.muslx32\nReturn x32 ABI layout"];
+            x8664_windows_coff [label="Windows + COFF?\nReturn Windows COFF layout"];
+            x8664_default [label="Return default x86_64 layout"];
+            
+            x8664_check_darwin -> x8664_abi_switch [label="No"];
+            x8664_abi_switch -> x8664_gnux32 [label=".gnux32/.muslx32"];
+            x8664_abi_switch -> x8664_windows_coff [label="Windows + COFF"];
+            x8664_abi_switch -> x8664_default [label="Default"];
+        }
+
+        // Add other architectures similarly...
+    }
+
+    // Connections from arch switch
+    arch_switch -> arc [label=".arc"];
+    arch_switch -> xcore [label=".xcore"];
+    arch_switch -> hexagon [label=".hexagon"];
+    arch_switch -> lanai [label=".lanai"];
+    arch_switch -> aarch64_check_ofmt [label=".aarch64"];
+    arch_switch -> x8664_check_darwin [label=".x86_64"];
+
+    // Terminal connections
+    arc -> end;
+    xcore -> end;
+    hexagon -> end;
+    lanai -> end;
+    aarch64_default_macho -> end;
+    aarch64_linux -> end;
+    x8664_gnux32 -> end;
+    x8664_windows_coff -> end;
+    x8664_default -> end;
+
+    // Add more terminal connections for other cases...
+}

@@ -1,0 +1,68 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start: unionFieldPtr"];
+    assert_union_ty [label="Assert union_ty is union"];
+    get_union_ptr_info [label="Get union_ptr type info"];
+    resolve_fields [label="Resolve union_ty fields"];
+    get_field_index [label="Get field_index via unionFieldIndex"];
+    check_initializing_noreturn [label="if (initializing && field_ty == .noreturn)"];
+    create_error_msg [label="Create error message\nAdd notes\nReturn error"];
+    resolve_union_ptr_val [label="Try resolveDefinedValue(union_ptr)"];
+    handle_auto_layout [label="if (union_layout == .auto)"];
+    handle_initializing_auto [label="if (initializing)"];
+    store_new_union_val [label="Store new union value\nto initialize tag"];
+    check_undef [label="Check if union_val is undef"];
+    check_tag_match [label="Check if active tag matches"];
+    tag_mismatch_error [label="Create tag mismatch error\nReturn error"];
+    handle_packed_extern [label="Handle .packed/.extern layout"];
+    return_field_ptr_val [label="Return field_ptr_val"];
+    safety_check [label="if (wantSafety && auto layout && has_tag)"];
+    add_safety_check [label="Add safety check\nfor union tag"];
+    check_noreturn_field [label="if (field_ty == .noreturn)"];
+    add_unreachable [label="Add unreachable op\nReturn .unreachable_value"];
+    return_struct_field_ptr [label="Return structFieldPtr"];
+
+    start -> assert_union_ty;
+    assert_union_ty -> get_union_ptr_info;
+    get_union_ptr_info -> resolve_fields;
+    resolve_fields -> get_field_index;
+    get_field_index -> check_initializing_noreturn;
+
+    check_initializing_noreturn -> create_error_msg [label="Yes"];
+    check_initializing_noreturn -> resolve_union_ptr_val [label="No"];
+
+    resolve_union_ptr_val -> handle_auto_layout [label="Success"];
+    resolve_union_ptr_val -> safety_check [label="Failure"];
+
+    handle_auto_layout -> handle_initializing_auto [label=".auto"];
+    handle_auto_layout -> handle_packed_extern [label=".packed/.extern"];
+
+    handle_initializing_auto -> store_new_union_val [label="Yes"];
+    handle_initializing_auto -> check_undef [label="No"];
+
+    check_undef -> check_tag_match [label="Not undef"];
+    check_tag_match -> tag_mismatch_error [label="Mismatch"];
+    check_tag_match -> return_field_ptr_val [label="Match"];
+
+    handle_packed_extern -> return_field_ptr_val;
+
+    safety_check -> add_safety_check [label="Conditions met"];
+    safety_check -> check_noreturn_field [label="Conditions not met"];
+
+    add_safety_check -> check_noreturn_field;
+
+    check_noreturn_field -> add_unreachable [label="Yes"];
+    check_noreturn_field -> return_struct_field_ptr [label="No"];
+
+    create_error_msg -> end_error [label="Exit error path"];
+    tag_mismatch_error -> end_error;
+    add_unreachable -> end_error;
+    return_field_ptr_val -> end_ok;
+    return_struct_field_ptr -> end_ok;
+
+    end_error [label="Error Exit", shape=oval];
+    end_ok [label="Normal Exit", shape=oval];
+}

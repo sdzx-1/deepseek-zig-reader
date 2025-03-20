@@ -1,0 +1,70 @@
+
+digraph atomicOp {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="atomicOp开始"];
+    lock_ptr [label="处理ptr_mcv锁"];
+    lock_val [label="处理val_mcv锁"];
+    calc_size [label="计算val_abi_size和mem_size"];
+    ptr_mem_switch [label="处理ptr_mcv到ptr_mem转换", shape=diamond];
+    ptr_mem_mod_check [label="检查ptr_mem.mod类型", shape=diamond];
+    handle_mem_lock [label="处理内存锁"];
+    strat_decision [label="确定策略(lock/loop/libcall)", shape=diamond];
+    lock_strategy [label="LOCK策略处理"];
+    loop_strategy [label="LOOP策略处理"];
+    libcall_strategy [label="LIBCALL策略处理(未实现)"];
+
+    start -> lock_ptr;
+    lock_ptr -> lock_val;
+    lock_val -> calc_size;
+    calc_size -> ptr_mem_switch;
+
+    ptr_mem_switch -> ptr_mem_mod_check [label="case .rm"];
+    ptr_mem_switch -> fail_todo [label="其他情况返回错误"];
+
+    ptr_mem_mod_check -> handle_mem_lock [label="通过检查"];
+    handle_mem_lock -> strat_decision;
+
+    strat_decision -> lock_strategy [label=".lock"];
+    strat_decision -> loop_strategy [label=".loop"];
+    strat_decision -> libcall_strategy [label=".libcall"];
+
+    subgraph cluster_lock {
+        label="LOCK策略";
+        lock_start [label="生成MIR指令"];
+        handle_rmw_op [label="处理RMW操作类型", shape=diamond];
+        gen_instructions [label="生成汇编指令"];
+        lock_end [label="返回结果"];
+        
+        lock_strategy -> lock_start;
+        lock_start -> handle_rmw_op;
+        handle_rmw_op -> gen_instructions [label="匹配操作类型"];
+        gen_instructions -> lock_end;
+    }
+
+    subgraph cluster_loop {
+        label="LOOP策略";
+        loop_start [label="处理<=8字节情况"];
+        sse_check [label="是否需要SSE寄存器", shape=diamond];
+        handle_rmw_ops [label="处理RMW操作"];
+        cmpxchg_loop [label="生成CMPXCHG循环"];
+        loop_end [label="返回结果"];
+        
+        loop_strategy -> loop_start;
+        loop_start -> sse_check;
+        sse_check -> handle_rmw_ops [label="是/否"];
+        handle_rmw_ops -> cmpxchg_loop;
+        cmpxchg_loop -> loop_end [label="循环结束"];
+    }
+
+    libcall_strategy -> fail_libcall [label="返回未实现错误"];
+
+    fail_todo [label="返回TODO错误", shape=oval];
+    fail_libcall [label="返回LIBCALL错误", shape=oval];
+    
+    edge [style=dashed];
+    lock_ptr -> ptr_lock [label="defer解锁"];
+    lock_val -> val_lock [label="defer解锁"];
+    handle_mem_lock -> mem_lock [label="defer解锁"];
+}

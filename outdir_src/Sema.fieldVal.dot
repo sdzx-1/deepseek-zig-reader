@@ -1,0 +1,79 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start fieldVal()"];
+    check_pointer [label="Check if object_ty is single pointer"];
+    inner_ty [label="inner_ty = pointer_child_type or object_ty"];
+    zig_type_tag [label="Switch inner_ty.zigTypeTag()", shape=diamond];
+
+    // Array handling
+    array_case [label="Case .array"];
+    check_len [label="field_name == 'len'?", shape=diamond];
+    return_array_len [label="Return arrayLen() as usize"];
+    check_ptr [label="field_name == 'ptr'?", shape=diamond];
+    handle_ptr [label="Create pointer type\nand coerce object"];
+    array_fail [label="Fail: Invalid field"];
+
+    // Pointer handling
+    pointer_case [label="Case .pointer"];
+    is_slice [label="Is slice pointer?", shape=diamond];
+    slice_ptr [label="Return slice.ptr"];
+    slice_len [label="Return slice.len"];
+    pointer_fail [label="Fail: Invalid field"];
+
+    // Type handling
+    type_case [label="Case .type"];
+    resolve_type [label="Resolve child_type"];
+    switch_child_type [label="Switch child_type.zigTypeTag()", shape=diamond];
+    
+    // Common paths
+    struct_case [label="Case .struct"];
+    union_case [label="Case .union"];
+    default_case [label="Default case"];
+    final_fail [label="Fail: Invalid field access"];
+
+    // Error handling nodes
+    error_handling [label="Generate compile error"];
+
+    // 连接节点
+    start -> check_pointer;
+    check_pointer -> inner_ty;
+    inner_ty -> zig_type_tag;
+
+    zig_type_tag -> array_case [label=".array"];
+    array_case -> check_len;
+    check_len -> return_array_len [label="Yes"];
+    check_len -> check_ptr [label="No"];
+    check_ptr -> handle_ptr [label="Yes"];
+    check_ptr -> array_fail [label="No"];
+    array_fail -> error_handling;
+
+    zig_type_tag -> pointer_case [label=".pointer"];
+    pointer_case -> is_slice;
+    is_slice -> slice_ptr [label="field_name == 'ptr'"];
+    is_slice -> slice_len [label="field_name == 'len'"];
+    is_slice -> pointer_fail [label="No"];
+    pointer_fail -> error_handling;
+
+    zig_type_tag -> type_case [label=".type"];
+    type_case -> resolve_type;
+    resolve_type -> switch_child_type;
+    switch_child_type -> struct_case [label=".struct"];
+    switch_child_type -> union_case [label=".union"];
+    switch_child_type -> default_case [label="其他类型"];
+    default_case -> error_handling;
+
+    zig_type_tag -> struct_case [label=".struct"];
+    struct_case -> check_pointer [label="is_pointer_to?"];
+    
+    zig_type_tag -> union_case [label=".union"];
+    union_case -> check_pointer [label="is_pointer_to?"];
+    
+    // 公共失败路径
+    error_handling -> final_fail;
+    struct_case -> error_handling [label="Field not found"];
+    union_case -> error_handling [label="Field not found"];
+    final_fail [shape=ellipse];
+}

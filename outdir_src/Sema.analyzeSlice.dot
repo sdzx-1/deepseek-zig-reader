@@ -1,0 +1,61 @@
+
+digraph analyzeSlice {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start analyzeSlice", shape=ellipse];
+    check_ptr_ptr_type [label="Check ptr_ptr is pointer type"];
+    ptr_ptr_child_ty_switch [label="Switch ptr_ptr_child_ty.zigTypeTag()", shape=diamond];
+    handle_array [label="Handle .array case:\n- Get sentinel\n- Set elem_ty"];
+    handle_pointer [label="Handle .pointer case:\nSwitch ptrSize"];
+    ptrSize_one [label="Case .one:\n- Load ptr\n- Check double_child_ty"];
+    ptrSize_many_c [label="Case .many/.c:\n- Load ptr\n- Check C ptr null"];
+    ptrSize_slice [label="Case .slice:\n- Load ptr\n- Use slice info"];
+    handle_else [label="Return error:\n'slice of non-array type'"];
+    check_slice_ty [label="Check if slice_ty is slice"];
+    coerce_ptr [label="Coerce ptr to compatible type"];
+    process_start_end [label="Process start/end indexes\n- Coerce types\n- Arithmetic checks"];
+    check_start_lte_end [label="Check start <= end", shape=diamond];
+    handle_sentinel [label="Handle sentinel checks"];
+    runtime_safety_checks [label="Runtime safety checks:\n- Non-null C ptr\n- Bounds checks"];
+    generate_result [label="Generate return type\nand result"];
+    return_result [label="Return result", shape=ellipse];
+    error_exit [label="Return error", shape=ellipse];
+
+    start -> check_ptr_ptr_type;
+    check_ptr_ptr_type -> ptr_ptr_child_ty_switch [label="Valid pointer"];
+    check_ptr_ptr_type -> error_exit [label="Not pointer"];
+
+    ptr_ptr_child_ty_switch -> handle_array [label=".array"];
+    ptr_ptr_child_ty_switch -> handle_pointer [label=".pointer"];
+    ptr_ptr_child_ty_switch -> handle_else [label="else"];
+
+    handle_pointer -> ptrSize_one [label=".one"];
+    handle_pointer -> ptrSize_many_c [label=".many/.c"];
+    handle_pointer -> ptrSize_slice [label=".slice"];
+
+    ptrSize_one -> check_double_child_ty [label="Check double_child_ty"];
+    check_double_child_ty -> handle_single_item_ptr [label="Not array"];
+    handle_single_item_ptr -> check_start_end_bounds [label="Validate start/end"];
+    check_start_end_bounds -> error_exit [label="Invalid bounds"];
+    check_start_end_bounds -> coerce_ptr [label="Valid bounds"];
+
+    ptrSize_many_c -> check_c_ptr_null [label="Check if C ptr is null"];
+    check_c_ptr_null -> error_exit [label="Null ptr"];
+    check_c_ptr_null -> coerce_ptr [label="Valid"];
+
+    ptrSize_slice -> coerce_ptr;
+
+    handle_array -> coerce_ptr;
+    handle_else -> error_exit;
+
+    coerce_ptr -> process_start_end;
+    process_start_end -> check_start_lte_end;
+
+    check_start_lte_end -> runtime_safety_checks [label="True"];
+    check_start_lte_end -> handle_sentinel [label="False"];
+
+    handle_sentinel -> runtime_safety_checks;
+    runtime_safety_checks -> generate_result;
+    generate_result -> return_result;
+}

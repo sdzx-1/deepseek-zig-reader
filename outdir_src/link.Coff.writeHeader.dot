@@ -1,0 +1,36 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded, fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 writeHeader"];
+    init_vars [label="初始化变量:\n- target, gpa, buffer, writer"];
+    ensure_capacity [label="确保 buffer 容量\n(buffer.ensureTotalCapacity)"];
+    write_msdos [label="写入 MS-DOS stub\n并设置 PE 头偏移"];
+    write_pe_sig [label="写入 'PE\\x00\\x00' 签名"];
+    set_flags [label="设置 COFF 头标志:\n- EXECUTABLE_IMAGE\n- DEBUG_STRIPPED\n- 根据 ptr_width 设置 32BIT/LARGE_ADDRESS"];
+    check_dll [label="检查是否动态链接库\n设置 DLL 标志", shape=diamond];
+    build_coff_header [label="构建 COFF 头结构:\n- machine\n- sections count\n- timestamp\n- symbol table\n- optional header size"];
+    calc_section_sizes [label="计算各节大小:\n- size_of_code\n- size_of_initialized_data\n- size_of_uninitialized_data"];
+    ptr_width_check [label="ptr_width 是 32位 还是 64位？", shape=diamond];
+    build_pe32_header [label="构建 PE32 可选头\n并写入 buffer"];
+    build_pe64_header [label="构建 PE64 可选头\n并写入 buffer"];
+    write_to_file [label="将 buffer 内容写入文件\n(coff.pwriteAll)"];
+    end [label="结束"];
+
+    start -> init_vars;
+    init_vars -> ensure_capacity;
+    ensure_capacity -> write_msdos;
+    write_msdos -> write_pe_sig;
+    write_pe_sig -> set_flags;
+    set_flags -> check_dll;
+    check_dll -> build_coff_header [label="是动态链接库"];
+    check_dll -> build_coff_header [label="不是动态链接库"];
+    build_coff_header -> calc_section_sizes;
+    calc_section_sizes -> ptr_width_check;
+    ptr_width_check -> build_pe32_header [label="32位"];
+    ptr_width_check -> build_pe64_header [label="64位"];
+    build_pe32_header -> write_to_file;
+    build_pe64_header -> write_to_file;
+    write_to_file -> end;
+}

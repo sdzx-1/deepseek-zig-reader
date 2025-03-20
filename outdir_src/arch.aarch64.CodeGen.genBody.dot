@@ -1,0 +1,50 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 genBody"];
+    init_vars [label="初始化变量: pt, zcu, ip, air_tags"];
+    loop_start [label="循环遍历 body 中的每个指令 inst"];
+    check_unused [label="检查指令是否未使用且不需要处理"];
+    skip_inst [label="跳过当前指令"];
+    process_inst [label="处理当前指令"];
+    handle_air_tags [label="根据 air_tags 分发处理"];
+    handle_bin_op [label="处理二元操作（add, sub等）"];
+    handle_unary_math [label="处理一元数学操作（sqrt, sin等）"];
+    handle_ptr_arith [label="处理指针运算（ptr_add, ptr_sub）"];
+    handle_error [label="处理未实现指令（触发错误）"];
+    bookkeeping [label="更新 air_bookkeeping"];
+    check_runtime_safety [label="运行时安全检查（断言）"];
+    assert_failure [label="触发断言失败"];
+    loop_end [label="循环结束"];
+    end [label="函数结束"];
+
+    start -> init_vars;
+    init_vars -> loop_start;
+    loop_start -> check_unused;
+
+    check_unused -> skip_inst [label="条件成立"];
+    check_unused -> process_inst [label="条件不成立"];
+    skip_inst -> loop_start [label="继续下一个指令"];
+
+    process_inst -> handle_air_tags;
+    handle_air_tags -> handle_bin_op [label="二元操作"];
+    handle_air_tags -> handle_unary_math [label="一元数学操作"];
+    handle_air_tags -> handle_ptr_arith [label="指针运算"];
+    handle_air_tags -> handle_error [label="未实现指令"];
+    handle_air_tags -> bookkeeping [label="其他指令处理"];
+
+    handle_bin_op -> bookkeeping;
+    handle_unary_math -> bookkeeping;
+    handle_ptr_arith -> bookkeeping;
+    handle_error -> bookkeeping [label="返回错误"];
+
+    bookkeeping -> check_runtime_safety;
+    check_runtime_safety -> assert_failure [label="书签更新异常"];
+    check_runtime_safety -> loop_start [label="检查通过"];
+
+    loop_start -> loop_end [label="所有指令处理完成"];
+    loop_end -> end;
+    assert_failure -> end [label="终止流程"];
+}

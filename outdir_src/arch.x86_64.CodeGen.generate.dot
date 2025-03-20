@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="generate() 入口"];
+    init_vars [label="初始化变量 (zcu, comp, gpa, ip, func, fn_type, mod)"];
+    create_function_struct [label="创建 function 结构体"];
+    defer_cleanup [label="defer 块：资源释放（frame_allocs, blocks, mir 等）"];
+    inst_tracking_setup [label="初始化 inst_tracking 容量和临时索引"];
+    wip_mir_log [label="记录 wip_mir_log"];
+    frame_allocs_init [label="设置 frame_allocs (stack_frame, call_frame)"];
+    resolve_cc_values [label="调用 resolveCallingConventionValues()"];
+    resolve_cc_error [label="错误处理：CodegenFail 或其他错误返回"];
+    setup_args_ret [label="配置 args, ret_mcv, err_ret_trace_reg"];
+    frame_allocs_config [label="设置 frame_allocs (ret_addr, base_ptr, args_frame)"];
+    va_info_config [label="根据调用约定配置 va_info (x86_64_sysv/x86_64_win)"];
+    err_ret_trace_reg_check [shape=diamond, label="err_ret_trace_reg != .none?"];
+    reg_save [label="保存寄存器到 inst_tracking"];
+    gen_call [label="调用 gen() 生成代码"];
+    gen_error [label="错误处理：CodegenFail/OutOfRegisters/其他错误"];
+    create_mir [label="创建 Mir 结构体并初始化"];
+    create_emit [label="创建 Emit 结构体并初始化"];
+    emit_mir [label="调用 emitMir()"];
+    emit_errors [shape=diamond, label="错误类型判断"];
+    error_handling [label="处理错误并返回相应信息"];
+    success [label="成功返回"];
+
+    start -> init_vars;
+    init_vars -> create_function_struct;
+    create_function_struct -> defer_cleanup [style=dashed, label="(defer)"];
+    create_function_struct -> inst_tracking_setup;
+    inst_tracking_setup -> wip_mir_log;
+    wip_mir_log -> frame_allocs_init;
+    frame_allocs_init -> resolve_cc_values;
+    resolve_cc_values -> resolve_cc_error [label="错误分支"];
+    resolve_cc_values -> setup_args_ret [label="成功"];
+    setup_args_ret -> frame_allocs_config;
+    frame_allocs_config -> va_info_config;
+    va_info_config -> err_ret_trace_reg_check;
+    err_ret_trace_reg_check -> reg_save [label="是"];
+    err_ret_trace_reg_check -> gen_call [label="否"];
+    reg_save -> gen_call;
+    gen_call -> gen_error [label="错误分支"];
+    gen_call -> create_mir [label="成功"];
+    create_mir -> create_emit;
+    create_emit -> emit_mir;
+    emit_mir -> emit_errors [label="错误分支"];
+    emit_errors -> error_handling [label="LowerFail/EmitFail"];
+    emit_errors -> error_handling [label="InvalidInstruction/CannotEncode"];
+    emit_errors -> error_handling [label="其他错误"];
+    emit_mir -> success [label="成功"];
+    resolve_cc_error -> defer_cleanup;
+    gen_error -> defer_cleanup;
+    error_handling -> defer_cleanup;
+    defer_cleanup -> end [style=invis];
+    success -> defer_cleanup [style=invis];
+}

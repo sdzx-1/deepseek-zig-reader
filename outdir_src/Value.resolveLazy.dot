@@ -1,0 +1,115 @@
+
+digraph resolveLazy {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle];
+    edge [fontname="Arial"];
+
+    start [label="开始 resolveLazy(val, arena, pt)", shape=ellipse];
+    end [label="返回 Value", shape=ellipse];
+    switch_key [label="switch (intern_pool.indexToKey(val))", shape=diamond];
+
+    start -> switch_key;
+
+    // Int分支
+    int_case [label="case .int"];
+    int_storage_switch [label="switch (int.storage)", shape=diamond];
+    int_return [label="返回 val"];
+    int_lazy [label="返回 pt.intValue(...)"];
+    int_case -> int_storage_switch;
+    int_storage_switch -> int_return [label="u64/i64/big_int"];
+    int_storage_switch -> int_lazy [label="lazy_align/lazy_size"];
+    int_lazy -> end;
+
+    // Slice分支
+    slice_case [label="case .slice"];
+    resolve_ptr [label="解析 ptr = resolveLazy(slice.ptr)"];
+    resolve_len [label="解析 len = resolveLazy(slice.len)"];
+    check_slice [label="ptr和len是否改变?", shape=diamond];
+    slice_unchanged [label="返回 val"];
+    create_new_slice [label="构造新slice并返回"];
+    slice_case -> resolve_ptr;
+    resolve_ptr -> resolve_len;
+    resolve_len -> check_slice;
+    check_slice -> slice_unchanged [label="是"];
+    check_slice -> create_new_slice [label="否"];
+    create_new_slice -> end;
+
+    // Ptr分支
+    ptr_case [label="case .ptr"];
+    ptr_base_switch [label="switch (ptr.base_addr)", shape=diamond];
+    ptr_return [label="返回 val"];
+    ptr_comptime_field [label="case .comptime_field"];
+    ptr_eu_opt_payload [label="case .eu_payload/.opt_payload"];
+    ptr_arr_field [label="case .arr_elem/.field"];
+    resolve_base [label="解析 base = resolveLazy(...)"];
+    check_base [label="base是否改变?", shape=diamond];
+    create_new_ptr [label="构造新ptr并返回"];
+    
+    ptr_case -> ptr_base_switch;
+    ptr_base_switch -> ptr_return [label="nav/comptime_alloc/uav/int"];
+    ptr_base_switch -> ptr_comptime_field [label="comptime_field"];
+    ptr_base_switch -> ptr_eu_opt_payload [label="eu_payload/opt_payload"];
+    ptr_base_switch -> ptr_arr_field [label="arr_elem/field"];
+    
+    ptr_comptime_field -> resolve_base;
+    ptr_eu_opt_payload -> resolve_base;
+    ptr_arr_field -> resolve_base;
+    
+    resolve_base -> check_base;
+    check_base -> ptr_return [label="是"];
+    check_base -> create_new_ptr [label="否"];
+    create_new_ptr -> end;
+
+    // Aggregate分支
+    aggregate_case [label="case .aggregate"];
+    agg_storage_switch [label="switch (storage)", shape=diamond];
+    agg_bytes [label="返回 val"];
+    agg_elems [label="遍历解析每个元素"];
+    agg_repeated [label="解析 repeated_elem"];
+    check_elems [label="元素是否改变?", shape=diamond];
+    create_new_agg [label="构造新aggregate并返回"];
+    
+    aggregate_case -> agg_storage_switch;
+    agg_storage_switch -> agg_bytes [label="bytes"];
+    agg_storage_switch -> agg_elems [label="elems"];
+    agg_storage_switch -> agg_repeated [label="repeated_elem"];
+    
+    agg_elems -> check_elems;
+    check_elems -> end [label="无变化"];
+    check_elems -> create_new_agg [label="有变化"];
+    
+    agg_repeated -> check_elems;
+
+    // Union分支
+    un_case [label="case .un"];
+    resolve_tag [label="解析 tag (if needed)"];
+    resolve_val [label="解析 val"];
+    check_un [label="tag/val是否改变?", shape=diamond];
+    create_new_un [label="构造新union并返回"];
+    
+    un_case -> resolve_tag;
+    resolve_tag -> resolve_val;
+    resolve_val -> check_un;
+    check_un -> end [label="无变化"];
+    check_un -> create_new_un [label="有变化"];
+
+    // 默认分支
+    default_case [label="default"];
+    default_case -> end;
+
+    // 连接所有分支到switch
+    switch_key -> int_case;
+    switch_key -> slice_case;
+    switch_key -> ptr_case;
+    switch_key -> aggregate_case;
+    switch_key -> un_case;
+    switch_key -> default_case;
+
+    // 公共返回路径
+    int_return -> end;
+    slice_unchanged -> end;
+    ptr_return -> end;
+    agg_bytes -> end;
+    create_new_agg -> end;
+    create_new_un -> end;
+}

@@ -1,0 +1,99 @@
+
+digraph flowchart {
+    node [shape=rectangle fontname="Courier" fontsize=12];
+    edge [fontname="Courier" fontsize=10];
+
+    start [label="lowerInt开始" shape=ellipse];
+    end [label="返回结果或错误" shape=ellipse];
+    switch_node [label="switch(node类型)" shape=diamond];
+
+    start -> switch_node;
+
+    subgraph cluster_int {
+        label="int_literal";
+        int_split [label="拆分为.small/.big" shape=diamond];
+        small_int [label="处理small整数"];
+        check_small_sign [label="结果类型是无符号且值<0?" shape=diamond];
+        check_small_bits [label="类型bits是否<32?" shape=diamond];
+        calc_bounds [label="计算min/max边界"];
+        check_small_range [label="值是否越界?" shape=diamond];
+        store_small [label="存储i64到InternPool"];
+
+        big_int [label="处理big整数"];
+        check_big_fit [label="值是否适配目标类型?" shape=diamond];
+        store_big [label="存储big_int到InternPool"];
+
+        int_split -> small_int [label=".small"];
+        int_split -> big_int [label=".big"];
+
+        small_int -> check_small_sign;
+        check_small_sign -> check_small_bits [label="否"];
+        check_small_sign -> fail_small_sign [label="是"];
+        check_small_bits -> calc_bounds [label="是"];
+        check_small_bits -> store_small [label="否"];
+        calc_bounds -> check_small_range;
+        check_small_range -> store_small [label="否"];
+        check_small_range -> fail_small_range [label="是"];
+
+        big_int -> check_big_fit;
+        check_big_fit -> store_big [label="是"];
+        check_big_fit -> fail_big [label="否"];
+    }
+
+    subgraph cluster_float {
+        label="float_literal";
+        check_frac [label="是否有小数部分?" shape=diamond];
+        convert_rational [label="转换为有理数"];
+        check_denominator [label="分母是否为1?"];
+        check_float_fit [label="是否适配目标类型?" shape=diamond];
+        store_float [label="存储big_int到InternPool"];
+
+        check_frac -> convert_rational [label="否"];
+        check_frac -> fail_frac [label="是"];
+        convert_rational -> check_denominator;
+        check_denominator -> check_float_fit;
+        check_float_fit -> store_float [label="是"];
+        check_float_fit -> fail_float [label="否"];
+    }
+
+    subgraph cluster_char {
+        label="char_literal";
+        check_char_bits [label="目标类型bits是否<21?" shape=diamond];
+        check_char_range [label="字符值是否越界?" shape=diamond];
+        store_char [label="存储i64到InternPool"];
+
+        check_char_bits -> check_char_range [label="是"];
+        check_char_bits -> store_char [label="否"];
+        check_char_range -> store_char [label="否"];
+        check_char_range -> fail_char [label="是"];
+    }
+
+    switch_node -> int_split [label="int_literal"];
+    switch_node -> check_frac [label="float_literal"];
+    switch_node -> check_char_bits [label="char_literal"];
+    switch_node -> fail_else [label="其他类型"];
+
+    // 错误处理节点
+    fail_small_sign [label="报错：无符号类型无法表示负值" shape=octagon];
+    fail_small_range [label="报错：值超出类型范围" shape=octagon];
+    fail_big [label="报错：大整数超出类型范围" shape=octagon];
+    fail_frac [label="报错：存在小数部分" shape=octagon];
+    fail_float [label="报错：浮点值超出类型范围" shape=octagon];
+    fail_char [label="报错：字符值超出范围" shape=octagon];
+    fail_else [label="返回error.WrongType" shape=octagon];
+
+    // 连接存储节点到结束
+    store_small -> end;
+    store_big -> end;
+    store_float -> end;
+    store_char -> end;
+
+    // 错误节点连接到结束
+    fail_small_sign -> end;
+    fail_small_range -> end;
+    fail_big -> end;
+    fail_frac -> end;
+    fail_float -> end;
+    fail_char -> end;
+    fail_else -> end;
+}

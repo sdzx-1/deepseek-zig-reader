@@ -1,0 +1,36 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airAtomicRmw"];
+    check_unused [label="检查指令是否未使用 (isUnused)"];
+    return_unreach [label="返回 .unreach"];
+    get_op_order [label="获取操作类型(op)和内存顺序(order)"];
+    check_val_size_power2 [label="检查val_size是否为2的幂次方"];
+    error_size [label="报错: TODO non-pow 2"];
+    check_type_support [label="检查类型支持 (int/enum等)"];
+    error_type [label="报错: TODO 不支持的类型"];
+    choose_method [label="根据val_size选择方法\n(4/8→amo, 1/2→loop)"];
+    handle_amo [label="处理AMO方法\n生成对应mnemonic指令"];
+    handle_loop [label="处理LOOP方法\n加载→运算→条件存储→跳转"];
+    return_result [label="返回结果 result_mcv"];
+    end [label="结束"];
+
+    start -> check_unused;
+    check_unused -> return_unreach [label="是"];
+    check_unused -> get_op_order [label="否"];
+    get_op_order -> check_val_size_power2;
+    check_val_size_power2 -> error_size [label="否"];
+    check_val_size_power2 -> check_type_support [label="是"];
+    check_type_support -> error_type [label="不支持"];
+    check_type_support -> choose_method [label="支持"];
+    choose_method -> handle_amo [label="amo (4/8字节)"];
+    choose_method -> handle_loop [label="loop (1/2字节)"];
+    handle_amo -> return_result;
+    handle_loop -> return_result;
+    error_size -> end [style=dashed, color=red];
+    error_type -> end [style=dashed, color=red];
+    return_unreach -> end;
+    return_result -> end;
+}

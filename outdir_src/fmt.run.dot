@@ -1,0 +1,84 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    start [label="开始"];
+    parse_args [label="解析命令行参数"];
+    check_help [label="参数是 -h/--help?"];
+    print_help [label="输出帮助信息并退出"];
+    check_color [label="参数是 --color?"];
+    handle_color [label="读取颜色设置"];
+    check_stdin [label="参数是 --stdin?"];
+    check_check [label="参数是 --check?"];
+    check_ast [label="参数是 --ast-check?"];
+    check_exclude [label="参数是 --exclude?"];
+    handle_exclude [label="添加到排除列表"];
+    check_zon [label="参数是 --zon?"];
+    handle_zon [label="设置强制zon标志"];
+    unknown_arg [label="报错: 未知参数"];
+    collect_files [label="收集输入文件"];
+    validate_stdin [label="验证--stdin无文件参数"];
+    read_stdin [label="从stdin读取源码"];
+    parse_tree [label="解析AST"];
+    ast_check [label="执行AST检查"];
+    handle_ast_errors [label="处理AST错误并退出"];
+    format_code [label="格式化代码"];
+    check_format [label="检查格式化结果"];
+    exit_check [label="根据结果退出"];
+    output_code [label="输出格式化代码"];
+    validate_files [label="验证输入文件列表"];
+    process_files [label="处理文件/目录"];
+    mark_excluded [label="标记已排除文件"];
+    handle_errors [label="处理错误并退出"];
+    end [label="结束"];
+
+    start -> parse_args;
+    parse_args -> check_help [label="遍历参数"];
+    check_help -> print_help [label="是"];
+    check_help -> check_color [label="否"];
+    print_help -> end;
+
+    check_color -> handle_color [label="是"];
+    handle_color -> parse_args;
+    check_color -> check_stdin [label="否"];
+
+    check_stdin -> validate_stdin [label="是"];
+    validate_stdin -> read_stdin;
+    read_stdin -> parse_tree;
+    parse_tree -> ast_check [label="--ast-check?"];
+    ast_check -> handle_ast_errors [label="有错误"];
+    handle_ast_errors -> end;
+    ast_check -> format_code [label="无错误"];
+    parse_tree -> format_code [label="无--ast-check"];
+    format_code -> check_format [label="--check?"];
+    check_format -> exit_check [label="比较结果"];
+    exit_check -> end;
+    format_code -> output_code [label="否"];
+    output_code -> end;
+
+    check_stdin -> check_check [label="否"];
+    check_check -> parse_args;
+    check_check -> check_ast [label="继续解析"];
+    check_ast -> parse_args;
+    check_ast -> check_exclude;
+    check_exclude -> handle_exclude [label="是"];
+    handle_exclude -> parse_args;
+    check_exclude -> check_zon [label="否"];
+    check_zon -> handle_zon [label="是"];
+    handle_zon -> parse_args;
+    check_zon -> unknown_arg [label="否"];
+    unknown_arg -> end;
+
+    parse_args -> collect_files [label="非选项参数"];
+    collect_files -> parse_args;
+
+    validate_files -> process_files [label="有文件"];
+    validate_files -> end [label="无文件"];
+
+    process_files -> mark_excluded;
+    mark_excluded -> handle_errors [label="错误发生"];
+    mark_excluded -> process_files [label="继续处理"];
+    process_files -> end [label="完成"];
+    handle_errors -> end;
+}

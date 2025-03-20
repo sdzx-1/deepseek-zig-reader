@@ -1,0 +1,75 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start buildCrtFile"];
+    check_llvm [label="if (!have_llvm)", shape=diamond];
+    error_llvm [label="return error.ZigCompilerNotBuiltWithLLVMExtensions"];
+    init_arena [label="Initialize ArenaAllocator"];
+    get_target [label="Get target architecture"];
+    set_unwind_tables [label="Set unwind_tables based on arch"];
+    crt_file_switch [label="switch (crt_file)", shape=diamond];
+
+    // Common flow
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="Yes"];
+    check_llvm -> init_arena [label="No"];
+    init_arena -> get_target;
+    get_target -> set_unwind_tables;
+    set_unwind_tables -> crt_file_switch;
+
+    // .crt2_o branch
+    crt2_args [label="Build args with UNICODE flags"];
+    crt2_files [label="Create crtexe.c source file"];
+    build_crt2 [label="comp.build_crt_file('crt2')"];
+    crt_file_switch -> crt2_args [label=".crt2_o"];
+    crt2_args -> crt2_files;
+    crt2_files -> build_crt2;
+
+    // .dllcrt2_o branch
+    dllcrt2_args [label="Build args without UNICODE"];
+    dllcrt2_files [label="Create crtdll.c source file"];
+    build_dllcrt2 [label="comp.build_crt_file('dllcrt2')"];
+    crt_file_switch -> dllcrt2_args [label=".dllcrt2_o"];
+    dllcrt2_args -> dllcrt2_files;
+    dllcrt2_files -> build_dllcrt2;
+
+    // .libmingw32_lib branch
+    libmingw_start [label="Prepare c_source_files"];
+    add_generic_src [label="Add mingw32_generic_src"];
+    arch_check [label="Check CPU arch", shape=diamond];
+    x86_src [label="Add x86 specific sources"];
+    x86_32_src [label="Add x86_32 specific sources"];
+    arm_src [label="Add ARM/Thumb sources"];
+    aarch64_src [label="Add AArch64 sources"];
+    winpthreads_args [label="Prepare winpthreads args"];
+    add_winpthreads_src [label="Add winpthreads sources"];
+    build_libmingw [label="comp.build_crt_file('libmingw32')"];
+
+    crt_file_switch -> libmingw_start [label=".libmingw32_lib"];
+    libmingw_start -> add_generic_src;
+    add_generic_src -> arch_check;
+
+    arch_check -> x86_src [label="x86"];
+    x86_src -> x86_32_src [label=".x86"];
+    arch_check -> arm_src [label="thumb"];
+    arch_check -> aarch64_src [label="aarch64"];
+    arch_check -> @panic [label="Other"];
+
+    x86_src -> winpthreads_args;
+    x86_32_src -> winpthreads_args;
+    arm_src -> winpthreads_args;
+    aarch64_src -> winpthreads_args;
+
+    winpthreads_args -> add_winpthreads_src;
+    add_winpthreads_src -> build_libmingw;
+
+    // Common end
+    build_crt2 -> end;
+    build_dllcrt2 -> end;
+    build_libmingw -> end;
+    error_llvm -> end;
+
+    end [label="End", shape=ellipse];
+}

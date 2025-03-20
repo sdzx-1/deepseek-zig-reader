@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 resolveSwitchComptime"];
+    resolve_val [label="解析 resolved_operand_val"];
+    scalar_loop [label="循环 scalar_i < scalar_cases_len"];
+    check_scalar [label="检查 operand_val == item_val?" shape=diamond];
+    handle_scalar_match [label="处理 scalar 匹配\n返回 resolveProngComptime"];
+    multi_loop [label="循环 multi_i < multi_cases_len"];
+    items_loop [label="遍历 items"];
+    check_multi_item [label="检查 item 匹配?" shape=diamond];
+    handle_multi_item_match [label="处理 multi item 匹配\n返回 resolveProngComptime"];
+    ranges_loop [label="循环 range_i < ranges_len"];
+    check_range [label="检查 operand_val 在范围内?" shape=diamond];
+    handle_range_match [label="处理 range 匹配\n返回 resolveProngComptime"];
+    check_err_set [label="err_set 为真?" shape=diamond];
+    check_empty_enum [label="empty_enum 为真?" shape=diamond];
+    return_void [label="返回 .void_value"];
+    handle_special_prong [label="处理 special prong\n返回 resolveProngComptime"];
+
+    start -> resolve_val;
+    resolve_val -> scalar_loop;
+
+    scalar_loop -> check_scalar;
+    check_scalar -> handle_scalar_match [label="是"];
+    check_scalar -> scalar_loop [label="否\nscalar_i++"];
+
+    scalar_loop -> multi_loop [label="scalar_i >= scalar_cases_len"];
+
+    multi_loop -> items_loop;
+    items_loop -> check_multi_item;
+    check_multi_item -> handle_multi_item_match [label="是"];
+    check_multi_item -> items_loop [label="否\n下一个item"];
+
+    items_loop -> ranges_loop [label="所有items处理完"];
+    ranges_loop -> check_range;
+    check_range -> handle_range_match [label="是"];
+    check_range -> ranges_loop [label="否\nrange_i++"];
+
+    ranges_loop -> multi_loop [label="所有ranges处理完\nmulti_i++"];
+
+    multi_loop -> check_err_set [label="multi_i >= multi_cases_len"];
+    check_err_set -> check_empty_enum [label="是"];
+    check_err_set -> handle_special_prong [label="否"];
+
+    check_empty_enum -> return_void [label="是"];
+    check_empty_enum -> handle_special_prong [label="否"];
+
+    handle_scalar_match -> end;
+    handle_multi_item_match -> end;
+    handle_range_match -> end;
+    return_void -> end;
+    handle_special_prong -> end;
+
+    end [label="结束"];
+}

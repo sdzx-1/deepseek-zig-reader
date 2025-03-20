@@ -1,0 +1,51 @@
+
+digraph writeImportTables_flowchart {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    check_idata_section [label="coff.idata_section_index 是否存在?"];
+    check_imports_dirty [label="coff.imports_count_dirty 是否为真?"];
+    calculate_sizes [label="计算各部分所需大小\n(IAT、目录表、查找表、名称表、DLL名称)"];
+    grow_section [label="扩展.idata节大小"];
+    init_buffer [label="初始化缓冲区并分配空间"];
+    setup_offsets [label="设置各部分偏移量\n(iat_offset, dir_table_offset等)"];
+    loop_libraries [label="循环处理每个导入库"];
+    fill_directory_entry [label="填充目录表条目"];
+    loop_entries [label="循环处理库中的每个导入项"];
+    fill_iat_and_lookup [label="填充IAT和查找表条目"];
+    fill_names_table [label="填充名称表条目\n（包含Hint和符号名）"];
+    add_iat_sentinel [label="添加IAT哨兵条目"];
+    add_lookup_sentinel [label="添加查找表哨兵条目"];
+    fill_dll_name [label="填充DLL名称"];
+    add_directory_sentinel [label="添加目录表哨兵条目"];
+    pwrite_data [label="将缓冲区写入文件"];
+    update_data_directories [label="更新数据目录信息"];
+    set_imports_clean [label="标记imports_count_dirty为false"];
+    end [label="结束"];
+
+    start -> check_idata_section;
+    check_idata_section -> check_imports_dirty [label="是"];
+    check_idata_section -> end [label="否"];
+    check_imports_dirty -> calculate_sizes [label="是"];
+    check_imports_dirty -> end [label="否"];
+    calculate_sizes -> grow_section;
+    grow_section -> init_buffer;
+    init_buffer -> setup_offsets;
+    setup_offsets -> loop_libraries;
+
+    loop_libraries -> fill_directory_entry;
+    fill_directory_entry -> loop_entries;
+    loop_entries -> fill_iat_and_lookup;
+    fill_iat_and_lookup -> fill_names_table;
+    fill_names_table -> loop_entries [label="下一个条目"];
+    loop_entries -> add_iat_sentinel [label="所有条目处理完毕"];
+    add_iat_sentinel -> add_lookup_sentinel;
+    add_lookup_sentinel -> fill_dll_name;
+    fill_dll_name -> loop_libraries [label="下一个库"];
+    
+    loop_libraries -> add_directory_sentinel [label="所有库处理完毕"];
+    add_directory_sentinel -> pwrite_data;
+    pwrite_data -> update_data_directories;
+    update_data_directories -> set_imports_clean;
+    set_imports_clean -> end;
+}

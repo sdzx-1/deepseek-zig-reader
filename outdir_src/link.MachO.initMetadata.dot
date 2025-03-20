@@ -1,0 +1,35 @@
+
+digraph initMetadata_flow {
+    graph [fontname="Arial", bgcolor="transparent"];
+    node [shape=box, fontname="Arial", style="filled", fillcolor="lightgray"];
+    edge [fontname="Arial"];
+
+    start [label="开始 initMetadata"];
+    check_reloc [label="self.base.isRelocatable() 为 false?"];
+    handle_base_vmaddr [label="计算 base_vmaddr"];
+    create_segments [label="创建段:\n__TEXT_ZIG, __CONST_ZIG\n__DATA_ZIG, __BSS_ZIG"];
+    handle_dsym [label="创建 dSYM 包\n并初始化调试信息"];
+    define_inner_funcs [label="定义内部函数\nappendSect 和 allocSect"];
+    process_text_section [label="处理 __text_zig 节"];
+    process_const_section [label="处理 __const_zig 节"];
+    process_data_section [label="处理 __data_zig 节"];
+    process_bss_section [label="处理 __bss_zig 节"];
+    check_reloc_debug [label="self.base.isRelocatable() 为 true\n且启用 dwarf?"];
+    create_debug_sections [label="创建调试节:\n__debug_str, __debug_info 等"];
+    end [label="结束"];
+
+    start -> check_reloc;
+    check_reloc -> handle_base_vmaddr [label="是"];
+    handle_base_vmaddr -> create_segments;
+    create_segments -> handle_dsym [label="options.zo.dwarf 存在"];
+    handle_dsym -> define_inner_funcs;
+    check_reloc -> define_inner_funcs [label="否"];
+    define_inner_funcs -> process_text_section;
+    process_text_section -> process_const_section;
+    process_const_section -> process_data_section;
+    process_data_section -> process_bss_section;
+    process_bss_section -> check_reloc_debug;
+    check_reloc_debug -> create_debug_sections [label="是"];
+    create_debug_sections -> end;
+    check_reloc_debug -> end [label="否"];
+}

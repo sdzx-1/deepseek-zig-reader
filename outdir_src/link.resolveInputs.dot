@@ -1,0 +1,90 @@
+
+digraph resolveInputs {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 resolveInputs"];
+    init_vars [label="初始化变量:\nchecked_paths, ld_script_bytes, failed_libs"];
+    reverse_inputs [label="反转 unresolved_inputs.items"];
+    syslib_loop [label="主循环: syslib"];
+
+    start -> init_vars -> reverse_inputs -> syslib_loop;
+
+    unresolved_input_pop [label="弹出 unresolved_inputs.pop()"];
+    syslib_loop -> unresolved_input_pop [label="循环处理"];
+
+    switch_unresolved_input [label="switch (unresolved_input)"];
+
+    unresolved_input_pop -> switch_unresolved_input;
+
+    // name_query 分支
+    case_name_query [label="case .name_query"];
+    check_search_strategy [label="检查 query.search_strategy"];
+    mode_first_no_fallback [label="处理 mode_first/no_fallback"];
+    paths_first [label="处理 paths_first"];
+    resolveLibInput_call [label="调用 resolveLibInput()"];
+    check_result [label="检查 resolveLibInput 结果"];
+    append_failed_libs [label="添加到 failed_libs"];
+
+    switch_unresolved_input -> case_name_query;
+    case_name_query -> check_search_strategy;
+
+    check_search_strategy -> mode_first_no_fallback [label="mode_first/no_fallback"];
+    check_search_strategy -> paths_first [label="paths_first"];
+
+    mode_first_no_fallback -> resolveLibInput_call;
+    resolveLibInput_call -> check_result;
+    check_result -> syslib_loop [label="成功"];
+    check_result -> append_failed_libs [label="失败"];
+    append_failed_libs -> syslib_loop;
+
+    paths_first -> resolveLibInput_call [label="遍历 lib_directories"];
+    resolveLibInput_call -> check_result;
+
+    // ambiguous_name 分支
+    case_ambiguous_name [label="case .ambiguous_name"];
+    resolvePathInput_call1 [label="调用 resolvePathInput (CWD)"];
+    check_path_result [label="检查结果"];
+    resolvePathInput_call2 [label="调用 resolvePathInput (lib_directories)"];
+    fatal_error1 [label="fatal(文件未找到)"];
+
+    switch_unresolved_input -> case_ambiguous_name;
+    case_ambiguous_name -> resolvePathInput_call1;
+    resolvePathInput_call1 -> check_path_result;
+    check_path_result -> syslib_loop [label="成功"];
+    check_path_result -> resolvePathInput_call2 [label="失败"];
+    resolvePathInput_call2 -> check_path_result;
+    check_path_result -> fatal_error1 [label="完全失败"];
+    fatal_error1 -> exit [label="终止"];
+
+    // path_query 分支
+    case_path_query [label="case .path_query"];
+    resolvePathInput_call3 [label="调用 resolvePathInput"];
+    check_path_result2 [label="检查结果"];
+    fatal_error2 [label="fatal(文件未找到)"];
+
+    switch_unresolved_input -> case_path_query;
+    case_path_query -> resolvePathInput_call3;
+    resolvePathInput_call3 -> check_path_result2;
+    check_path_result2 -> syslib_loop [label="成功"];
+    check_path_result2 -> fatal_error2 [label="失败"];
+    fatal_error2 -> exit;
+
+    // dso_exact 分支
+    case_dso_exact [label="case .dso_exact"];
+    append_resolved [label="添加到 resolved_inputs"];
+
+    switch_unresolved_input -> case_dso_exact;
+    case_dso_exact -> append_resolved -> syslib_loop;
+
+    // 循环结束处理
+    check_failed_libs [label="检查 failed_libs.items"];
+    log_errors [label="记录错误日志"];
+    exit [label="进程退出"];
+
+    syslib_loop -> check_failed_libs [label="循环结束"];
+    check_failed_libs -> log_errors [label="存在失败项"];
+    log_errors -> exit;
+    check_failed_libs -> end [label="无失败项"];
+
+    end [label="函数结束"];
+}

@@ -1,0 +1,78 @@
+
+digraph writeRelocs_flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 writeRelocs"];
+    tracy_start [label="启动 Tracy 跟踪"];
+    log_debug [label="记录调试信息"];
+    get_arch [label="获取目标 CPU 架构 (cpu_arch)"];
+    get_relocs [label="获取重定位项列表 (relocs)"];
+    loop_start [label="遍历每个 rel in relocs", shape=diamond];
+    process_rel [label="处理当前重定位项"];
+    calc_rel_offset [label="计算 rel_offset = rel.offset - self.off"];
+    calc_r_address [label="计算 r_address = self.value + rel_offset"];
+    assert_address [label="断言 r_address >= 0", shape=diamond];
+    determine_symbolnum [label="确定 r_symbolnum (本地/外部)"];
+    handle_addend [label="调整 addend (本地重定位时加上目标地址)"];
+    debug_log [label="记录重定位详细日志"];
+    check_cpu_arch [label="判断 CPU 架构", shape=diamond];
+    
+    subgraph cluster_arm64 {
+        label="ARM64 处理";
+        arm64_type_check [label="判断 rel.type", shape=diamond];
+        arm64_write_addend [label="写入 addend 到 code"];
+        arm64_addend_check [label="addend > 0?", shape=diamond];
+        arm64_add_buffer [label="添加 ARM64_RELOC_ADDEND 到 buffer"];
+        arm64_set_rtype [label="设置 r_type 对应 ARM64 类型"];
+        arm64_fill_buffer [label="填充 buffer[i]"];
+    }
+    
+    subgraph cluster_x86_64 {
+        label="x86_64 处理";
+        x86_pcrel_adjust [label="调整 addend (PC 相对)"];
+        x86_write_addend [label="写入 addend 到 code"];
+        x86_set_rtype [label="设置 r_type 对应 x86_64 类型"];
+        x86_fill_buffer [label="填充 buffer[i]"];
+    }
+    
+    loop_end [label="i += 1"];
+    final_assert [label="断言 i == buffer.len"];
+    end [label="结束"];
+
+    start -> tracy_start;
+    tracy_start -> log_debug;
+    log_debug -> get_arch;
+    get_arch -> get_relocs;
+    get_relocs -> loop_start;
+    
+    loop_start -> process_rel [label="下一个 rel"];
+    process_rel -> calc_rel_offset;
+    calc_rel_offset -> calc_r_address;
+    calc_r_address -> assert_address;
+    assert_address -> determine_symbolnum [label="通过"];
+    determine_symbolnum -> handle_addend;
+    handle_addend -> debug_log;
+    debug_log -> check_cpu_arch;
+    
+    check_cpu_arch -> arm64_type_check [label="aarch64"];
+    check_cpu_arch -> x86_pcrel_adjust [label="x86_64"];
+    
+    arm64_type_check -> arm64_write_addend [label="unsigned"];
+    arm64_type_check -> arm64_addend_check [label="其他"];
+    arm64_write_addend -> arm64_set_rtype;
+    arm64_addend_check -> arm64_add_buffer [label="是"];
+    arm64_addend_check -> arm64_set_rtype [label="否"];
+    arm64_add_buffer -> arm64_set_rtype;
+    arm64_set_rtype -> arm64_fill_buffer;
+    arm64_fill_buffer -> loop_end;
+    
+    x86_pcrel_adjust -> x86_write_addend;
+    x86_write_addend -> x86_set_rtype;
+    x86_set_rtype -> x86_fill_buffer;
+    x86_fill_buffer -> loop_end;
+    
+    loop_end -> loop_start [label="继续循环"];
+    loop_start -> final_assert [label="所有 rel 处理完毕"];
+    final_assert -> end;
+}

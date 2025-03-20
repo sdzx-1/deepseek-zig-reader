@@ -1,0 +1,146 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect, style=rounded];
+    edge [fontname="Helvetica"];
+    
+    start [label="Start next()"];
+    parse_prefixes [label="Parse prefixes (parsePrefixes)"];
+    parse_enc [label="Parse encoding (parseEncoding)"];
+    check_op_en [label="switch(enc.data.op_en)", shape=diamond];
+    end [label="Return Instruction/Error"];
+    error_end [label="Return Error", shape=rect];
+    null_end [label="Return null", shape=rect];
+    todo [label="Unreachable (TODO)", shape=rect];
+    
+    // 主流程
+    start -> parse_prefixes;
+    parse_prefixes -> parse_enc [label="Success"];
+    parse_prefixes -> null_end [label="error.EndOfStream"];
+    parse_prefixes -> error_end [label="Other errors"];
+    parse_enc -> check_op_en [label="Success"];
+    parse_enc -> error_end [label="UnknownOpcode"];
+    
+    // 主switch分支
+    check_op_en -> case_z [label=".z"];
+    check_op_en -> case_o [label=".o"];
+    check_op_en -> case_zo [label=".zo"];
+    check_op_en -> case_oz [label=".oz"];
+    check_op_en -> case_oi [label=".oi"];
+    check_op_en -> case_i_d [label=".i/.d"];
+    check_op_en -> case_zi [label=".zi"];
+    check_op_en -> case_ii [label=".ii"];
+    check_op_en -> case_ia [label=".ia"];
+    check_op_en -> case_m_mi [label=".m/.mi/..."];
+    check_op_en -> case_fd [label=".fd"];
+    check_op_en -> case_td [label=".td"];
+    check_op_en -> case_mr_mri [label=".mr/.mri/..."];
+    check_op_en -> case_rm_rmi [label=".rm/.rmi"];
+    check_op_en -> todo [label=".rm0/.vm/..."];
+    
+    // 各case处理逻辑
+    subgraph cluster_cases {
+        node [shape=rect];
+        
+        // .z分支
+        case_z [label="inst(enc, {})"];
+        case_z -> end;
+        
+        // .o分支
+        case_o [label="Parse reg_low_enc\nBuild op1 with reg"];
+        case_o -> end;
+        
+        // .zo分支
+        case_zo [label="Parse reg_low_enc\nBuild op1+op2 with reg"];
+        case_zo -> end;
+        
+        // .oz分支
+        case_oz [label="Parse reg_low_enc\nBuild op1+op2 with reg"];
+        case_oz -> end;
+        
+        // .oi分支
+        case_oi [label="Parse reg_low_enc + imm\nBuild op1+op2"];
+        case_oi -> end;
+        
+        // .i/.d分支
+        case_i_d [label="Parse imm\nBuild op1 with imm"];
+        case_i_d -> end;
+        
+        // .zi分支
+        case_zi [label="Parse imm\nBuild op1+op2"];
+        case_zi -> end;
+        
+        // .ii分支
+        case_ii [label="Parse imm1 + imm2\nBuild op1+op2"];
+        case_ii -> end;
+        
+        // .ia分支
+        case_ia [label="Parse imm\nBuild op1+eax"];
+        case_ia -> end;
+        
+        // .m/.mi/...分支
+        subgraph cluster_m_group {
+            node [shape=rect];
+            
+            case_m_mi [label="Parse ModRm\nCheck direct()", shape=diamond];
+            m_direct [label="Direct mode\nBuild op1+op2"];
+            m_indirect [label="Indirect mode\nParse SIB/disp\nCheck rip()", shape=diamond];
+            m_rip [label="Build RIP-relative mem"];
+            m_sib [label="Build SIB mem"];
+            
+            case_m_mi -> m_direct [label="Yes"];
+            case_m_mi -> m_indirect [label="No"];
+            m_direct -> end;
+            m_indirect -> m_rip [label="Yes"];
+            m_indirect -> m_sib [label="No"];
+            m_rip -> end;
+            m_sib -> end;
+        }
+        
+        // .fd/.td分支
+        case_fd [label="Parse seg + offset\nBuild moffs"];
+        case_fd -> end;
+        case_td [label="Parse seg + offset\nBuild moffs"];
+        case_td -> end;
+        
+        // .mr/.mri/...分支
+        subgraph cluster_mr_group {
+            node [shape=rect];
+            
+            case_mr_mri [label="Parse ModRm\nCheck direct()", shape=diamond];
+            mr_direct [label="Direct mode\nBuild reg+reg"];
+            mr_indirect [label="Indirect mode\nParse SIB/disp\nCheck rip()", shape=diamond];
+            mr_rip [label="Build RIP-relative mem"];
+            mr_sib [label="Build SIB mem"];
+            
+            case_mr_mri -> mr_direct [label="Yes"];
+            case_mr_mri -> mr_indirect [label="No"];
+            mr_direct -> end;
+            mr_indirect -> mr_rip [label="Yes"];
+            mr_indirect -> mr_sib [label="No"];
+            mr_rip -> end;
+            mr_sib -> end;
+        }
+        
+        // .rm/.rmi分支
+        subgraph cluster_rm_group {
+            node [shape=rect];
+            
+            case_rm_rmi [label="Parse ModRm\nCheck direct()", shape=diamond];
+            rm_direct [label="Direct mode\nBuild reg+reg"];
+            rm_indirect [label="Indirect mode\nParse SIB/disp\nCheck rip()", shape=diamond];
+            rm_rip [label="Build RIP-relative mem"];
+            rm_sib [label="Build SIB mem"];
+            
+            case_rm_rmi -> rm_direct [label="Yes"];
+            case_rm_rmi -> rm_indirect [label="No"];
+            rm_direct -> end;
+            rm_indirect -> rm_rip [label="Yes"];
+            rm_indirect -> rm_sib [label="No"];
+            rm_rip -> end;
+            rm_sib -> end;
+        }
+    }
+    
+    // 公共出口
+    {rank=same; end; error_end; null_end; todo}
+}

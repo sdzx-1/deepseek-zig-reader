@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 verifyBody"];
+    loop_start [label="遍历 body 中的每个指令 inst"];
+    check_unused [label="检查指令是否未被使用且不需要 lower"];
+    skip_inst [label="跳过该指令"];
+    switch_tag [label="根据 tags 获取指令类型"];
+    handle_no_operands [label="处理无操作数指令\n调用 verifyInstOperands"];
+    check_terminate [label="检查指令是否终止函数\n（如 .trap, .ret）"];
+    terminate_check [label="活跃指令数 > 0?"];
+    return_error [label="返回错误"];
+    handle_unary [label="处理一元操作\n获取操作数并验证"];
+    handle_binary [label="处理二元操作\n获取两个操作数并验证"];
+    handle_ternary [label="处理三元操作\n获取三个操作数并验证"];
+    handle_aggregate [label="处理聚合初始化\n遍历所有元素并验证"];
+    handle_call [label="处理函数调用\n验证参数和返回值"];
+    handle_control_flow [label="处理控制流结构（如 block/loop/cond_br）\n保存/恢复活跃状态\n验证子体"];
+    next_inst [label="处理下一个指令"];
+    end [label="函数结束"];
+
+    // 节点连接
+    start -> loop_start;
+    loop_start -> check_unused;
+    check_unused -> skip_inst [label="是"];
+    check_unused -> switch_tag [label="否"];
+    skip_inst -> next_inst;
+
+    switch_tag -> {handle_no_operands handle_unary handle_binary handle_ternary handle_aggregate handle_call handle_control_flow} [label="根据指令类型分支"];
+
+    handle_no_operands -> check_terminate;
+    check_terminate -> terminate_check [label="终止指令"];
+    terminate_check -> return_error [label="是"];
+    terminate_check -> next_inst [label="否"];
+    return_error -> end;
+
+    handle_unary -> next_inst;
+    handle_binary -> next_inst;
+    handle_ternary -> next_inst;
+    handle_aggregate -> next_inst;
+    handle_call -> next_inst;
+
+    handle_control_flow -> next_inst [label="子体验证完成"];
+
+    next_inst -> loop_start [label="继续循环"];
+    loop_start -> end [label="所有指令处理完毕"];
+}

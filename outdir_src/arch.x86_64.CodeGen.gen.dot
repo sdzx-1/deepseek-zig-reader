@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start gen()"];
+    check_naked [label="fn_info.cc != .naked?", shape=diamond];
+    start -> check_naked;
+
+    // Non-naked分支
+    subgraph cluster_non_naked {
+        label="Non-naked调用约定处理";
+        push_rbp [label="生成 push rbp / CFI指令"];
+        setup_placeholders [label="创建占位符指令\n(backpatch_push_callee...)"];
+        handle_ret_mcv [label="处理返回值的存储\n(spill到栈帧)"];
+        check_var_args [label="fn_info.is_var_args?", shape=diamond];
+        handle_sysv_varargs [label="生成SysV varargs处理\n保存寄存器到栈"];
+        handle_win_varargs [label="TODO: Win64 varargs错误"];
+        debug_prologue [label="生成调试信息伪指令\npseudo_dbg_prologue_end"];
+        gen_body [label="生成函数体 (genBody)"];
+        check_epilogue [label="epilogue_relocs存在?", shape=diamond];
+        gen_epilogue [label="生成epilogue代码\n恢复寄存器/pop rbp/ret"];
+        frame_layout [label="计算栈帧布局\n处理栈对齐和调整"];
+        save_regs [label="生成保存寄存器指令"];
+
+        push_rbp -> setup_placeholders -> handle_ret_mcv -> check_var_args;
+        check_var_args -> handle_sysv_varargs [label="SysV"];
+        check_var_args -> handle_win_varargs [label="Win64"];
+        handle_sysv_varargs -> debug_prologue;
+        debug_prologue -> gen_body -> check_epilogue;
+        check_epilogue -> gen_epilogue [label="是"];
+        check_epilogue -> frame_layout [label="否"];
+        gen_epilogue -> frame_layout;
+        frame_layout -> save_regs;
+    }
+
+    // Naked分支
+    subgraph cluster_naked {
+        label="Naked调用约定处理";
+        naked_debug [label="生成调试信息伪指令"];
+        naked_gen_body [label="生成函数体 (genBody)"];
+        naked_epilogue_debug [label="生成epilogue调试信息"];
+        
+        naked_debug -> naked_gen_body -> naked_epilogue_debug;
+    }
+
+    // 公共结束部分
+    debug_end [label="生成结尾调试信息\n(pseudo_dbg_line)"];
+    
+    // 连接主分支
+    check_naked -> push_rbp [label="是"];
+    check_naked -> naked_debug [label="否"];
+    save_regs -> debug_end;
+    naked_epilogue_debug -> debug_end;
+    
+    // 异常处理路径
+    handle_win_varargs -> gen_body [label="直接失败"];
+}

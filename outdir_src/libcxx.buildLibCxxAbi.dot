@@ -1,0 +1,65 @@
+
+digraph buildLibCxxAbi {
+    node [shape=rectangle, fontname="Courier", fontsize="10"];
+    edge [fontname="Courier", fontsize="10"];
+
+    start [label="开始 buildLibCxxAbi"];
+    check_llvm [label="检查是否启用了LLVM扩展"];
+    error_llvm [label="返回错误\nZigCompilerNotBuiltWithLLVMExtensions", shape=ellipse];
+    init_tracing [label="初始化性能追踪"];
+    init_arena [label="初始化内存分配器"];
+    setup_basename [label="设置输出文件名和路径"];
+    handle_includes [label="处理头文件路径\n设置ABI版本参数"];
+    config_setup [label="解析编译配置\n设置优化模式/Strip/Unwind等"];
+    config_error [label="设置错误信息\n返回SubCompilationFailed", shape=ellipse];
+    create_root_module [label="创建根模块\n配置编译器参数"];
+    module_error [label="设置错误信息\n返回SubCompilationFailed", shape=ellipse];
+    loop_start [label="遍历libcxxabi_files"];
+    check_wasi [label="目标平台是WASI吗？"];
+    skip_exceptions [label="跳过异常相关源文件\n添加-fno-exceptions"];
+    check_threads [label="单线程配置？"];
+    handle_thread_atexit [label="跳过cxa_thread_atexit.cpp\n添加线程宏"];
+    add_flags [label="添加NDEBUG/visibility/PIC\nC++23等编译标志"];
+    handle_musl_glibc [label="处理musl/glibc特殊标志"];
+    append_source [label="将处理后的源文件加入列表"];
+    create_sub_compilation [label="创建子编译实例"];
+    comp_error [label="设置错误信息\n返回SubCompilationFailed", shape=ellipse];
+    update_sub_comp [label="更新子编译状态"];
+    handle_comp_result [label="处理编译结果\n生成静态库文件"];
+    end [label="返回成功"];
+
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="未启用LLVM"];
+    check_llvm -> init_tracing [label="已启用LLVM"];
+    init_tracing -> init_arena;
+    init_arena -> setup_basename;
+    setup_basename -> handle_includes;
+    handle_includes -> config_setup;
+    config_setup -> config_error [label="配置解析失败"];
+    config_setup -> create_root_module [label="配置成功"];
+    create_root_module -> module_error [label="模块创建失败"];
+    create_root_module -> loop_start [label="模块创建成功"];
+    
+    loop_start -> check_wasi [label="处理每个源文件"];
+    check_wasi -> skip_exceptions [label="是WASI"];
+    check_wasi -> check_threads [label="不是WASI"];
+    skip_exceptions -> check_threads;
+    
+    check_threads -> handle_thread_atexit [label="单线程"];
+    check_threads -> add_flags [label="多线程"];
+    handle_thread_atexit -> add_flags;
+    
+    add_flags -> handle_musl_glibc;
+    handle_musl_glibc -> append_source;
+    append_source -> loop_start [label="继续循环"];
+    loop_start -> create_sub_compilation [label="循环结束"];
+    
+    create_sub_compilation -> comp_error [label="创建失败"];
+    create_sub_compilation -> update_sub_comp [label="创建成功"];
+    update_sub_comp -> handle_comp_result [label="更新成功"];
+    handle_comp_result -> end;
+    
+    config_error -> end [style=dashed];
+    module_error -> end [style=dashed];
+    comp_error -> end [style=dashed];
+}

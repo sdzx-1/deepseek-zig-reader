@@ -1,0 +1,66 @@
+
+digraph generateSymbol {
+    graph [fontname="Arial", nodesep=0.2, ranksep=0.3];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="generateSymbol 入口", shape=ellipse, fillcolor="#ffdddd"];
+    check_undef [label="val.isUndefDeep(zcu)?"];
+    handle_undef [label="填充 0xaa\n并返回", shape=box];
+    main_switch [label="switch (ip.indexToKey(...))", shape=diamond];
+    int_type [label="处理整型\n写入补码", shape=box];
+    error_union [label="处理错误联合体\n考虑对齐和填充", shape=box];
+    enum_tag [label="处理枚举标签\n获取整型标签", shape=box];
+    float [label="处理浮点数\n按精度写入", shape=box];
+    ptr [label="处理指针\n调用 lowerPtr", shape=box];
+    slice [label="处理切片\n递归处理 ptr 和 len", shape=box];
+    opt [label="处理可选类型\n根据类型填充", shape=box];
+    aggregate [label="处理聚合类型\n数组/向量/元组/结构体", shape=box];
+    un [label="处理联合体\n处理标签和值", shape=box];
+    end [label="返回", shape=ellipse, fillcolor="#ddffdd"];
+
+    start -> check_undef;
+    check_undef -> handle_undef [label="是"];
+    check_undef -> main_switch [label="否"];
+
+    handle_undef -> end;
+
+    main_switch -> int_type [label=".int"];
+    main_switch -> error_union [label=".error_union"];
+    main_switch -> enum_tag [label=".enum_tag"];
+    main_switch -> float [label=".float"];
+    main_switch -> ptr [label=".ptr"];
+    main_switch -> slice [label=".slice"];
+    main_switch -> opt [label=".opt"];
+    main_switch -> aggregate [label=".aggregate"];
+    main_switch -> un [label=".un"];
+    main_switch -> end [label="其他类型\n直接返回"];
+
+    int_type -> end;
+    error_union -> end;
+    enum_tag -> end;
+    float -> end;
+    ptr -> end;
+    slice -> end;
+    opt -> end;
+    un -> end;
+
+    aggregate -> array_type [label="数组类型"];
+    aggregate -> vector_type [label="向量类型"];
+    aggregate -> tuple_type [label="元组类型"];
+    aggregate -> struct_type [label="结构体类型"];
+    aggregate -> end;
+
+    subgraph cluster_aggregate {
+        label="聚合类型处理";
+        array_type [label="处理数组\n逐个处理元素", shape=box];
+        vector_type [label="处理向量\n考虑位填充", shape=box];
+        tuple_type [label="处理元组\n处理字段和填充", shape=box];
+        struct_type [label="处理结构体\n根据布局处理", shape=box];
+    }
+
+    array_type -> end;
+    vector_type -> end;
+    tuple_type -> end;
+    struct_type -> end [label=".packed/.auto/.extern"];
+}

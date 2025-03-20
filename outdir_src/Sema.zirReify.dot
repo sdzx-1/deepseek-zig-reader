@@ -1,0 +1,97 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始: zirReify函数入口"];
+    init [label="初始化操作\n获取pt/zcu/gpa/ip\n解析extended参数"];
+    resolve_operand [label="解析操作数uncasted_operand\n获取type_info_ty"];
+    check_undef [label="检查操作数是否未定义(anyUndef)"];
+    error_undef [label="返回编译错误\nfailWithUseOfUndef", shape=oval];
+    get_tag [label="获取union_val.tag\n确定类型分类(tag_index)"];
+    main_switch [label="主类型分派\nswitch (std.builtin.TypeId)", shape=diamond];
+
+    // 基本类型处理分支
+    type_type [label="处理.type类型\n返回.type_type"];
+    void_type [label="处理.void类型\n返回.void_type"];
+    bool_type [label="处理.bool类型\n返回.bool_type"];
+    noreturn_type [label="处理.noreturn类型\n返回.noreturn_type"];
+    comptime_types [label="处理comptime_float/comptime_int\n返回对应类型"];
+    undefined_type [label="处理.undefined类型\n返回.undefined_type"];
+    null_type [label="处理.null类型\n返回.null_type"];
+    enum_literal [label="处理.enum_literal\n返回.enum_literal_type"];
+    async_error [label="处理async相关类型\n返回错误failWithUseOfAsync", shape=oval];
+
+    // 复合类型处理分支
+    int_type [label="处理int类型\n创建符号/位数类型\n返回对应类型"];
+    vector_type [label="处理vector类型\n解析长度/元素类型\n创建向量类型"];
+    float_type [label="处理float类型\n根据位数创建浮点类型"];
+    pointer_type [label="处理pointer类型\n解析指针属性\n创建指针类型"];
+    array_type [label="处理array类型\n解析长度/哨兵/元素类型\n创建数组类型"];
+    optional_type [label="处理optional类型\n解析子类型\n创建可选类型"];
+    error_union [label="处理error_union类型\n验证错误集类型\n创建错误联合"];
+    error_set [label="处理error_set类型\n收集错误名称\n创建错误集"];
+    struct_type [label="处理struct类型\n解析布局/字段/声明\n创建结构体"];
+    enum_type [label="处理enum类型\n解析标签类型/字段\n创建枚举"];
+    opaque_type [label="处理opaque类型\n创建不透明类型"];
+    union_type [label="处理union类型\n解析布局/标签/字段\n创建联合体"];
+    func_type [label="处理fn类型\n解析调用约定/参数\n创建函数类型"];
+
+    // 连接基础流程
+    start -> init -> resolve_operand -> check_undef;
+    check_undef -> error_undef [label="检测到未定义"];
+    check_undef -> get_tag [label="正常"];
+    get_tag -> main_switch;
+
+    // 主分派连接
+    main_switch -> type_type [label=".type"];
+    main_switch -> void_type [label=".void"];
+    main_switch -> bool_type [label=".bool"];
+    main_switch -> noreturn_type [label=".noreturn"];
+    main_switch -> comptime_types [label=".comptime_*"];
+    main_switch -> undefined_type [label=".undefined"];
+    main_switch -> null_type [label=".null"];
+    main_switch -> enum_literal [label=".enum_literal"];
+    main_switch -> async_error [label=".anyframe/.frame"];
+    
+    // 复合类型连接
+    main_switch -> int_type [label=".int"];
+    main_switch -> vector_type [label=".vector"];
+    main_switch -> float_type [label=".float"];
+    main_switch -> pointer_type [label=".pointer"];
+    main_switch -> array_type [label=".array"];
+    main_switch -> optional_type [label=".optional"];
+    main_switch -> error_union [label=".error_union"];
+    main_switch -> error_set [label=".error_set"];
+    main_switch -> struct_type [label=".struct"];
+    main_switch -> enum_type [label=".enum"];
+    main_switch -> opaque_type [label=".opaque"];
+    main_switch -> union_type [label=".union"];
+    main_switch -> func_type [label=".fn"];
+
+    // 公共结束路径
+    type_type -> end;
+    void_type -> end;
+    bool_type -> end;
+    noreturn_type -> end;
+    comptime_types -> end;
+    undefined_type -> end;
+    null_type -> end;
+    enum_literal -> end;
+    async_error -> end [style=dashed];
+    int_type -> end;
+    vector_type -> end;
+    float_type -> end;
+    pointer_type -> end;
+    array_type -> end;
+    optional_type -> end;
+    error_union -> end;
+    error_set -> end;
+    struct_type -> end;
+    enum_type -> end;
+    opaque_type -> end;
+    union_type -> end;
+    func_type -> end;
+
+    end [label="返回Air.Inst.Ref", shape=oval];
+}

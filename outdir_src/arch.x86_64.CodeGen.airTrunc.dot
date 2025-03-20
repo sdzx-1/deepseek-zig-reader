@@ -1,0 +1,65 @@
+
+digraph airTruncFlow {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airTrunc"];
+    get_types [label="获取类型信息\ndst_ty, src_ty\n计算ABI尺寸"];
+    resolve_operand [label="解析源操作数\nsrc_mcv = resolveInst(ty_op.operand)"];
+    reuse_check [label="检查是否可重用寄存器\n条件：src是寄存器且类型匹配"];
+    reuse_yes [label="直接重用src_mcv作为dst_mcv"];
+    reuse_no [label="根据目标尺寸分配寄存器或内存"];
+    vector_check [label="目标类型是向量？"];
+    handle_vector [label="处理向量类型\n生成掩码值\n选择SIMD指令\n应用位掩码"];
+    non_vector [label="处理非向量类型\n根据ABI尺寸分配\n拷贝数据"];
+    truncate_check [label="需要截断高位？"];
+    truncate_reg [label="截断寄存器高位"];
+    finish [label="结束并返回结果\nfinishAir()"];
+
+    start -> get_types;
+    get_types -> resolve_operand;
+    resolve_operand -> reuse_check;
+    
+    reuse_check -> reuse_yes [label="条件满足"];
+    reuse_check -> reuse_no [label="条件不满足"];
+    
+    reuse_yes -> vector_check;
+    reuse_no -> vector_check;
+    
+    vector_check -> handle_vector [label="是"];
+    vector_check -> non_vector [label="否"];
+    
+    handle_vector -> truncate_check;
+    non_vector -> truncate_check;
+    
+    truncate_check -> truncate_reg [label="需要截断"];
+    truncate_check -> finish [label="不需要截断"];
+    truncate_reg -> finish;
+    
+    subgraph cluster_vector_handling {
+        label="向量类型处理细节";
+        style=dashed;
+        
+        vec_mask [label="生成掩码值\nmask_val"];
+        vec_splat [label="创建splat向量\nsplat_val"];
+        vec_alloc [label="分配splat内存/寄存器"];
+        vec_asm [label="生成AND指令\n应用掩码"];
+        vec_avx_check [label="是否支持AVX？"];
+        vec_avx_yes [label="使用VPAND指令"];
+        vec_avx_no [label="使用PAND指令"];
+        vec_high_part [label="处理高位部分（>128bit）"];
+        
+        handle_vector -> vec_mask;
+        vec_mask -> vec_splat;
+        vec_splat -> vec_alloc;
+        vec_alloc -> vec_asm;
+        vec_asm -> vec_avx_check;
+        vec_avx_check -> vec_avx_yes [label="是"];
+        vec_avx_check -> vec_avx_no [label="否"];
+        vec_avx_yes -> vec_high_part [label="尺寸>128bit"];
+        vec_avx_yes -> vec_asm_end [label="尺寸≤128bit"];
+        vec_avx_no -> vec_asm_end;
+        vec_high_part -> vec_asm_end;
+        vec_asm_end [label="完成向量处理"];
+    }
+}

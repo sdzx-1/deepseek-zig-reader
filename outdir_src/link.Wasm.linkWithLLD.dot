@@ -1,0 +1,46 @@
+
+digraph linkWithLLD {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始"];
+    check_lld [label="检查LLD链接器可用性"];
+    init_vars [label="初始化变量\n(comp, diags, target等)"];
+    module_obj_path [label="处理模块对象路径\n(可能跳过刷新)"];
+    subprog_start [label="启动子进度节点"];
+    handle_cache [label="处理缓存\n(计算哈希、检查缓存命中)"];
+    cache_hit [label="缓存命中？"];
+    copy_object [label="直接复制对象文件"];
+    build_argv [label="构建LLD命令行参数"];
+    spawn_child [label="创建子进程运行LLD"];
+    handle_errors [label="处理子进程错误/输出"];
+    set_executable [label="设置WASI可执行权限"];
+    update_cache [label="更新缓存信息"];
+    end [label="结束"];
+
+    start -> check_lld;
+    check_lld -> init_vars;
+    init_vars -> module_obj_path;
+    module_obj_path -> subprog_start;
+    subprog_start -> handle_cache;
+    
+    handle_cache -> cache_hit;
+    cache_hit -> copy_object [label="是"];
+    cache_hit -> build_argv [label="否"];
+    
+    copy_object -> update_cache;
+    
+    build_argv -> spawn_child;
+    spawn_child -> handle_errors;
+    handle_errors -> set_executable [label="成功"];
+    set_executable -> update_cache;
+    
+    update_cache -> end;
+    
+    // 异常处理路径
+    handle_errors -> end [label="失败" style="dashed" color="red"];
+    cache_hit -> end [label="缓存命中直接返回" style="dashed"];
+    
+    // 条件分支样式
+    cache_hit [shape=diamond];
+}

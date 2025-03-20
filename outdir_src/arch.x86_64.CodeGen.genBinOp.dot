@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    
+    start [label="开始 genBinOp"];
+    check_float [label="检查是否是运行时浮点数"];
+    libcall_block [label="生成libcall调用"];
+    handle_mod [label="处理mod操作的特殊调整"];
+    handle_div_trunc_floor [label="处理div_trunc/div_floor的舍入"];
+    check_sse [label="检查是否是SSE操作"];
+    handle_int_ops [label="处理整数操作(add/sub/mul等)"];
+    handle_vector_ops [label="处理向量操作"];
+    handle_float_ops [label="处理浮点操作"];
+    handle_comparisons [label="处理比较操作(cmp_lt/eq等)"];
+    error_node [label="返回TODO错误"];
+    return_result [label="返回结果MCValue"];
+
+    start -> check_float;
+    
+    check_float -> libcall_block [label="是浮点数且需要libcall"];
+    check_float -> check_sse [label="非浮点或不需要libcall"];
+    
+    libcall_block -> handle_mod [label="air_tag是mod"];
+    libcall_block -> handle_div_trunc_floor [label="air_tag是div_trunc/div_floor"];
+    libcall_block -> return_result [label="其他操作"];
+    
+    handle_mod -> return_result;
+    handle_div_trunc_floor -> return_result;
+    
+    check_sse -> handle_int_ops [label="非SSE操作"];
+    check_sse -> handle_vector_ops [label="向量类型"];
+    check_sse -> handle_float_ops [label="标量浮点"];
+    
+    handle_int_ops -> handle_comparisons [label="比较操作"];
+    handle_int_ops -> return_result [label="算术/位操作"];
+    
+    handle_vector_ops -> handle_comparisons [label="比较操作"];
+    handle_vector_ops -> return_result [label="算术操作"];
+    
+    handle_float_ops -> handle_comparisons [label="比较操作"];
+    handle_float_ops -> return_result [label="算术操作"];
+    
+    handle_comparisons -> return_result [label="生成条件码"];
+    
+    check_float -> error_node [label="不支持的类型"];
+    check_sse -> error_node [label="不支持的操作"];
+    handle_int_ops -> error_node [label="未实现的操作"];
+    handle_vector_ops -> error_node [label="未实现的操作"];
+    handle_float_ops -> error_node [label="未实现的操作"];
+    handle_comparisons -> error_node [label="未实现的操作"];
+    
+    error_node -> return_result [style="invis"];
+}

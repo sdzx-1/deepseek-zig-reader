@@ -1,0 +1,45 @@
+
+digraph resolveComptimeKnownAllocPtr {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    check_resolved_alloc_ty [label="检查 resolved_alloc_ty 是否存在"];
+    get_alloc_ty [label="获取 alloc_ty"];
+    get_ptr_info [label="解析指针信息 ptr_info 和 elem_ty"];
+    check_alloc_inst [label="检查 alloc.toIndex() 是否存在"];
+    fetch_comptime_info [label="从 maybe_comptime_allocs 中获取 comptime_info"];
+    check_stores_len [label="检查 stores.len 是否为0"];
+    handle_opv [label="处理 OPV 情况，返回 finishResolve"];
+    check_single_store [label="检查是否单条 store 指令"];
+    handle_single_store [label="处理单条 store，返回 finishResolve"];
+    create_ct_alloc [label="创建 comptime alloc (ct_alloc)"];
+    build_ptr_mapping [label="构建指针映射 ptr_mapping"];
+    process_stores [label="遍历 stores，处理指针映射和存储操作"];
+    final_load [label="加载最终值 val，返回 finishResolve"];
+
+    start -> check_resolved_alloc_ty;
+    check_resolved_alloc_ty -> get_alloc_ty [label="否"];
+    check_resolved_alloc_ty -> get_alloc_ty [label="是"];
+    get_alloc_ty -> get_ptr_info;
+    get_ptr_info -> check_alloc_inst;
+    check_alloc_inst -> fetch_comptime_info [label="存在"];
+    check_alloc_inst -> return_null [label="不存在"];
+    fetch_comptime_info -> check_stores_len;
+    check_stores_len -> handle_opv [label="len=0"];
+    check_stores_len -> check_single_store [label="len>0"];
+    check_single_store -> handle_single_store [label="单条且类型匹配"];
+    check_single_store -> create_ct_alloc [label="不满足"];
+    handle_opv -> final_return;
+    handle_single_store -> final_return;
+    create_ct_alloc -> build_ptr_mapping;
+    build_ptr_mapping -> process_stores;
+    process_stores -> final_load;
+    final_load -> final_return;
+
+    // 隐式节点和连接
+    return_null [label="返回 null", shape=ellipse];
+    final_return [label="返回 finishResolve", shape=ellipse];
+    check_alloc_inst -> return_null [label="不存在"];
+    check_single_store -> create_ct_alloc [label="不满足条件"];
+    process_stores -> final_load [label="完成所有存储"];
+}

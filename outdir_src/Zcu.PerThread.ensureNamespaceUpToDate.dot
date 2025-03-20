@@ -1,0 +1,40 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 ensureNamespaceUpToDate"];
+    check_generation [label="检查 namespace.generation == zcu.generation", shape=diamond];
+    return_early [label="直接返回"];
+    determine_container [label="确定容器类型和full_key\n(根据 ip.indexToKey 结果)"];
+    handle_reified_generated [label="设置 generation 并返回"];
+    get_declared_key [label="获取 declared 的 key"];
+    get_inst_info [label="解析 inst_info\n(key.zir_index.resolveFull)"];
+    analysis_fail [label="返回 error.AnalysisFail"];
+    check_extended [label="验证指令是否为 .extended 类型", shape=diamond];
+    process_container [label="根据容器类型处理声明\n(struct/union/enum/opaque)"];
+    scan_namespace [label="调用 pt.scanNamespace"];
+    update_generation [label="更新 namespace.generation = zcu.generation"];
+    end [label="函数返回"];
+
+    start -> check_generation;
+    check_generation -> return_early [label="是"];
+    check_generation -> determine_container [label="否"];
+
+    determine_container -> handle_reified_generated [label="reified/generated_tag"];
+    determine_container -> get_declared_key [label="declared"];
+
+    get_declared_key -> get_inst_info;
+    get_inst_info -> analysis_fail [label="失败"];
+    get_inst_info -> check_extended [label="成功"];
+
+    check_extended -> process_container [label="是"];
+    check_extended -> end [label="否", style=dashed]; // 实际代码中会 assert，此处简化
+
+    process_container -> scan_namespace;
+    scan_namespace -> update_generation;
+    update_generation -> end;
+
+    handle_reified_generated -> end;
+    return_early -> end;
+}

@@ -1,0 +1,82 @@
+
+digraph airSelect {
+    node [shape=rectangle];
+    start [label="开始: airSelect函数入口", shape=ellipse];
+    end [label="结束: 返回结果", shape=ellipse];
+    
+    subgraph cluster_init {
+        label="初始化和变量提取";
+        init1 [label="解析指令数据(pl_op/extra)"];
+        init2 [label="获取类型信息(ty/vec_len/elem_ty)"];
+        init3 [label="计算abi_size/elem_abi_size"];
+        init4 [label="获取条件向量类型(pred_ty)"];
+    }
+    
+    subgraph cluster_pred_handling {
+        label="条件向量处理";
+        pred_switch [label="判断pred_mcv类型", shape=diamond];
+        reg_mask [label="处理.register_mask情况"];
+        reg_general [label="处理.general_purpose寄存器"];
+        reg_sse [label="处理.sse寄存器"];
+        other_case [label="其他情况"];
+    }
+    
+    subgraph cluster_mask_gen {
+        label="生成掩码寄存器";
+        mask_avx [label="AVX特性处理"];
+        mask_sse [label="SSE特性处理"];
+        mask_broadcast [label="广播掩码到向量"];
+        mask_shuffle [label="使用SHUF指令调整掩码"];
+    }
+    
+    subgraph cluster_operands {
+        label="操作数处理";
+        get_lhs [label="解析lhs操作数"];
+        get_rhs [label="解析rhs操作数"];
+        lock_ops [label="锁定相关寄存器"];
+    }
+    
+    subgraph cluster_codegen {
+        label="代码生成策略";
+        check_avx [label="has_avx?", shape=diamond];
+        check_blend [label="has_blend?", shape=diamond];
+        avx_path [label="生成AVX指令(vpblendvb)"];
+        blend_path [label="生成BLENDV指令"];
+        manual_path [label="手动组合AND/ANDN/OR指令"];
+    }
+    
+    start -> init1;
+    init1 -> init2 -> init3 -> init4 -> pred_switch;
+    
+    pred_switch -> reg_mask [label=".register_mask"];
+    pred_switch -> reg_general [label=".register(general)"];
+    pred_switch -> reg_sse [label=".register(sse)"];
+    pred_switch -> other_case [label="其他"];
+    
+    reg_mask -> mask_avx [label="AVX可用"];
+    reg_mask -> mask_sse [label="仅SSE"];
+    mask_avx -> mask_broadcast -> mask_shuffle;
+    mask_sse -> mask_broadcast -> mask_shuffle;
+    
+    other_case -> get_lhs;
+    reg_sse -> check_blend;
+    check_blend -> mask_avx [label="有SSE4.1"];
+    check_blend -> manual_path [label="无SSE4.1"];
+    
+    get_lhs -> get_rhs -> lock_ops -> check_avx;
+    
+    check_avx -> avx_path [label="是"];
+    check_avx -> check_blend [label="否"];
+    
+    avx_path -> end;
+    blend_path -> end;
+    manual_path -> end;
+    
+    manual_path [xlabel="使用AND/ANDN/OR组合"];
+    reg_mask [xlabel="处理寄存器掩码位宽匹配"];
+    mask_shuffle [xlabel="根据elem_size选择shuffle模式"];
+    
+    {rank=same; init4 pred_switch}
+    {rank=same; mask_avx mask_sse}
+    {rank=same; check_avx check_blend}
+}

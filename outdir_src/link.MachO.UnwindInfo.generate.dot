@@ -1,0 +1,70 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+    edge [arrowhead=vee];
+
+    start [label="开始"];
+    end [label="结束"];
+    collect_records [label="收集所有unwind记录\n遍历sections和atoms"];
+    encode_records [label="编码记录\n处理FDE/LSDA/personality"];
+    sort_records [label="按地址排序记录"];
+    fold_records [label="折叠相邻记录"];
+    log_records [label="记录日志"];
+    compute_common_enc [label="计算公共编码"];
+    allocate_pages [label="分配页\n（regular/compressed）"];
+    save_lsda [label="保存LSDA指针"];
+
+    start -> collect_records;
+    collect_records -> encode_records;
+    encode_records -> sort_records;
+    sort_records -> fold_records;
+    fold_records -> log_records;
+    log_records -> compute_common_enc;
+    compute_common_enc -> allocate_pages;
+    allocate_pages -> save_lsda;
+    save_lsda -> end;
+
+    // 子流程：收集记录
+    subgraph cluster_collect {
+        label="收集记录";
+        style=dashed;
+        collect_sections [label="遍历sections"];
+        collect_atoms [label="遍历atoms"];
+        collect_unwind [label="获取unwind记录\n筛选存活记录"];
+
+        collect_sections -> collect_atoms;
+        collect_atoms -> collect_unwind;
+    }
+
+    // 子流程：编码记录
+    subgraph cluster_encode {
+        label="编码记录";
+        style=dashed;
+        check_fde [label="检查是否有FDE", shape=diamond];
+        handle_fde [label="设置DWARF偏移\n处理LSDA/personality"];
+        check_personality [label="处理personality函数", shape=diamond];
+
+        check_fde -> handle_fde [label="是"];
+        check_fde -> check_personality [label="否"];
+        handle_fde -> check_personality;
+    }
+
+    // 子流程：页分配
+    subgraph cluster_pages {
+        label="页分配";
+        style=dashed;
+        check_range [label="地址是否超过范围", shape=diamond];
+        check_encoding [label="是否为公共/页编码", shape=diamond];
+        add_page [label="添加到当前页"];
+        new_page [label="创建新页"];
+
+        check_range -> check_encoding [label="否"];
+        check_encoding -> add_page [label="是"];
+        check_encoding -> new_page [label="否"];
+    }
+
+    // 连接子流程到主流程
+    collect_records -> collect_sections [style=invis];
+    encode_records -> check_fde [style=invis];
+    allocate_pages -> check_range [style=invis];
+}

@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start storeComptimePtr"];
+    get_ptr_info [label="Get ptr_info from ptr type"];
+    calc_host_bits [label="Calculate host_bits based on vector_index"];
+    calc_bit_offset [label="Calculate bit_offset\n(endianness handling)"];
+    check_pseudo_store_ty [label="Check need_bits vs host_bits\nif exceeded return .exceeds_host_size"];
+    prepare_strat [label="Call prepareComptimePtrStore\nget strat"];
+    strat_switch [label="Switch on strat"];
+    comptime_field_case [label="Case .comptime_field:\nLoad expected value and compare with store_val"];
+    check_host_bits_zero [label="host_bits == 0?"];
+    direct_case [label="Case .direct:\nCoerce store_val and update"];
+    index_case [label="Case .index:\nCoerce and set element"];
+    flat_index_case [label="Case .flat_index:\nFlatten array and update elements"];
+    bitcast_handling [label="Handle bitcast with byte_offset\nCheck layout validity"];
+    return_success [label="Return .success"];
+    return_runtime_store [label="Return .runtime_store"];
+    return_errors [label="Return errors (undef, err_payload, etc)"];
+
+    start -> get_ptr_info;
+    get_ptr_info -> calc_host_bits;
+    calc_host_bits -> calc_bit_offset;
+    calc_bit_offset -> check_pseudo_store_ty;
+    check_pseudo_store_ty -> prepare_strat [label="Valid"];
+    check_pseudo_store_ty -> return_exceeds [label="Exceeded", shape=diamond];
+    prepare_strat -> strat_switch;
+    
+    strat_switch -> comptime_field_case [label=".comptime_field"];
+    strat_switch -> check_host_bits_zero [label="其他策略"];
+    strat_switch -> return_errors [label="错误分支"];
+    
+    comptime_field_case -> check_match [label="Compare values"];
+    check_match -> return_success [label="Match"];
+    check_match -> return_mismatch [label="Mismatch"];
+    
+    check_host_bits_zero -> direct_case [label="host_bits=0\n&& .direct"];
+    check_host_bits_zero -> index_case [label="host_bits=0\n&& .index"];
+    check_host_bits_zero -> flat_index_case [label="host_bits=0\n&& .flat_index"];
+    check_host_bits_zero -> bitcast_handling [label="host_bits≠0"];
+    
+    direct_case -> return_success;
+    index_case -> return_success;
+    flat_index_case -> return_success;
+    
+    bitcast_handling -> check_layout_valid [label="Check val_ptr/store_val layout"];
+    check_layout_valid -> perform_bitcast [label="Valid"];
+    check_layout_valid -> return_needed_well_defined [label="Invalid"];
+    perform_bitcast -> return_success [label="Success"];
+    perform_bitcast -> return_runtime_store [label="Failure"];
+
+    // Hidden edges for error returns
+    return_exceeds [shape=diamond, label="Return .exceeds_host_size"];
+    return_mismatch [shape=diamond, label="Return .comptime_field_mismatch"];
+    return_needed_well_defined [shape=diamond, label="Return .needed_well_defined"];
+}

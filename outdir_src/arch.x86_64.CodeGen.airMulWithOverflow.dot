@@ -1,0 +1,39 @@
+
+digraph airMulWithOverflow {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airMulWithOverflow", shape=ellipse];
+    check_type [label="检查目标类型 dst_ty.zigTypeTag"];
+    vector_case [label="返回错误: 未实现向量类型"];
+    int_case [label="处理整数类型"];
+    check_bits [label="检查整数位数 >128 且无符号"];
+    large_uint [label="处理大无符号整数乘法"];
+    other_int [label="处理其他整数类型"];
+    signed_check [label="检查有符号性"];
+    signed_case [label="处理有符号乘法（调用__muloti4）"];
+    unsigned_case [label="处理无符号乘法"];
+    gen_result [label="生成结果和溢出标志"];
+    spill_regs [label="保存寄存器状态"];
+    alloc_mem [label="分配内存/寄存器"];
+    inline_memset [label="生成内联memset清零"];
+    resolve_operands [label="解析左右操作数"];
+    gen_loops [label="生成外层/内层循环结构"];
+    set_flags [label="设置溢出标志位"];
+    finish [label="返回结果并清理资源", shape=ellipse];
+
+    start -> check_type;
+    check_type -> vector_case [label=".vector"];
+    check_type -> int_case [label=".int"];
+    int_case -> check_bits;
+    check_bits -> large_uint [label="是"];
+    check_bits -> other_int [label="否"];
+    large_uint -> spill_regs -> alloc_mem -> inline_memset -> resolve_operands -> gen_loops -> set_flags -> finish;
+    other_int -> signed_check;
+    signed_check -> signed_case [label="有符号"];
+    signed_check -> unsigned_case [label="无符号"];
+    signed_case -> gen_result;
+    unsigned_case -> gen_result;
+    gen_result -> finish;
+    vector_case -> finish [label="立即返回错误"];
+}

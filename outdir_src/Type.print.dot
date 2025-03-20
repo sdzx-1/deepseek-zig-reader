@@ -1,0 +1,97 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: print(ty, writer, pt)"];
+    switch [label="switch(ip.indexToKey(ty.toIntern()))", shape=diamond];
+    end [label="返回"];
+
+    start -> switch;
+
+    // Int类型处理分支
+    int_type [label="处理int_type:\n生成符号字符和bits\n返回writer.print"];
+    switch -> int_type [label=".int_type"];
+    int_type -> end;
+
+    // Ptr类型处理分支
+    subgraph cluster_ptr {
+        label="处理ptr_type";
+        ptr_start [label="获取ptrInfo"];
+        check_sentinel [label="判断sentinel是否存在", shape=diamond];
+        handle_sentinel [label="根据size处理sentinel"];
+        handle_size [label="根据size处理指针符号"];
+        check_allowzero [label="检查is_allowzero", shape=diamond];
+        write_allowzero [label="写入allowzero"];
+        check_alignment [label="检查对齐条件", shape=diamond];
+        handle_alignment [label="处理对齐信息"];
+        check_addrspace [label="检查address_space", shape=diamond];
+        write_addrspace [label="写入addrspace"];
+        check_const_volatile [label="检查is_const/is_volatile", shape=diamond];
+        write_const_volatile [label="写入const/volatile"];
+        recurse_child [label="递归调用print(child)"];
+
+        ptr_start -> check_sentinel;
+        check_sentinel -> handle_sentinel [label="存在"];
+        check_sentinel -> handle_size [label="不存在"];
+        handle_sentinel -> handle_size;
+        handle_size -> check_allowzero;
+        check_allowzero -> write_allowzero [label="是"];
+        check_allowzero -> check_alignment [label="否"];
+        write_allowzero -> check_alignment;
+        check_alignment -> handle_alignment [label="条件满足"];
+        handle_alignment -> check_addrspace;
+        check_alignment -> check_addrspace [label="条件不满足"];
+        check_addrspace -> write_addrspace [label="非generic"];
+        write_addrspace -> check_const_volatile;
+        check_addrspace -> check_const_volatile [label="generic"];
+        check_const_volatile -> write_const_volatile [label="存在"];
+        write_const_volatile -> recurse_child;
+        check_const_volatile -> recurse_child [label="不存在"];
+        recurse_child -> ptr_end;
+        ptr_end [label="返回"];
+    }
+    switch -> ptr_start [label=".ptr_type"];
+    ptr_end -> end;
+
+    // Array类型处理分支
+    array_type [label="处理array_type:\n根据sentinel写入格式\n递归调用print(child)"];
+    switch -> array_type [label=".array_type"];
+    array_type -> end;
+
+    // Vector类型处理分支
+    vector_type [label="处理vector_type:\n写入@Vector\n递归调用print(child)"];
+    switch -> vector_type [label=".vector_type"];
+    vector_type -> end;
+
+    // Opt类型处理分支
+    opt_type [label="处理opt_type:\n写入'?'\n递归调用print(child)"];
+    switch -> opt_type [label=".opt_type"];
+    opt_type -> end;
+
+    // ErrorUnion类型处理分支
+    error_union [label="处理error_union:\n处理error_set\n写入'!'\n处理payload"];
+    switch -> error_union [label=".error_union_type"];
+    error_union -> end;
+
+    // 其他类型分支（简略表示）
+    simple_type [label="处理simple_type:\n直接写入tag名"];
+    struct_type [label="处理struct_type:\n写入结构体名称"];
+    tuple_type [label="处理tuple_type:\n生成元组结构"];
+    func_type [label="处理func_type:\n生成函数签名"];
+    // ...其他分支类似处理
+
+    switch -> simple_type [label=".simple_type"];
+    switch -> struct_type [label=".struct_type"];
+    switch -> tuple_type [label=".tuple_type"];
+    switch -> func_type [label=".func_type"];
+    // ...其他分支连接
+
+    simple_type -> end;
+    struct_type -> end;
+    tuple_type -> end;
+    func_type -> end;
+
+    // 递归调用处理
+    recurse_child -> switch [label="递归调用", style=dashed, color=gray];
+}

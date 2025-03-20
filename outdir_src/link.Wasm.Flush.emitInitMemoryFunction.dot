@@ -1,0 +1,53 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 emitInitMemoryFunction"];
+    check_passive_inits [label="检查存在被动段 (assert wasm.any_passive_inits)"];
+    handle_flag [label="处理 virtual_addrs.init_memory_flag"];
+    append_blocks [label="追加块指令 (block $drop, $wait, $init)"];
+    atomic_cmpxchg [label="生成原子比较交换指令 (i32_atomic_rmw_cmpxchg)"];
+    br_table [label="生成分支表 (br_table 根据结果跳转到 $init/$wait/$drop)"];
+    process_segments [label="遍历数据段组 (segment_groups)"];
+    segment_condition [label="段是被动段且非BSS?"];
+    handle_bss [label="生成 memory.fill(0)"];
+    handle_nonbss [label="生成 memory.init"];
+    set_tls_base [label="设置 __tls_base 全局变量"];
+    post_flag_handling [label="设置标志为2并通知等待线程"];
+    atomic_store [label="原子存储标志值 (i32_atomic_store)"];
+    notify_waiters [label="发送通知 (memory_atomic_notify)"];
+    wait_loop [label="等待初始化完成 (memory_atomic_wait32)"];
+    drop_segments [label="丢弃被动段 (data_drop)"];
+    end_function [label="结束函数体 (end)"];
+
+    start -> check_passive_inits;
+    check_passive_inits -> handle_flag [label="存在init_memory_flag"];
+    check_passive_inits -> process_segments [label="跳过flag处理"];
+
+    handle_flag -> append_blocks -> atomic_cmpxchg -> br_table;
+
+    br_table -> process_segments;
+
+    process_segments -> segment_condition;
+    segment_condition -> handle_bss [label="是BSS段"];
+    segment_condition -> handle_nonbss [label="非BSS段"];
+    handle_bss -> check_tls [label="如果是共享内存且TLS段"];
+    handle_nonbss -> check_tls [label="如果是共享内存且TLS段"];
+    check_tls -> set_tls_base [label="是TLS段"];
+    check_tls -> next_segment [label="非TLS段"];
+    set_tls_base -> next_segment;
+
+    next_segment [shape=point, width=0.2];
+    next_segment -> process_segments [label="继续循环"];
+
+    process_segments -> post_flag_handling [label="循环结束"];
+    post_flag_handling -> atomic_store -> notify_waiters -> wait_loop -> drop_segments;
+
+    handle_flag -> drop_segments [label="无init_memory_flag"];
+    drop_segments -> end_function;
+
+    edge [style=invis];
+    {rank=same; handle_flag process_segments}
+    {rank=same; append_blocks process_segments}
+}

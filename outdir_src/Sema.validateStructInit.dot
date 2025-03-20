@@ -1,0 +1,53 @@
+
+digraph validateStructInit {
+    node [shape=rectangle, fontname="Courier"];
+    start [label="开始 validateStructInit"];
+    alloc_fields [label="分配 field_indices 和 found_fields"];
+    loop_instrs [label="遍历 instrs，处理每个字段指针"];
+    check_comptime [label="block.isComptime()?", shape=diamond];
+    handle_comptime [label="处理编译时已知结构体\n初始化默认值并检查缺失字段"];
+    check_missing_fields [label="存在缺失字段?", shape=diamond];
+    generate_errors [label="生成错误消息并返回"];
+    check_struct_comptime [label="结构体是否编译时已知?", shape=diamond];
+    handle_runtime [label="处理运行时初始化\n插入默认字段的存储指令"];
+    handle_defaults [label="处理所有字段的默认值"];
+    end [label="返回"];
+
+    start -> alloc_fields;
+    alloc_fields -> loop_instrs;
+    loop_instrs -> check_comptime;
+
+    check_comptime -> handle_comptime [label="是"];
+    check_comptime -> check_struct_comptime [label="否"];
+
+    handle_comptime -> check_missing_fields;
+    check_missing_fields -> generate_errors [label="是"];
+    check_missing_fields -> handle_defaults [label="否"];
+
+    check_struct_comptime -> handle_runtime [label="否"];
+    check_struct_comptime -> handle_comptime [label="是"];
+
+    handle_runtime -> handle_defaults;
+    handle_defaults -> end;
+
+    generate_errors -> end;
+
+    // 错误处理和子流程
+    subgraph cluster_errors {
+        label="错误处理";
+        generate_errors -> add_note [label="添加错误注释"];
+        add_note -> fail_with_error [label="返回错误"];
+    }
+
+    subgraph cluster_loops {
+        label="循环处理";
+        loop_instrs -> process_field [label="遍历字段"];
+        process_field -> check_field_index [label="获取字段索引"];
+        check_field_index -> check_duplicate [label="检查是否重复"];
+        check_duplicate -> loop_instrs [label="继续循环"];
+    }
+
+    // 连接子流程
+    check_comptime -> process_field [style=dotted];
+    handle_comptime -> check_missing_fields [xlabel="检查默认值"];
+}

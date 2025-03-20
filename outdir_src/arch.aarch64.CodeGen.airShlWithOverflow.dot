@@ -1,0 +1,50 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 airShlWithOverflow"];
+    check_unused [label="检查指令是否未使用 (isUnused)"];
+    mark_dead [label="标记为 dead\nfinishAir 返回"];
+    handle_vector [label="处理向量类型\n返回 TODO 错误"];
+    check_int_bits [label="检查整数位数 (≤64?)"];
+    handle_large_int [label="返回错误\nTODO >64位处理"];
+    alloc_stack [label="分配栈空间\ntry allocMem"];
+    check_rhs_immediate [label="rhs 是立即数?"];
+    read_immediate_args [label="分配寄存器\n(仅 lhs_reg)"];
+    read_register_args [label="分配寄存器\n(lhs_reg + rhs_reg)"];
+    gen_lsl_imm [label="生成 lsl_immediate 指令"];
+    gen_lsl_reg [label="生成 lsl_register 指令"];
+    truncate_reg [label="截断寄存器\ntruncRegister"];
+    gen_shift_back [label="生成 asr/lsr 指令\n(根据符号性)"];
+    compare_values [label="生成 cmp 指令\n(lhs vs reconstructed)"];
+    store_result [label="存储结果到栈\n(genSetStack)"];
+    set_overflow [label="设置溢出标志到栈"];
+    finish [label="返回结果\nfinishAir"];
+
+    start -> check_unused;
+    check_unused -> mark_dead [label="是"];
+    check_unused -> handle_vector [label="否\n类型是向量?"];
+    handle_vector -> check_int_bits [label="否\n继续处理整数"];
+    check_int_bits -> handle_large_int [label=">64"];
+    check_int_bits -> alloc_stack [label="≤64"];
+    alloc_stack -> check_rhs_immediate;
+    
+    check_rhs_immediate -> read_immediate_args [label="是"];
+    check_rhs_immediate -> read_register_args [label="否"];
+    
+    read_immediate_args -> gen_lsl_imm;
+    gen_lsl_imm -> truncate_reg;
+    
+    read_register_args -> gen_lsl_reg;
+    gen_lsl_reg -> truncate_reg;
+    
+    truncate_reg -> gen_shift_back;
+    gen_shift_back -> compare_values;
+    compare_values -> store_result;
+    store_result -> set_overflow;
+    set_overflow -> finish;
+    
+    mark_dead -> finish;
+    handle_large_int -> finish;
+}

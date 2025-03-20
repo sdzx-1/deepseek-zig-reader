@@ -1,0 +1,53 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 airCondBr"];
+    resolve_cond [label="解析条件 cond = resolveInst(pl_op.operand)"];
+    get_extra [label="获取 extra 数据"];
+    get_bodies [label="提取 then_body 和 else_body"];
+    liveness_check [label="获取 liveness_condbr"];
+    cond_br_reloc [label="生成条件分支 reloc = condBr(cond)"];
+    check_operand_death [label="检查操作数是否死亡"];
+    process_death [label="处理操作数死亡"];
+
+    save_parent_state [label="保存父状态:\n- 堆栈偏移\n- 空闲寄存器\n- 寄存器状态\n- 标志指令"];
+    clone_stack [label="克隆父堆栈"];
+
+    branch_stack_push [label="推入空分支到 branch_stack"];
+    process_then_deaths [label="处理 then 分支死亡操作数"];
+    gen_then_body [label="生成 then_body 代码"];
+
+    restore_parent_state [label="恢复父状态:\n- 寄存器\n- 标志指令\n- 堆栈"];
+    pop_then_branch [label="弹出 then_branch 保存状态"];
+    perform_reloc [label="执行重定位 performReloc(reloc)"];
+
+    process_else_deaths [label="处理 else 分支死亡操作数"];
+    gen_else_body [label="生成 else_body 代码"];
+
+    consolidate_else [label="合并 else_branch 状态到父分支"];
+    consolidate_then [label="合并 then_branch 剩余状态到父分支"];
+    pop_else_branch [label="弹出并释放 else_branch"];
+    finish_air [label="结束指令 finishAir(.unreach)"];
+
+    start -> resolve_cond -> get_extra -> get_bodies -> liveness_check -> cond_br_reloc;
+    cond_br_reloc -> check_operand_death;
+    check_operand_death -> process_death [label="操作数死亡"];
+    check_operand_death -> save_parent_state [label="继续"];
+
+    save_parent_state -> clone_stack -> branch_stack_push;
+    branch_stack_push -> process_then_deaths -> gen_then_body;
+
+    gen_then_body -> restore_parent_state -> pop_then_branch -> perform_reloc;
+    perform_reloc -> process_else_deaths -> gen_else_body;
+
+    gen_else_body -> consolidate_else -> consolidate_then -> pop_else_branch -> finish_air;
+
+    // 虚线表示数据依赖
+    edge [style=dashed];
+    liveness_check -> process_then_deaths;
+    liveness_check -> process_else_deaths;
+    clone_stack -> restore_parent_state;
+    pop_then_branch -> consolidate_else;
+}

@@ -1,0 +1,65 @@
+
+digraph parseDependentDylibs {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始"];
+    check_dylibs_empty [label="dylibs.items.len == 0?", shape=diamond];
+    end [label="结束"];
+    init_arena [label="初始化ArenaAllocator"];
+    loop_start [label="循环遍历dylibs (index=0)"];
+    process_dylib [label="获取dylib_index"];
+    check_dependencies [label="处理依赖项"];
+    check_framework [label="尝试framework目录", shape=diamond];
+    check_libdirs [label="尝试lib目录", shape=diamond];
+    check_absolute [label="绝对路径?", shape=diamond];
+    handle_absolute [label="处理绝对路径\n（可能添加sysroot）"];
+    check_rpath [label="包含@rpath?", shape=diamond];
+    handle_rpath [label="替换@rpath为实际路径"];
+    check_loader_exec [label="包含@loader/@executable?", shape=diamond];
+    handle_loader_exec [label="报错（未实现）"];
+    check_realpath [label="解析实际路径", shape=diamond];
+    report_missing [label="报告缺失依赖"];
+    add_file [label="打开文件并解析Mach-O"];
+    parse_exports_rpaths [label="处理exports和rpaths"];
+    check_errors [label="发现错误?", shape=diamond];
+
+    start -> check_dylibs_empty;
+    check_dylibs_empty -> end [label="是"];
+    check_dylibs_empty -> init_arena [label="否"];
+    init_arena -> loop_start;
+    loop_start -> process_dylib [label="index < dylibs.len"];
+    process_dylib -> check_dependencies;
+
+    // 依赖项处理分支
+    check_dependencies -> check_framework [label="对每个依赖项"];
+    check_framework -> check_libdirs [label="未找到"];
+    check_framework -> add_file [label="找到"];
+    check_libdirs -> check_absolute [label="未找到"];
+    check_libdirs -> add_file [label="找到"];
+    check_absolute -> handle_absolute [label="是"];
+    check_absolute -> check_rpath [label="否"];
+    handle_absolute -> check_realpath;
+    check_rpath -> handle_rpath [label="是"];
+    check_rpath -> check_loader_exec [label="否"];
+    handle_rpath -> check_realpath;
+    check_loader_exec -> handle_loader_exec [label="是"];
+    handle_loader_exec -> report_missing;
+    check_loader_exec -> check_realpath [label="否"];
+    check_realpath -> add_file [label="成功"];
+    check_realpath -> report_missing [label="失败"];
+    report_missing -> check_errors [label="has_errors=true"];
+
+    // 文件处理分支
+    add_file -> parse_exports_rpaths;
+    parse_exports_rpaths -> check_errors;
+
+    // 错误检查与循环控制
+    check_errors -> loop_start [label="无错误\nindex++"];
+    check_errors -> end [label="有错误"];
+    loop_start -> check_errors [label="循环结束"];
+
+    // 统一错误处理
+    report_missing -> check_errors [style=dashed];
+    handle_loader_exec -> check_errors [style=dashed];
+}

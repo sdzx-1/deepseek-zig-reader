@@ -1,0 +1,50 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 lowerSwitchBr"];
+    init [label="初始化变量\n获取类型信息\n准备分配器"];
+    check_table_cond [label="检查是否生成跳转表条件\n(非PIC && ELF格式 && prong_items范围)" shape=diamond];
+    gen_jump_table [label="生成跳转表:\n计算min/max值\n填充跳转表项\n处理条件索引"];
+    handle_else_jump [label="处理else分支跳转\n生成条件判断"];
+    fill_table [label="填充跳转表\n处理每个case项和范围"];
+    process_cases_table [label="生成case代码块\n恢复状态"];
+    loop_switch_check [label="是循环switch?" shape=diamond];
+    loop_switch_handling [label="记录循环switch信息"];
+    handle_else_table [label="处理跳转表中的else项"];
+    process_else_table [label="生成else代码块\n恢复状态"];
+    no_table [label="逐个处理case"];
+    handle_case [label="生成case条件比较\n创建跳转指令"];
+    process_cases [label="生成case代码块\n恢复状态"];
+    handle_else [label="生成else代码块\n恢复状态"];
+    end [label="函数返回"];
+
+    start -> init;
+    init -> check_table_cond;
+    
+    check_table_cond -> gen_jump_table [label="条件满足"];
+    check_table_cond -> no_table [label="条件不满足"];
+    
+    gen_jump_table -> handle_else_jump;
+    handle_else_jump -> fill_table;
+    fill_table -> process_cases_table;
+    process_cases_table -> loop_switch_check;
+    
+    loop_switch_check -> loop_switch_handling [label="是"];
+    loop_switch_check -> handle_else_table [label="否"];
+    
+    loop_switch_handling -> handle_else_table;
+    handle_else_table -> process_else_table [label="存在else分支"];
+    process_else_table -> end;
+    
+    no_table -> handle_case;
+    handle_case -> process_cases;
+    process_cases -> handle_case [label="下一个case"];
+    process_cases -> handle_else [label="所有case处理完成"];
+    handle_else -> end;
+    
+    edge [style=dashed];
+    fill_table -> fill_table [label="遍历所有case项和范围"];
+    handle_case -> handle_case [label="遍历case项和范围"];
+}

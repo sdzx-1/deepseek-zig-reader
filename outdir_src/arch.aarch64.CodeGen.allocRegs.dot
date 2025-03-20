@@ -1,0 +1,62 @@
+
+digraph allocRegs_flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start allocRegs()", shape=ellipse];
+    assert1 [label="Assert: reuse_metadata ⇒ write_args.len == 1"];
+    assert2 [label="Assert: reuse_metadata ⇒ operand_mapping.len == read_args.len"];
+    alloc_locks [label="Allocate locks[read_args + write_args]"];
+    memset [label="Initialize locks with @memset(null)"];
+    defer_unlock [label="Defer: Unlock all registers in locks"];
+    reused_read_arg_init [label="reused_read_arg = null"];
+    lock_read_regs [label="Lock read_args registers"];
+    lock_write_regs [label="Lock write_args registers"];
+    alloc_read_regs [label="Allocate registers for unallocated read_args"];
+    check_reuse [label="reuse_metadata != null?", shape=diamond];
+    handle_reuse [label="Handle register reuse logic"];
+    handle_no_reuse [label="Allocate registers for write_args"];
+    move_non_reg_reads [label="Move non-register read_args to registers"];
+    end [label="End (Defer executes)", shape=ellipse];
+
+    subgraph cluster_main {
+        label="Main Logic";
+        start -> assert1 -> assert2 -> alloc_locks -> memset -> defer_unlock -> reused_read_arg_init;
+        reused_read_arg_init -> lock_read_regs -> lock_write_regs -> alloc_read_regs;
+        alloc_read_regs -> check_reuse;
+
+        check_reuse -> handle_reuse [label="Yes"];
+        check_reuse -> handle_no_reuse [label="No"];
+
+        handle_reuse -> move_non_reg_reads;
+        handle_no_reuse -> move_non_reg_reads;
+
+        move_non_reg_reads -> end;
+    }
+
+    subgraph cluster_lock_read_regs {
+        label="Lock Read Args";
+        lock_read_regs_loop [label="For each read_arg:\nLock if in register", shape=rect];
+        lock_read_regs -> lock_read_regs_loop [style=invis];
+    }
+
+    subgraph cluster_handle_reuse {
+        label="Reuse Logic";
+        reuse_loop [label="Check each read_arg\nfor reuse potential", shape=rect];
+        reuse_success [label="Reuse found\nUpdate write_reg", shape=rect];
+        reuse_fail [label="Allocate new register", shape=rect];
+        handle_reuse -> reuse_loop;
+        reuse_loop -> reuse_success [label="Found"];
+        reuse_loop -> reuse_fail [label="Not found"];
+    }
+
+    subgraph cluster_move_non_reg {
+        label="Move Non-Register Args";
+        move_loop [label="For each read_arg:\nSkip reused, move if needed", shape=rect];
+        move_non_reg_reads -> move_loop [style=invis];
+    }
+
+    edge [ltail=cluster_lock_read_regs];
+    edge [ltail=cluster_handle_reuse];
+    edge [ltail=cluster_move_non_reg];
+}

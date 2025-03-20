@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始处理airSwitchBr"];
+    init_vars [label="初始化变量\n(pt, zcu, gpa, switch_br)"];
+    resolve_cond [label="解析初始条件\n(init_condition)"];
+    check_dispatch_loop [label="是否是调度循环？", shape=diamond];
+    alloc_local [label="分配局部变量\n生成循环标签"];
+    copy_condition [label="复制条件值到局部变量"];
+    setup_switch [label="生成switch语句头\n处理类型转换"];
+    write_switch_header [label="写入switch(condition)"];
+    handle_cases [label="遍历常规case\n生成case标签和代码"];
+    check_range_cases [label="存在范围case？", shape=diamond];
+    handle_range_cases [label="在default分支中\n生成if判断范围"];
+    handle_else [label="处理else分支\n生成代码或unreachable"];
+    end_switch [label="结束switch结构"];
+    defer_cleanup [label="调度循环结束时\n清理条件变量"];
+
+    start -> init_vars;
+    init_vars -> resolve_cond;
+    resolve_cond -> check_dispatch_loop;
+
+    check_dispatch_loop -> alloc_local [label="是"];
+    alloc_local -> copy_condition;
+    copy_condition -> setup_switch;
+
+    check_dispatch_loop -> setup_switch [label="否"];
+
+    setup_switch -> write_switch_header;
+    write_switch_header -> handle_cases;
+    handle_cases -> check_range_cases;
+
+    check_range_cases -> handle_range_cases [label="是"];
+    check_range_cases -> handle_else [label="否"];
+
+    handle_range_cases -> handle_else;
+    handle_else -> end_switch;
+    end_switch -> defer_cleanup [label="如果是调度循环"];
+    defer_cleanup -> end [label="结束"];
+
+    // 隐含的流程箭头
+    edge [style=invis];
+    handle_cases -> check_range_cases;
+    handle_range_cases -> end_switch;
+}

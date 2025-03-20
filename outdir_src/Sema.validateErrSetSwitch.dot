@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start validateErrSetSwitch"];
+    get_context [label="获取上下文变量 (gpa, pt, zcu, ip)"];
+    src_handling [label="处理 src_node_offset 和 src"];
+    scalar_cases [label="处理标量案例 (scalar_cases)"];
+    multi_cases [label="处理多案例 (multi_cases)"];
+    resolve_error_set [label="解析错误集类型 (resolveInferredErrorSetTy)"];
+    switch_anyerror [label="Switch case: anyerror_type"];
+    check_else [label="检查是否有 else 分支"];
+    fail_no_else [label="报错: 缺少 else 分支"];
+    return_anyerror [label="返回 Type.anyerror"];
+    else_validation [label="验证错误集覆盖情况"];
+    check_error_coverage [label="遍历错误名称检查覆盖"];
+    generate_errors [label="生成未处理错误提示"];
+    handle_else_case [label="验证 else 分支合理性"];
+    fail_unreachable_else [label="报错: else 不可达"];
+    build_error_set [label="构建并返回错误集类型"];
+    end [label="返回 null 或错误集"];
+
+    start -> get_context -> src_handling;
+    src_handling -> scalar_cases;
+    scalar_cases -> multi_cases;
+    multi_cases -> resolve_error_set;
+
+    resolve_error_set -> switch_anyerror [label="anyerror_type"];
+    switch_anyerror -> check_else;
+    check_else -> fail_no_else [label="无 else"];
+    check_else -> return_anyerror [label="有 else"];
+    
+    resolve_error_set -> else_validation [label="其他错误集类型"];
+    else_validation -> check_error_coverage;
+    check_error_coverage -> generate_errors [label="存在未覆盖错误"];
+    generate_errors -> handle_else_case;
+    check_error_coverage -> handle_else_case [label="全部覆盖"];
+    
+    handle_else_case -> fail_unreachable_else [label="else 分支无效"];
+    handle_else_case -> build_error_set [label="else 分支合法"];
+    build_error_set -> end;
+    return_anyerror -> end;
+    fail_no_else -> end;
+    fail_unreachable_else -> end;
+}

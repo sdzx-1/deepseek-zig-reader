@@ -1,0 +1,71 @@
+
+digraph airCmp {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airCmp"];
+    resolve_pt_zcu [label="获取 pt, zcu, bin_op"];
+    init_vars [label="初始化 ty, null_compare"];
+    spill_eflags [label="尝试 spill eflags"];
+    resolve_lhs [label="解析 lhs_mcv 并锁定寄存器"];
+    resolve_rhs [label="解析 rhs_mcv 并锁定寄存器"];
+    check_ty_tag [label="检查 ty.zigTypeTag()"];
+    float_case [label="浮点类型处理"];
+    optional_case [label="Optional 类型处理"];
+    int_case [label="整数类型处理"];
+    gen_call [label="生成运行时库调用"];
+    handle_optional_repr [label="处理 Optional 表示"];
+    gen_payload_compare [label="生成 payload 比较"];
+    gen_null_compare [label="生成 null 比较"];
+    handle_int_abi_size [label="处理 ABI 大小"];
+    may_flip_check [label="检查是否需要翻转操作数"];
+    gen_binop_cmp [label="生成比较指令"];
+    handle_float_ops [label="处理浮点操作"];
+    finalize_eflags [label="设置 eflags_inst"];
+    finish_air [label="完成 Air 指令"];
+    error_exit [label="错误处理"];
+
+    start -> resolve_pt_zcu;
+    resolve_pt_zcu -> init_vars;
+    init_vars -> spill_eflags;
+    spill_eflags -> resolve_lhs;
+    resolve_lhs -> resolve_rhs;
+    resolve_rhs -> check_ty_tag;
+
+    check_ty_tag -> float_case [label=".float"];
+    check_ty_tag -> optional_case [label=".optional"];
+    check_ty_tag -> int_case [label="其他"];
+
+    float_case -> gen_call [label="无硬件支持"];
+    gen_call -> gen_binop_cmp;
+    float_case -> handle_float_ops [label="有硬件支持"];
+    handle_float_ops -> finalize_eflags;
+
+    optional_case -> handle_optional_repr;
+    handle_optional_repr -> gen_payload_compare;
+    gen_payload_compare -> gen_null_compare;
+    gen_null_compare -> finalize_eflags;
+
+    int_case -> handle_int_abi_size;
+    handle_int_abi_size -> may_flip_check;
+    may_flip_check -> gen_binop_cmp;
+    gen_binop_cmp -> finalize_eflags;
+
+    finalize_eflags -> finish_air;
+    finish_air -> end;
+
+    resolve_lhs -> error_exit [label="错误"];
+    resolve_rhs -> error_exit [label="错误"];
+    gen_call -> error_exit [label="错误"];
+    handle_optional_repr -> error_exit [label="错误"];
+    gen_payload_compare -> error_exit [label="错误"];
+    gen_null_compare -> error_exit [label="错误"];
+    handle_int_abi_size -> error_exit [label="错误"];
+    may_flip_check -> error_exit [label="错误"];
+    gen_binop_cmp -> error_exit [label="错误"];
+    handle_float_ops -> error_exit [label="错误"];
+
+    edge [style=invis];
+    error_exit -> end;
+    end [shape=ellipse];
+}

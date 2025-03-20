@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 airArrayElemVal"];
+    resolve_operands [label="解析 bin_op.lhs 和 bin_op.rhs"];
+    check_vector_1bit [label="array_ty 是向量且 elem_ty.bitSize == 1?"];
+    handle_vector_1bit [label="处理向量和1位元素"];
+    handle_general_case [label="处理常规数组元素访问"];
+    finish_air [label="finishAir 返回结果"];
+    
+    // 向量处理子流程
+    subgraph cluster_vector {
+        label="向量和1位元素处理";
+        vec_copy_to_reg [label="将 array_mcv 复制到临时寄存器"];
+        vec_bt_instruction [label="生成 BT 指令测试位"];
+        setcc_result [label="用 SETcc 保存标志位到寄存器"];
+        vec_end [label="结果存入寄存器"];
+    }
+
+    // 常规处理子流程
+    subgraph cluster_general {
+        label="常规数组元素访问";
+        gen_address [label="生成数组基地址到 addr_reg"];
+        calc_offset [label="计算元素偏移量到 offset_reg"];
+        gen_lea_add [label="生成 LEA/ADD 指令计算最终地址"];
+        copy_element [label="复制元素到目标位置"];
+        gen_end [label="结果存入目标 MCValue"];
+    }
+
+    start -> resolve_operands;
+    resolve_operands -> check_vector_1bit;
+    
+    check_vector_1bit -> handle_vector_1bit [label="是"];
+    check_vector_1bit -> handle_general_case [label="否"];
+    
+    // 向量分支
+    handle_vector_1bit -> vec_copy_to_reg;
+    vec_copy_to_reg -> vec_bt_instruction;
+    vec_bt_instruction -> setcc_result;
+    setcc_result -> vec_end;
+    vec_end -> finish_air;
+
+    // 常规分支
+    handle_general_case -> gen_address;
+    gen_address -> calc_offset;
+    calc_offset -> gen_lea_add;
+    gen_lea_add -> copy_element;
+    copy_element -> gen_end;
+    gen_end -> finish_air;
+
+    // 公共结束
+    finish_air [shape=doublecircle];
+}

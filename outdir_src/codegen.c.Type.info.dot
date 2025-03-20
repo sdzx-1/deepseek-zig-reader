@@ -1,0 +1,111 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: info(ctype, pool)"];
+    check_pool_index [label="检查 ctype.toPoolIndex()"];
+    return_basic [label="返回 .{ .basic = ctype.index }"];
+    get_item [label="从 pool.items 获取 item"];
+    switch_tag [label="根据 item.tag 分支", shape=diamond];
+
+    // 主流程
+    start -> check_pool_index;
+    check_pool_index -> return_basic [label="为 null"];
+    check_pool_index -> get_item [label="有值"];
+    get_item -> switch_tag;
+
+    // 定义公共样式
+    subgraph cluster_switches {
+        label="处理 item.tag 分支";
+        labelloc=b;
+
+        // 指针类分支
+        pointer [label="构造指针类型\n设置 elem_ctype"];
+        pointer_const [label="构造常量指针\n设置 elem_ctype 和 const"];
+        pointer_volatile [label="构造易变指针\n设置 elem_ctype 和 volatile"];
+        pointer_const_volatile [label="构造常量易变指针\n设置 elem_ctype、const 和 volatile"];
+
+        // 数组/向量分支
+        array_small [label="解析小数组\n设置 elem_ctype 和长度"];
+        array_large [label="解析大数组\n设置 elem_ctype 和动态长度"];
+        vector [label="解析向量\n设置 elem_ctype 和长度"];
+
+        // 对齐分支
+        aligned [label="解析对齐类型\n设置 ctype 和 alignas"];
+
+        // 前向声明分支
+        fwd_decl_struct_anon [label="匿名结构体前向声明\n设置名称和字段信息"];
+        fwd_decl_union_anon [label="匿名联合体前向声明\n设置名称和字段信息"];
+        fwd_decl_struct [label="结构体前向声明\n设置名称索引"];
+        fwd_decl_union [label="联合体前向声明\n设置名称索引"];
+
+        // 聚合类型分支
+        aggregate_struct_anon [label="匿名结构体聚合\n设置名称和字段"];
+        aggregate_union_anon [label="匿名联合体聚合\n设置名称和字段"];
+        aggregate_struct_packed_anon [label="紧凑匿名结构体聚合\n设置 packed 标志"];
+        aggregate_union_packed_anon [label="紧凑匿名联合体聚合\n设置 packed 标志"];
+        aggregate_struct [label="结构体聚合\n设置名称和字段"];
+        aggregate_union [label="联合体聚合\n设置名称和字段"];
+        aggregate_struct_packed [label="紧凑结构体聚合\n设置 packed 标志"];
+        aggregate_union_packed [label="紧凑联合体聚合\n设置 packed 标志"];
+
+        // 函数分支
+        function [label="解析函数\n设置返回类型和参数"];
+        function_varargs [label="解析可变参数函数\n设置 varargs 标志"];
+    }
+
+    // 连接所有分支到 switch_tag
+    switch_tag -> pointer [label=".pointer"];
+    switch_tag -> pointer_const [label=".pointer_const"];
+    switch_tag -> pointer_volatile [label=".pointer_volatile"];
+    switch_tag -> pointer_const_volatile [label=".pointer_const_volatile"];
+    switch_tag -> aligned [label=".aligned"];
+    switch_tag -> array_small [label=".array_small"];
+    switch_tag -> array_large [label=".array_large"];
+    switch_tag -> vector [label=".vector"];
+    switch_tag -> fwd_decl_struct_anon [label=".fwd_decl_struct_anon"];
+    switch_tag -> fwd_decl_union_anon [label=".fwd_decl_union_anon"];
+    switch_tag -> fwd_decl_struct [label=".fwd_decl_struct"];
+    switch_tag -> fwd_decl_union [label=".fwd_decl_union"];
+    switch_tag -> aggregate_struct_anon [label=".aggregate_struct_anon"];
+    switch_tag -> aggregate_union_anon [label=".aggregate_union_anon"];
+    switch_tag -> aggregate_struct_packed_anon [label=".aggregate_struct_packed_anon"];
+    switch_tag -> aggregate_union_packed_anon [label=".aggregate_union_packed_anon"];
+    switch_tag -> aggregate_struct [label=".aggregate_struct"];
+    switch_tag -> aggregate_union [label=".aggregate_union"];
+    switch_tag -> aggregate_struct_packed [label=".aggregate_struct_packed"];
+    switch_tag -> aggregate_union_packed [label=".aggregate_union_packed"];
+    switch_tag -> function [label=".function"];
+    switch_tag -> function_varargs [label=".function_varargs"];
+
+    // 公共返回路径
+    return [label="返回构造的 Info 结构", shape=ellipse];
+    
+    // 所有分支最终指向返回节点
+    pointer -> return;
+    pointer_const -> return;
+    pointer_volatile -> return;
+    pointer_const_volatile -> return;
+    aligned -> return;
+    array_small -> return;
+    array_large -> return;
+    vector -> return;
+    fwd_decl_struct_anon -> return;
+    fwd_decl_union_anon -> return;
+    fwd_decl_struct -> return;
+    fwd_decl_union -> return;
+    aggregate_struct_anon -> return;
+    aggregate_union_anon -> return;
+    aggregate_struct_packed_anon -> return;
+    aggregate_union_packed_anon -> return;
+    aggregate_struct -> return;
+    aggregate_union -> return;
+    aggregate_struct_packed -> return;
+    aggregate_union_packed -> return;
+    function -> return;
+    function_varargs -> return;
+
+    // 初始分支的返回路径
+    return_basic -> return;
+}

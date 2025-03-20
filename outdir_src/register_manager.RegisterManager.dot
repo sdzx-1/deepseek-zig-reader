@@ -1,0 +1,40 @@
+
+digraph RegisterManager {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 RegisterManager"];
+    init [label="初始化寄存器状态\n(registers, free_registers,\nallocated_registers, locked_registers)"];
+    lock_reg [label="锁定寄存器\nlockReg/lockRegIndex"];
+    unlock_reg [label="解锁寄存器\nunlockReg"];
+    try_alloc_regs [label="尝试分配寄存器\ntryAllocRegs"];
+    alloc_regs [label="分配寄存器\nallocRegs"];
+    spill_check [label="检查是否需要溢出\nspillInstruction"];
+    free_reg [label="释放寄存器\nfreeReg/freeRegIndex"];
+    error_handling [label="错误处理\nOutOfRegisters"];
+    end [label="结束"];
+
+    start -> init;
+    init -> lock_reg;
+    init -> unlock_reg;
+    init -> try_alloc_regs;
+
+    lock_reg -> unlock_reg [label="通过RegisterLock"];
+    unlock_reg -> try_alloc_regs;
+
+    try_alloc_regs -> alloc_regs [label="分配失败"];
+    try_alloc_regs -> end [label="分配成功"];
+
+    alloc_regs -> spill_check [label="需要溢出处理"];
+    spill_check -> free_reg [label="释放寄存器"];
+    free_reg -> alloc_regs [label="重新尝试分配"];
+    alloc_regs -> error_handling [label="无可用寄存器"];
+    error_handling -> end;
+
+    try_alloc_regs -> mark_allocated [label="分配成功"];
+    mark_allocated [label="标记寄存器已分配\nmarkRegAllocated"];
+    mark_allocated -> mark_used [label="跟踪指令"];
+    mark_used [label="标记寄存器已使用\nmarkRegUsed"];
+    mark_used -> end;
+
+    free_reg -> end [label="释放完成"];
+}

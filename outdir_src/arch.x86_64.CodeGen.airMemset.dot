@@ -1,0 +1,39 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    rankdir=TB;
+
+    start [label="开始 airMemset"];
+    check_safety [label="检查 !safety 且 rhs 为 undef"];
+    spill_registers [label="保存寄存器 (rax, rdi, rsi, rcx)"];
+    lock_registers [label="锁定寄存器 (rax, rdi, rsi, rcx)"];
+    resolve_dst [label="解析目标地址 (bin_op.lhs)"];
+    resolve_src [label="解析源值 (bin_op.rhs)"];
+    get_elem_size [label="获取 elem_abi_size"];
+    check_elem_size [label="elem_abi_size == 1?"];
+    handle_elem1 [label="处理单字节元素:\n生成 inline memset"];
+    handle_slice [label="处理切片类型:\n计算指针和长度"];
+    handle_array [label="处理数组类型:\n存储第一个元素并复制剩余"];
+    gen_memcpy [label="生成 inline memcpy"];
+    finish [label="结束并返回"];
+
+    start -> check_safety;
+    check_safety -> spill_registers [label="条件不满足"];
+    check_safety -> finish [label="条件满足，直接结束"];
+
+    spill_registers -> lock_registers;
+    lock_registers -> resolve_dst;
+    resolve_dst -> resolve_src;
+    resolve_src -> get_elem_size;
+    get_elem_size -> check_elem_size;
+
+    check_elem_size -> handle_elem1 [label="是"];
+    check_elem_size -> handle_slice [label="否，切片类型"];
+    check_elem_size -> handle_array [label="否，数组类型"];
+
+    handle_elem1 -> finish;
+    handle_slice -> gen_memcpy;
+    handle_array -> gen_memcpy;
+    gen_memcpy -> finish;
+}

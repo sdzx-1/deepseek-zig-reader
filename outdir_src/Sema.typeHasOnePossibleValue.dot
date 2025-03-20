@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 typeHasOnePossibleValue(ty)"];
+    switch_ty [label="switch(ty.toIntern())"];
+    basic_types [label="基本类型\n(u0/i0返回0)\n(其他数值类型返回null)\n(void返回Value.void)\n(noreturn返回unreachable)\n(...)"];
+    complex_types [label="复合类型处理"];
+    array_vector [label="数组/向量类型\n检查子类型是否唯一值"];
+    struct_type [label="结构体类型\n检查所有字段类型是否唯一值"];
+    tuple_type [label="元组类型\n所有字段必须有值"];
+    union_type [label="联合类型\n检查标签和字段类型"];
+    enum_type [label="枚举类型\n根据tag模式处理"];
+    return_value [label="返回聚合值"];
+    return_null [label="返回null"];
+    unreachable_node [label="unreachable"];
+    end [label="结束"];
+
+    start -> switch_ty;
+    switch_ty -> basic_types [label="匹配基本类型"];
+    switch_ty -> complex_types [label="其他类型"];
+    
+    basic_types -> return_value [label="可确定唯一值"];
+    basic_types -> return_null [label="多值类型"];
+    basic_types -> unreachable_node [label="特殊类型\n(null/undefined等)"];
+    
+    complex_types -> array_vector [label="数组/向量"];
+    complex_types -> struct_type [label="结构体"];
+    complex_types -> tuple_type [label="元组"];
+    complex_types -> union_type [label="联合"];
+    complex_types -> enum_type [label="枚举"];
+    
+    array_vector -> return_value [label="子类型唯一"];
+    array_vector -> return_null [label="子类型不唯一"];
+    
+    struct_type -> return_value [label="所有字段类型唯一"];
+    struct_type -> return_null [label="存在多值字段"];
+    
+    tuple_type -> return_value [label="所有字段有值"];
+    tuple_type -> return_null [label="存在未定义字段"];
+    
+    union_type -> return_value [label="标签和字段唯一"];
+    union_type -> return_null [label="标签或字段不唯一"];
+    
+    enum_type -> return_value [label="tag模式允许单值"];
+    enum_type -> return_null [label="存在多个可能值"];
+    
+    return_value -> end;
+    return_null -> end;
+    unreachable_node -> end [label="终止流程"];
+    
+    subgraph cluster_recursion {
+        label="递归处理";
+        array_vector -> struct_type [style=dotted, color=gray];
+        struct_type -> array_vector [style=dotted, color=gray];
+    }
+}

@@ -1,0 +1,53 @@
+
+digraph analyzeMinMax {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start analyzeMinMax"];
+    check_operands_len [label="Check operands.len > 0"];
+    return_single_operand [label="Return operands[0] (if len == 1)"];
+    select_opFunc [label="Select opFunc (min/max)"];
+    init_vars [label="Initialize variables:\n- runtime_known\n- cur_minmax\n- bounds_status"];
+    loop_operands [label="Loop over operands"];
+    resolve_value [label="Resolve operand value"];
+    update_runtime_known [label="Mark operand as compile-time known"];
+    check_bounds_status [label="Check bounds_status\n(unknown/defined/non_integral)"];
+    handle_scalar_bounds [label="Calculate scalar bounds"];
+    update_cur_minmax [label="Update cur_minmax with operand"];
+    check_simd_op [label="Check SIMD operands"];
+    handle_vector [label="Process vector elements"];
+    handle_scalar [label="Process scalar value"];
+    refine_type [label="Refine type based on bounds"];
+    runtime_idx_check [label="Check if runtime_idx exists"];
+    require_runtime_block [label="Require runtime block"];
+    handle_runtime_operands [label="Process runtime operands"];
+    final_refinement [label="Final type refinement"];
+    return_result [label="Return result"];
+
+    start -> check_operands_len;
+    check_operands_len -> return_single_operand [label="operands.len == 1"];
+    check_operands_len -> select_opFunc [label="operands.len > 1"];
+    select_opFunc -> init_vars;
+    init_vars -> loop_operands;
+
+    loop_operands -> resolve_value [label="For each operand"];
+    resolve_value -> update_runtime_known [label="If compile-time known"];
+    update_runtime_known -> check_bounds_status;
+    check_bounds_status -> handle_scalar_bounds [label="unknown/defined"];
+    handle_scalar_bounds -> update_cur_minmax;
+    check_bounds_status -> handle_vector [label="non_integral"];
+    handle_vector -> check_simd_op;
+    check_simd_op -> handle_vector [label="Vector detected"];
+    check_simd_op -> handle_scalar [label="Scalar detected"];
+    handle_scalar -> update_cur_minmax;
+    update_cur_minmax -> loop_operands [label="Next operand"];
+
+    loop_operands -> runtime_idx_check [label="Loop end"];
+    runtime_idx_check -> refine_type [label="No runtime_idx"];
+    runtime_idx_check -> require_runtime_block [label="runtime_idx exists"];
+    require_runtime_block -> handle_runtime_operands;
+    handle_runtime_operands -> final_refinement;
+    final_refinement -> return_result;
+    refine_type -> return_result;
+    return_single_operand -> return_result;
+}

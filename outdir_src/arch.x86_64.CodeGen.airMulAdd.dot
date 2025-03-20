@@ -1,0 +1,39 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 airMulAdd"];
+    get_context [label="获取上下文 (pt, zcu, pl_op, extra, ty)"];
+    check_fma_support [label="检查浮点类型和FMA支持"];
+    call_fma_libc [label="构造并调用libc的fma函数"];
+    handle_operands [label="处理操作数 (mcvs, locks, order)"];
+    adjust_operand_order [label="调整操作数顺序"];
+    select_mir_tag [label="根据顺序选择MIR指令"];
+    gen_asm [label="生成汇编指令"];
+    finish_air [label="完成并返回结果 (finishAir)"];
+
+    start -> get_context;
+    get_context -> check_fma_support;
+
+    check_fma_support -> call_fma_libc [label="不支持FMA或特殊浮点类型"];
+    check_fma_support -> handle_operands [label="支持FMA"];
+
+    call_fma_libc -> finish_air [label="直接通过libc调用"];
+
+    handle_operands -> adjust_operand_order [label="分配寄存器和锁定"];
+    adjust_operand_order -> select_mir_tag;
+    select_mir_tag -> gen_asm [label="选择fmadd132/213/231等"];
+    gen_asm -> finish_air;
+
+    finish_air [shape=oval, label="返回结果"];
+    
+    // 条件分支标注
+    edge [color=red, fontcolor=red];
+    check_fma_support -> call_fma_libc [xlabel="16/80/128位\n或未启用FMA"];
+    check_fma_support -> handle_operands [xlabel="32/64位且启用FMA"];
+    
+    // 错误处理隐含路径
+    call_fma_libc -> finish_air [label="可能失败", style=dashed];
+    select_mir_tag -> finish_air [label="不支持的类型", style=dashed];
+}

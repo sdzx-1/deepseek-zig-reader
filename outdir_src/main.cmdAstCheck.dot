@@ -1,0 +1,103 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 cmdAstCheck"];
+    init_vars [label="初始化变量\ncolor, want_output_text, force_zon, zig_source_file"];
+    parse_args [label="解析命令行参数循环"];
+    handle_arg [label="处理当前参数"];
+    check_help [label="参数是 -h/--help?"];
+    handle_help [label="输出帮助信息并退出"];
+    check_t [label="参数是 -t?"];
+    set_text [label="want_output_text = true"];
+    check_zon [label="参数是 --zon?"];
+    set_zon [label="force_zon = true"];
+    check_color [label="参数是 --color?"];
+    handle_color [label="读取颜色参数并验证"];
+    invalid_arg [label="报错: 无效参数并退出"];
+    check_file [label="zig_source_file 未设置?"];
+    set_file [label="设置文件路径"];
+    extra_arg [label="报错: 额外参数并退出"];
+    open_file [label="尝试打开文件"];
+    read_stdin [label="从标准输入读取"];
+    check_size [label="文件大小是否超限?"];
+    read_source [label="读取源文件内容"];
+    determine_mode [label="确定模式 (.zig/.zon)"];
+    parse_ast [label="解析AST"];
+    generate_zir [label="生成ZIR"];
+    check_errors [label="存在编译错误?"];
+    render_errors [label="渲染错误信息"];
+    output_stats [label="输出统计信息"];
+    exit [label="退出程序"];
+
+    // 主流程
+    start -> init_vars;
+    init_vars -> parse_args;
+
+    // 参数解析循环
+    parse_args -> handle_arg [label="i < args.len"];
+    handle_arg -> check_help;
+    
+    check_help -> handle_help [label="是"];
+    check_help -> check_t [label="否"];
+    
+    handle_help -> exit;
+
+    check_t -> set_text [label="是"];
+    check_t -> check_zon [label="否"];
+    
+    set_text -> parse_args;
+    
+    check_zon -> set_zon [label="是"];
+    check_zon -> check_color [label="否"];
+    
+    set_zon -> parse_args;
+    
+    check_color -> handle_color [label="是"];
+    check_color -> invalid_arg [label="否且以-开头"];
+    
+    handle_color -> parse_args;
+    
+    invalid_arg -> exit;
+
+    // 文件参数处理
+    check_help -> check_file [label="非选项参数"];
+    check_file -> set_file [label="是"];
+    set_file -> parse_args;
+    
+    check_file -> extra_arg [label="否"];
+    extra_arg -> exit;
+
+    // 文件/输入处理
+    parse_args -> open_file [label="循环结束"];
+    open_file -> check_size [label="成功"];
+    open_file -> read_stdin [label="无文件参数"];
+    check_size -> read_source;
+    read_stdin -> read_source;
+    read_source -> determine_mode;
+
+    // 模式处理
+    determine_mode -> parse_ast;
+    parse_ast -> generate_zir [label=".zig模式"];
+    generate_zir -> check_errors;
+    
+    check_errors -> render_errors [label="是"];
+    render_errors -> exit;
+    
+    check_errors -> output_stats [label="否且需要输出文本"];
+    output_stats -> exit;
+
+    // Zon模式分支
+    determine_mode -> zon_parse [label=".zon模式"];
+    zon_parse [label="生成Zon"];
+    zon_parse -> zon_check_errors;
+    zon_check_errors [label="存在错误?"];
+    zon_check_errors -> zon_render_errors [label="是"];
+    zon_render_errors [label="渲染Zon错误"];
+    zon_render_errors -> exit;
+    zon_check_errors -> exit [label="否"];
+
+    // 统一退出点
+    {rank=same; exit; zon_render_errors; render_errors}
+}

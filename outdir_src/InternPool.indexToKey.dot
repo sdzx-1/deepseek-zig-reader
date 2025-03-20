@@ -1,0 +1,84 @@
+
+digraph {
+    rankdir=TB;
+    node [shape=rectangle];
+    start [label="开始: pub fn indexToKey"];
+    assert [label="assert(index != .none)"];
+    unwrap [label="解包index:\nconst unwrapped_index = index.unwrap(ip);\nconst item = unwrapped_index.getItem(ip);\nconst data = item.data;"];
+    switch [label="switch (item.tag)", shape=diamond];
+    end [label="返回对应的 Key 结构", shape=ellipse];
+
+    // 基本流程连接
+    start -> assert -> unwrap -> switch;
+    switch -> end [label="default"]; // 其他未显式处理的 case（如 .removed 触发 unreachable）
+
+    // 定义各个 case 的处理节点并连接
+    node [style="filled", fillcolor="#F0F8FF"]; // 统一节点样式
+
+    // 类型相关 case
+    subgraph cluster_types {
+        label="类型处理";
+        type_int_signed [label=".type_int_signed\n构造 signed int_type"];
+        type_int_unsigned [label=".type_int_unsigned\n构造 unsigned int_type"];
+        type_array_big [label=".type_array_big\n解析大数组结构"];
+        type_array_small [label=".type_array_small\n解析小数组结构"];
+        type_pointer [label=".type_pointer\n解析指针类型"];
+        type_slice [label=".type_slice\n转换切片指针"];
+        type_optional [label=".type_optional\n构造可选类型"];
+        type_vector [label=".type_vector\n解析向量类型"];
+        // 其他类型相关的 case...
+    }
+
+    // 值与操作相关 case
+    subgraph cluster_values {
+        label="值与操作处理";
+        int_u8 [label=".int_u8\n构造 u8 整数值"];
+        ptr_elem [label=".ptr_elem\n解析指针元素"];
+        aggregate [label=".aggregate\n构造聚合类型值"];
+        func_instance [label=".func_instance\n解析函数实例"];
+        // 其他值与操作相关的 case...
+    }
+
+    // 复杂逻辑 case（带子判断）
+    subgraph cluster_complex {
+        label="复杂逻辑处理";
+        type_opaque [label=".type_opaque\n处理不透明类型"];
+        type_opaque -> type_opaque_if [label="检查 captures_len"];
+        type_opaque_if [label="captures_len == max?", shape=diamond];
+        type_opaque_if -> type_opaque_reified [label="是"];
+        type_opaque_if -> type_opaque_declared [label="否"];
+        type_opaque_reified [label="返回 reified 结构"];
+        type_opaque_declared [label="返回 declared 结构"];
+    }
+
+    // 连接所有 case 到结束节点
+    type_int_signed -> end;
+    type_int_unsigned -> end;
+    type_array_big -> end;
+    type_array_small -> end;
+    type_pointer -> end;
+    type_slice -> end;
+    type_optional -> end;
+    type_vector -> end;
+    int_u8 -> end;
+    ptr_elem -> end;
+    aggregate -> end;
+    func_instance -> end;
+    type_opaque_reified -> end;
+    type_opaque_declared -> end;
+
+    // Switch 到各个子流程的连接
+    switch -> type_int_signed [label=".type_int_signed"];
+    switch -> type_int_unsigned [label=".type_int_unsigned"];
+    switch -> type_array_big [label=".type_array_big"];
+    switch -> type_array_small [label=".type_array_small"];
+    switch -> type_pointer [label=".type_pointer"];
+    switch -> type_slice [label=".type_slice"];
+    switch -> type_optional [label=".type_optional"];
+    switch -> type_vector [label=".type_vector"];
+    switch -> int_u8 [label=".int_u8"];
+    switch -> ptr_elem [label=".ptr_elem"];
+    switch -> aggregate [label=".aggregate"];
+    switch -> func_instance [label=".func_instance"];
+    switch -> type_opaque [label=".type_opaque"];
+}

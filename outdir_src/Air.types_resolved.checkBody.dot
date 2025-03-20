@@ -1,0 +1,78 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    start [label="Start checkBody", shape=ellipse];
+    end [label="Return true", shape=ellipse];
+    loop_start [label="For each inst in body"];
+    check_inst [label="Get tag and data for inst"];
+    switch_tag [label="Switch tag", shape=diamond];
+    handle_arg [label="Check data.arg.ty"];
+    handle_bin_ops [label="Check data.bin_op.lhs and rhs"];
+    handle_ty_ops [label="Check data.ty_op.ty and operand"];
+    handle_alloc [label="Check data.ty"];
+    handle_block_loop [label="Check type and\nrecursively check sub-body"];
+    handle_un_op [label="Check data.un_op"];
+    handle_br_switch [label="Check data.br.operand"];
+    handle_aggregate_init [label="Check array/struct elements"];
+    handle_call [label="Check args and operand"];
+    handle_cond_br [label="Check then/else bodies"];
+    handle_switch_br [label="Check cases and else body"];
+    return_false [label="Return false", shape=ellipse];
+    continue_loop [label="Continue loop"];
+    
+    start -> loop_start;
+    loop_start -> check_inst [label="inst exists"];
+    check_inst -> switch_tag;
+    
+    switch_tag -> handle_arg [label=".arg"];
+    switch_tag -> handle_bin_ops [label=".add, .sub, etc"];
+    switch_tag -> handle_ty_ops [label=".not, .bitcast, etc"];
+    switch_tag -> handle_alloc [label=".alloc, .ret_ptr"];
+    switch_tag -> handle_block_loop [label=".block, .loop"];
+    switch_tag -> handle_un_op [label=".ret, .is_null, etc"];
+    switch_tag -> handle_br_switch [label=".br, .switch_dispatch"];
+    switch_tag -> handle_aggregate_init [label=".aggregate_init"];
+    switch_tag -> handle_call [label=".call variants"];
+    switch_tag -> handle_cond_br [label=".cond_br"];
+    switch_tag -> handle_switch_br [label=".switch_br"];
+    switch_tag -> continue_loop [label="其他无需检查的指令"];
+    
+    handle_arg -> return_false [label="checkType fails"];
+    handle_arg -> continue_loop [label="OK"];
+    
+    handle_bin_ops -> return_false [label="checkRef fails"];
+    handle_bin_ops -> continue_loop [label="OK"];
+    
+    handle_ty_ops -> return_false [label="checkType/checkRef fails"];
+    handle_ty_ops -> continue_loop [label="OK"];
+    
+    handle_alloc -> return_false [label="checkType fails"];
+    handle_alloc -> continue_loop [label="OK"];
+    
+    handle_block_loop -> return_false [label="checkType fails\n或递归checkBody失败"];
+    handle_block_loop -> continue_loop [label="OK"];
+    
+    handle_un_op -> return_false [label="checkRef fails"];
+    handle_un_op -> continue_loop [label="OK"];
+    
+    handle_br_switch -> return_false [label="checkRef fails"];
+    handle_br_switch -> continue_loop [label="OK"];
+    
+    handle_aggregate_init -> return_false [label="元素检查失败"];
+    handle_aggregate_init -> continue_loop [label="OK"];
+    
+    handle_call -> return_false [label="operand/args检查失败"];
+    handle_call -> continue_loop [label="OK"];
+    
+    handle_cond_br -> return_false [label="then/else body检查失败"];
+    handle_cond_br -> continue_loop [label="OK"];
+    
+    handle_switch_br -> return_false [label="case/else检查失败"];
+    handle_switch_br -> continue_loop [label="OK"];
+    
+    continue_loop -> loop_start [label="下一个inst"];
+    loop_start -> end [label="所有inst处理完成"];
+    
+    return_false -> end [style=invis];  // 实际流程直接退出
+    {rank=same; return_false; end}
+}

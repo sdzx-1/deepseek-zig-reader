@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始"];
+    init [label="初始化变量\ntracy, pt, zcu, gpa等"];
+    parse_inst [label="解析指令数据\n获取src, ty_src, ptr, ptr_inst"];
+    switch [label="switch(ptr_inst的tag)", shape=diamond];
+
+    subgraph cluster_comptime {
+        label="处理.inferred_alloc_comptime分支";
+        comptime_start [label="检查runtime_safety\n重置指令数据"];
+        handle_val [label="处理val类型\n检查是否为FuncBody"];
+        add_ref [label="添加到分析队列\n确保函数体分析"];
+        return_comptime [label="返回resolved_ptr"];
+    }
+
+    subgraph cluster_alloc {
+        label="处理.inferred_alloc分支";
+        alloc_start [label="获取ia1/ia2\n收集peer_vals"];
+        resolve_peer [label="解析final_elem_ty\n构造final_ptr_ty"];
+        validate [label="验证var类型\n检查comptime-only"];
+        replace_inst [label="替换指令为.alloc"];
+        loop_stores [label="循环处理每个store_inst"];
+        replace_store [label="生成替换指令或块"];
+        return_alloc [label="根据is_const返回指针"];
+    }
+
+    unreachable [label="unreachable"];
+
+    start -> init -> parse_inst -> switch;
+    switch -> comptime_start [label=".inferred_alloc_comptime"];
+    comptime_start -> handle_val;
+    handle_val -> add_ref [label="是FuncBody"];
+    add_ref -> return_comptime;
+    handle_val -> return_comptime [label="其他情况"];
+    return_comptime -> end;
+
+    switch -> alloc_start [label=".inferred_alloc"];
+    alloc_start -> resolve_peer -> validate;
+    validate -> replace_inst -> loop_stores;
+    loop_stores -> replace_store -> loop_stores [label="下一个store_inst"];
+    loop_stores -> return_alloc;
+    return_alloc -> end;
+
+    switch -> unreachable [label="其他tag"];
+    end [label="结束"];
+}

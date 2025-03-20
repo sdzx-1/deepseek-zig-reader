@@ -1,0 +1,38 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 genBody"];
+    init_vars [label="初始化变量: pt, zcu, ip, air_tags"];
+    for_loop [label="遍历 body 中的每个指令 inst"];
+    check_unused [label="检查指令是否未使用且无需处理"];
+    skip_inst [label="跳过当前指令"];
+    ensure_capacity [label="确保容量 Liveness.bpi"];
+    reset_reused_operands [label="重置 reused_operands"];
+    switch_air_tags [label="根据 air_tags 处理不同指令类型"];
+    handle_instruction [label="调用对应的处理方法 (如 airBinOp, airCmp 等)"];
+    panic_or_fail [label="触发 panic 或返回错误", shape="diamond"];
+    check_bookkeeping [label="检查 air_bookkeeping 是否正确更新"];
+    panic_bookkeeping [label="触发断言失败"];
+    end_loop [label="结束循环"];
+    end [label="函数结束"];
+
+    start -> init_vars;
+    init_vars -> for_loop;
+    for_loop -> check_unused;
+    check_unused -> skip_inst [label="条件成立"];
+    check_unused -> ensure_capacity [label="条件不成立"];
+    skip_inst -> for_loop;
+    ensure_capacity -> reset_reused_operands;
+    reset_reused_operands -> switch_air_tags;
+    switch_air_tags -> handle_instruction [label="正常处理分支"];
+    switch_air_tags -> panic_or_fail [label="未实现分支 (panic/fail)"];
+    handle_instruction -> check_bookkeeping;
+    panic_or_fail -> end [label="流程终止"];
+    check_bookkeeping -> panic_bookkeeping [label="bookkeeping 错误"];
+    check_bookkeeping -> for_loop [label="bookkeeping 正确"];
+    panic_bookkeeping -> end;
+    for_loop -> end_loop [label="所有指令处理完毕"];
+    end_loop -> end;
+}

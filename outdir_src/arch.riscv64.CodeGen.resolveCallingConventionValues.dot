@@ -1,0 +1,51 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start resolveCallingConventionValues", shape=ellipse];
+    alloc_param_types [label="Allocate param_types array"];
+    fill_params [label="Fill fixed params and var_args into param_types"];
+    init_result [label="Initialize result struct"];
+    check_cc [label="Switch (cc)", shape=diamond];
+    case_naked [label="Case .naked"];
+    set_naked [label="Set return_value and stack_align"];
+    case_riscv64 [label="Case .riscv64_lp64 / .auto"];
+    check_arg_count [label="Check if args.len > 8", shape=diamond];
+    error_arg_count [label="Return error: too many args"];
+    handle_return [label="Handle return value"];
+    process_params [label="Process each parameter type"];
+    param_loop [label="For each param in param_types", shape=box];
+    handle_arg [label="Classify and assign register/memory"];
+    error_arg_class [label="Return error: unknown arg class"];
+    error_cc [label="Return error: unsupported cc"];
+    calc_stack [label="Calculate stack_byte_count"];
+    return_result [label="Return result", shape=ellipse];
+
+    start -> alloc_param_types;
+    alloc_param_types -> fill_params;
+    fill_params -> init_result;
+    init_result -> check_cc;
+
+    check_cc -> case_naked [label=".naked"];
+    case_naked -> set_naked;
+    set_naked -> calc_stack;
+
+    check_cc -> case_riscv64 [label=".riscv64_lp64/.auto"];
+    case_riscv64 -> check_arg_count;
+    check_arg_count -> error_arg_count [label="Yes"];
+    check_arg_count -> handle_return [label="No"];
+    error_arg_count -> return_result [label="Error path"];
+
+    handle_return -> process_params;
+    process_params -> param_loop;
+    param_loop -> handle_arg [label="For each param"];
+    handle_arg -> error_arg_class [label="Unknown class"];
+    handle_arg -> param_loop [label="Continue"];
+    param_loop -> calc_stack [label="Done"];
+
+    check_cc -> error_cc [label="Other cases"];
+    error_cc -> return_result [label="Error path"];
+
+    calc_stack -> return_result;
+}

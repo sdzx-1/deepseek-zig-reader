@@ -1,0 +1,108 @@
+
+digraph genSetMem {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.5];
+    node [fontname="Arial", shape=box, style="rounded"];
+    edge [fontname="Arial"];
+
+    start [label="genSetMem 入口"];
+    end [label="流程结束"];
+
+    // 公共变量定义
+    define_abi_size [label="计算 abi_size = ty.abiSize(zcu)"];
+    define_dst_ptr_mcv [label="根据 base 类型定义 dst_ptr_mcv"];
+
+    // src_mcv 类型分支
+    switch_src_mcv [label="switch(src_mcv)", shape=diamond];
+    undef_case [label="case .undef"];
+    register_offset_case [label="case .register_offset/.memory/..."];
+    register_case [label="case .register"];
+    register_pair_case [label="case .register_pair"];
+    immediate_case [label="case .immediate"];
+    air_ref_case [label="case .air_ref"];
+    default_case [label="default"];
+
+    // undef 分支逻辑
+    undef_sym_check [label="sym_index 存在?", shape=diamond];
+    undef_recursive_call [label="递归调用 genSetMem"];
+    undef_inline_memset [label="调用 genInlineMemset"];
+
+    // register_offset/memory/... 分支逻辑
+    abi_size_zero [label="abi_size == 0?", shape=diamond];
+    alloc_reg [label="分配寄存器 reg"];
+    gen_set_reg [label="调用 genSetReg"];
+    gen_set_mem [label="调用 genSetMem"];
+    inline_memcpy [label="调用 genInlineMemcpy"];
+
+    // register 分支逻辑
+    check_vector [label="reg 是向量寄存器?", shape=diamond];
+    vector_handle [label="设置 VL 寄存器\n生成向量存储指令"];
+    mem_size_logic [label="计算 mem_size"];
+    check_src_size [label="src_size > mem_size?", shape=diamond];
+    frame_alloc [label="分配 frame_index\n生成存储指令"];
+    direct_store [label="直接生成存储指令"];
+
+    // register_pair 分支逻辑
+    split_type [label="拆分类型并遍历"];
+    pair_store [label="逐个调用 genSetMem"];
+
+    // immediate 分支逻辑
+    promote_reg [label="分配寄存器并提升"];
+    imm_recursive_call [label="递归调用 genSetMem"];
+
+    // air_ref 分支逻辑
+    resolve_inst [label="调用 resolveInst\n递归调用 genSetMem"];
+
+    // default 分支逻辑
+    fail_call [label="调用 fail 方法"];
+
+    // 连接节点
+    start -> define_abi_size -> define_dst_ptr_mcv -> switch_src_mcv;
+
+    switch_src_mcv -> undef_case [label=".undef"];
+    switch_src_mcv -> register_offset_case [label=".register_offset/.memory/..."];
+    switch_src_mcv -> register_case [label=".register"];
+    switch_src_mcv -> register_pair_case [label=".register_pair"];
+    switch_src_mcv -> immediate_case [label=".immediate"];
+    switch_src_mcv -> air_ref_case [label=".air_ref"];
+    switch_src_mcv -> default_case [label="其他"];
+
+    // undef 分支
+    undef_case -> undef_sym_check;
+    undef_sym_check -> undef_recursive_call [label="是"];
+    undef_sym_check -> undef_inline_memset [label="否"];
+    undef_recursive_call -> end;
+    undef_inline_memset -> end;
+
+    // register_offset/memory/... 分支
+    register_offset_case -> abi_size_zero;
+    abi_size_zero -> end [label="是"];
+    abi_size_zero -> alloc_reg [label="否 (1/2/4/8)"];
+    alloc_reg -> gen_set_reg -> gen_set_mem -> end;
+    abi_size_zero -> inline_memcpy [label="其他大小"];
+    inline_memcpy -> end;
+
+    // register 分支
+    register_case -> check_vector;
+    check_vector -> vector_handle [label="是"];
+    vector_handle -> end;
+    check_vector -> mem_size_logic [label="否"];
+    mem_size_logic -> check_src_size;
+    check_src_size -> frame_alloc [label="是"];
+    frame_alloc -> direct_store -> end;
+    check_src_size -> direct_store [label="否"];
+
+    // register_pair 分支
+    register_pair_case -> split_type -> pair_store -> end;
+
+    // immediate 分支
+    immediate_case -> promote_reg -> imm_recursive_call -> end;
+
+    // air_ref 分支
+    air_ref_case -> resolve_inst -> end;
+
+    // default 分支
+    default_case -> fail_call -> end;
+
+    // 公共结束点
+    {rank=same; end}
+}

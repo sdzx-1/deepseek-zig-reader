@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start fieldCallBind"];
+    check_ptr_type [label="Check raw_ptr_ty is pointer\nand ptrSize is .one or .c"];
+    check_inner_ty [label="Get inner_ty"];
+    is_double_ptr [label="Is inner_ty a pointer?" shape=diamond];
+    get_concrete_ty [label="Set concrete_ty to inner_ty.childType()"];
+    set_ptr_ty [label="Set ptr_ty to inner_ty"];
+    analyze_load [label="Analyze load for double ptr"];
+    handle_struct [label="Handle struct/tuple case"];
+    check_field_exists [label="Check field exists in struct"];
+    return_field [label="Return resolved field"];
+    handle_union [label="Handle union case"];
+    handle_type [label="Handle type case\n(load namespace)"];
+    check_namespace [label="Check namespace for decl"];
+    check_method_params [label="Check method parameters"];
+    return_method [label="Return method binding"];
+    build_error [label="Build error message"];
+    error_notes [label="Add error notes"];
+    return_error [label="Return error"];
+
+    start -> check_ptr_type;
+    check_ptr_type -> check_inner_ty [label="Valid pointer"];
+    check_ptr_type -> return_error [label="Invalid pointer"];
+
+    check_inner_ty -> is_double_ptr;
+    is_double_ptr -> get_concrete_ty [label="Yes"];
+    is_double_ptr -> set_ptr_ty [label="No"];
+
+    get_concrete_ty -> set_ptr_ty;
+    set_ptr_ty -> analyze_load [label="Double ptr"];
+    set_ptr_ty -> handle_struct [label="Single ptr"];
+    analyze_load -> handle_struct;
+
+    handle_struct -> check_field_exists;
+    check_field_exists -> return_field [label="Found"];
+    check_field_exists -> handle_union [label="Not found"];
+
+    handle_union -> check_field_exists;
+    handle_union -> handle_type [label="Not union"];
+
+    handle_type -> check_namespace;
+    check_namespace -> check_method_params [label="Found decl"];
+    check_namespace -> build_error [label="Not found"];
+
+    check_method_params -> return_method [label="Valid params"];
+    check_method_params -> build_error [label="Invalid params"];
+
+    build_error -> error_notes;
+    error_notes -> return_error;
+}

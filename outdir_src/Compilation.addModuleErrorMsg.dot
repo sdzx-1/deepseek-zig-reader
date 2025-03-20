@@ -1,0 +1,56 @@
+
+digraph addModuleErrorMsg {
+    node [shape=rectangle, style=rounded];
+    start [label="开始 addModuleErrorMsg"];
+    end [label="结束 addModuleErrorMsg"];
+    
+    subgraph cluster_main {
+        label="主处理流程";
+        
+        start -> get_err_source;
+        get_err_source -> handle_err_source_error [label="失败"];
+        handle_err_source_error -> add_root_error_msg;
+        add_root_error_msg -> return_early [label="返回"];
+        
+        get_err_source -> process_err_span [label="成功"];
+        process_err_span -> resolve_ref_trace [label="如果有引用跟踪"];
+        resolve_ref_trace -> collect_ref_traces [label="循环处理引用"];
+        collect_ref_traces -> check_max_refs [label="收集引用跟踪"];
+        check_max_refs -> add_truncated_note [label="引用过多时"];
+        resolve_ref_trace -> add_src_loc [label="添加源位置"];
+        
+        add_src_loc -> process_notes [label="处理错误注释"];
+        process_notes -> deduplicate_notes [label="去重注释"];
+        deduplicate_notes -> add_root_msg_with_notes [label="添加主错误"];
+        add_root_msg_with_notes -> end;
+        
+        return_early [label="提前返回", shape=diamond];
+        return_early -> end [label="直接退出"];
+    }
+
+    subgraph cluster_error_handling {
+        label="错误处理分支";
+        
+        handle_err_source_error [label="处理错误源加载失败"];
+        add_root_error_msg [label="添加根错误消息\n(文件加载失败)"];
+    }
+
+    subgraph cluster_references {
+        label="引用跟踪处理";
+        
+        resolve_ref_trace [label="解析引用跟踪根节点"];
+        collect_ref_traces [label="遍历所有引用\n收集源位置信息"];
+        check_max_refs [label="检查最大引用数限制"];
+        add_truncated_note [label="添加截断提示"];
+    }
+
+    subgraph cluster_notes {
+        label="注释处理";
+        
+        process_notes [label="遍历所有注释"];
+        deduplicate_notes [label="去重相同位置注释\n并合并计数"];
+    }
+
+    edge [color=red, style=dashed];
+    get_err_source -> handle_err_source_error;
+}

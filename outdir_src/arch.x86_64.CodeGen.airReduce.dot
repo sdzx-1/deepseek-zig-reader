@@ -1,0 +1,60 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start airReduce"];
+    check_vector_bool [label="Check if operand_ty is vector\nand child type is bool"];
+    mask_len_minus_one_cast [label="Attempt cast mask_len-1 to u6"];
+    handle_large_mask [label="Handle large mask:\n- Allocate acc_reg\n- Calculate limb_offset\n- Check need_mask\n- Spill operand if needed\n- Generate limb processing loop"];
+    handle_operation [label="Handle operation (Or/And)\n- Generate test/cmp\n- Set eflags"];
+    handle_small_mask_or [label="Handle OR operation:\n- Test with mask\n- Set eflags.nz"];
+    handle_small_mask_and [label="Handle AND operation:\n- Use tmp_reg with NOT\n- Test mask\n- Set eflags.z"];
+    check_operation_type [label="Check operation type (Or/And)"];
+    operand_in_reg_check [label="Check if operand_mcv\nis in register"];
+    copy_to_tmp_reg [label="Copy operand to tmp_reg"];
+    fail_path [label="Return fail() for unsupported type"];
+    finish_air [label="Return finishAir()"];
+
+    start -> check_vector_bool;
+    
+    check_vector_bool -> mask_len_minus_one_cast [label="True"];
+    check_vector_bool -> fail_path [label="False"];
+    
+    mask_len_minus_one_cast -> handle_operation [label="Success"];
+    mask_len_minus_one_cast -> handle_large_mask [label="Failure"];
+    
+    handle_large_mask -> check_operation_type;
+    
+    check_operation_type -> handle_operation_or [label="Or"];
+    check_operation_type -> handle_operation_and [label="And"];
+    
+    handle_operation_or -> generate_test [label="Or"];
+    handle_operation_and -> generate_cmp [label="And"];
+    
+    generate_test -> set_eflags_nz;
+    generate_cmp -> set_eflags_z;
+    
+    handle_operation -> check_operation_type_small [label="Small mask"];
+    
+    check_operation_type_small -> handle_small_mask_or [label="Or"];
+    check_operation_type_small -> handle_small_mask_and [label="And"];
+    
+    handle_small_mask_or -> operand_in_reg_check;
+    operand_in_reg_check -> handle_small_mask_or_direct [label="In reg"];
+    operand_in_reg_check -> copy_to_tmp_reg [label="Not in reg"];
+    
+    copy_to_tmp_reg -> handle_small_mask_or_indirect;
+    
+    handle_small_mask_or_direct -> set_eflags_nz;
+    handle_small_mask_or_indirect -> set_eflags_nz;
+    
+    handle_small_mask_and -> set_eflags_z;
+    
+    set_eflags_nz -> finish_air;
+    set_eflags_z -> finish_air;
+    
+    handle_operation -> fail_path [label="Unsupported operation"];
+    finish_air [shape=oval];
+    fail_path [shape=oval];
+}

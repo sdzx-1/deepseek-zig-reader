@@ -1,0 +1,45 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 cmdTranslateC"];
+    check_params [label="参数检查\n(comp.c_source_files.len == 1)"];
+    init_cache [label="初始化缓存\nCache.Manifest"];
+    hash_calculation [label="计算哈希\n添加随机数和配置"];
+    cache_hit_check [label="缓存命中检查", shape=diamond];
+
+    subgraph cluster_cache_miss {
+        label="缓存未命中处理";
+        build_argv [label="构建命令行参数"];
+        execute_translation [label="执行翻译命令\n(aro/clang)", shape=diamond];
+        handle_deps [label="处理依赖文件"];
+        write_cache [label="写入缓存\n生成.zig文件"];
+        error_handling [label="错误处理\n渲染错误包"];
+
+        build_argv -> execute_translation;
+        execute_translation -> handle_deps [label="clang路径"];
+        execute_translation -> error_handling [label="翻译失败"];
+        handle_deps -> write_cache;
+    }
+
+    output_handling [label="结果输出处理\n(fancy_output/直接输出)"];
+    end [label="结束"];
+
+    start -> check_params;
+    check_params -> init_cache;
+    init_cache -> hash_calculation;
+    hash_calculation -> cache_hit_check;
+
+    cache_hit_check -> output_handling [label="命中"];
+    cache_hit_check -> build_argv [label="未命中"];
+
+    write_cache -> output_handling;
+    error_handling -> end [label="退出进程"];
+
+    output_handling -> end;
+    
+    // Hidden edges for alignment
+    {rank=same; check_params init_cache}
+    {rank=same; cache_hit_check build_argv}
+}

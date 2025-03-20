@@ -1,0 +1,43 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Monospace"];
+    edge [fontname="Monospace"];
+
+    start [label="resolveAnalyzedBlock开始"];
+    initial_asserts [label="断言检查子块指令非空且最后指令为noreturn"];
+    check_block_tag [label="检查block_tag类型"];
+    handle_empty_merges [label="处理merges.results为空的情况"];
+    handle_single_merge [label="处理merges.results为1的情况"];
+    handle_multiple_merges [label="处理merges.results>1的情况"];
+    type_resolution [label="解析合并结果的公共类型"];
+    comptime_check [label="检查是否comptime-only类型"];
+    validate_runtime [label="验证运行时值"];
+    check_merge_allowed [label="检查合并类型是否允许"];
+    update_air_instructions [label="更新AIR指令结构"];
+    coerce_br_operands [label="对break指令操作数进行类型强制"];
+    return_block_ref [label="返回block_inst的引用"];
+    error_handling [label="错误处理"];
+
+    start -> initial_asserts;
+    initial_asserts -> check_block_tag;
+
+    check_block_tag -> handle_empty_merges [label="merges.results.len == 0"];
+    check_block_tag -> handle_single_merge [label="merges.results.len == 1"];
+    check_block_tag -> handle_multiple_merges [label="merges.results.len > 1"];
+
+    handle_empty_merges -> return_block_ref [label="直接追加指令到父块"];
+
+    handle_single_merge -> type_resolution [label="需要运行时块"];
+    handle_single_merge -> return_block_ref [label="可优化指令直接追加"];
+
+    handle_multiple_merges -> type_resolution;
+    type_resolution -> comptime_check;
+    comptime_check -> error_handling [label="发现comptime-only类型"];
+    comptime_check -> validate_runtime [label="类型合法"];
+    validate_runtime -> check_merge_allowed;
+    check_merge_allowed -> update_air_instructions;
+    update_air_instructions -> coerce_br_operands;
+    coerce_br_operands -> return_block_ref;
+
+    error_handling -> return_block_ref [style="dashed", label="返回错误"];
+}

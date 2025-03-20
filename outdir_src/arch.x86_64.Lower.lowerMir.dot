@@ -1,0 +1,74 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 lowerMir 函数"];
+    init_vars [label="初始化结果变量\n(lower.result_insts, lower.result_relocs)"];
+    errdefer [label="设置错误处理 (errdefer)\n重置结果变量"];
+    reset_lengths [label="defer 重置结果长度\n(lower.result_insts_len, lower.result_relocs_len)"];
+    get_inst [label="获取当前指令\nconst inst = lower.mir.instructions.get(index)"];
+    switch_tag [label="switch (inst.tag)", shape=diamond];
+    pseudo_case [label="case .pseudo\n进入伪指令处理"];
+    switch_ops [label="switch (inst.ops)", shape=diamond];
+    handle_pseudo_cmov_z_and_np_rr [label="生成 cmovnz + cmovnp 指令"];
+    handle_pseudo_cmov_nz_or_p_rr [label="生成 cmovnz + cmovp 指令"];
+    handle_pseudo_cmov_nz_or_p_rm [label="生成 cmovnz + cmovp 内存操作"];
+    handle_pseudo_set_z_and_np [label="生成 setz + setnp + and 指令"];
+    handle_pseudo_set_nz_or_p [label="生成 setnz + setp + or 指令"];
+    handle_pseudo_j_z_and_np [label="生成 jnz + jnp 跳转"];
+    handle_pseudo_j_nz_or_p [label="生成 jnz + jp 跳转"];
+    handle_probe_align [label="生成 test + jz + lea + test + jmp\n栈探针对齐"];
+    handle_probe_unrolled [label="while 循环生成多组 test 指令\n栈探针展开调整"];
+    handle_probe_setup [label="生成 mov + sub\n栈探针设置"];
+    handle_probe_loop [label="生成 test + sub + jae\n栈探针循环调整"];
+    handle_cfi_directives [label="处理 CFI 指令\n(.cfi_def_cfa, .cfi_offset 等)"];
+    handle_dbg_directives [label="处理调试伪指令\n(dbg_prologue_end, dbg_line 等)"];
+    default_case [label="其他情况\nunreachable 或空操作"];
+    return_result [label="返回结果\n.insts 和 .relocs 切片"];
+
+    start -> init_vars;
+    init_vars -> errdefer;
+    errdefer -> reset_lengths;
+    reset_lengths -> get_inst;
+    get_inst -> switch_tag;
+
+    switch_tag -> pseudo_case [label=".pseudo"];
+    switch_tag -> handle_generic [label="其他标签"];
+    handle_generic [label="调用 lower.generic(inst)", shape=box];
+    handle_generic -> return_result;
+
+    pseudo_case -> switch_ops;
+    switch_ops -> handle_pseudo_cmov_z_and_np_rr [label=".pseudo_cmov_z_and_np_rr"];
+    switch_ops -> handle_pseudo_cmov_nz_or_p_rr [label=".pseudo_cmov_nz_or_p_rr"];
+    switch_ops -> handle_pseudo_cmov_nz_or_p_rm [label=".pseudo_cmov_nz_or_p_rm"];
+    switch_ops -> handle_pseudo_set_z_and_np [label=".pseudo_set_z_and_np_r/m"];
+    switch_ops -> handle_pseudo_set_nz_or_p [label=".pseudo_set_nz_or_p_r/m"];
+    switch_ops -> handle_pseudo_j_z_and_np [label=".pseudo_j_z_and_np_inst"];
+    switch_ops -> handle_pseudo_j_nz_or_p [label=".pseudo_j_nz_or_p_inst"];
+    switch_ops -> handle_probe_align [label=".pseudo_probe_align_ri_s"];
+    switch_ops -> handle_probe_unrolled [label=".pseudo_probe_adjust_unrolled_ri_s"];
+    switch_ops -> handle_probe_setup [label=".pseudo_probe_adjust_setup_rri_s"];
+    switch_ops -> handle_probe_loop [label=".pseudo_probe_adjust_loop_rr"];
+    switch_ops -> handle_cfi_directives [label=".pseudo_cfi_*"];
+    switch_ops -> handle_dbg_directives [label=".pseudo_dbg_*"];
+    switch_ops -> default_case [label="其他 .pseudo 分支"];
+
+    handle_pseudo_cmov_z_and_np_rr -> return_result;
+    handle_pseudo_cmov_nz_or_p_rr -> return_result;
+    handle_pseudo_cmov_nz_or_p_rm -> return_result;
+    handle_pseudo_set_z_and_np -> return_result;
+    handle_pseudo_set_nz_or_p -> return_result;
+    handle_pseudo_j_z_and_np -> return_result;
+    handle_pseudo_j_nz_or_p -> return_result;
+    handle_probe_align -> return_result;
+    handle_probe_unrolled -> return_result;
+    handle_probe_setup -> return_result;
+    handle_probe_loop -> return_result;
+    handle_cfi_directives -> return_result;
+    handle_dbg_directives -> return_result;
+    default_case -> return_result;
+
+    // 特殊结构：循环处理
+    handle_probe_unrolled -> handle_probe_unrolled [label="offset += page_size", style=dashed];
+}

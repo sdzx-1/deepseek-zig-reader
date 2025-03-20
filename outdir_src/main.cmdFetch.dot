@@ -1,0 +1,46 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+    start [label="开始", shape=ellipse];
+    end [label="退出", shape=ellipse];
+    
+    subgraph cluster_main {
+        label="cmdFetch 流程图";
+        
+        init_check [label="初始化检查\ndev.check(.fetch_command)"];
+        parse_args [label="解析命令行参数\n循环处理每个参数"];
+        validate_path [label="验证路径/URL\n检查 opt_path_or_url"];
+        init_thread_http [label="初始化线程池和 HTTP 客户端"];
+        setup_progress [label="设置进度跟踪\nroot_prog_node"];
+        handle_cache [label="处理全局缓存目录"];
+        init_job_queue [label="初始化作业队列\njob_queue"];
+        run_fetch [label="执行获取操作\nfetch.run()"];
+        error_handling [label="错误处理\n检查 error_bundle"];
+        handle_save [label="处理保存选项\n根据 save 类型"];
+        update_manifest [label="更新清单文件\n检查现有依赖项"];
+        write_manifest [label="写入 build.zig.zon"];
+        cleanup [label="清理资源\n关闭句柄、释放内存"];
+
+        start -> init_check;
+        init_check -> parse_args;
+        parse_args -> validate_path [label="参数解析完成"];
+        validate_path -> init_thread_http [label="存在 path_or_url"];
+        init_thread_http -> setup_progress;
+        setup_progress -> handle_cache;
+        handle_cache -> init_job_queue;
+        init_job_queue -> run_fetch;
+        run_fetch -> error_handling [label="捕获错误"];
+        error_handling -> handle_save [label="无错误"];
+        handle_save -> update_manifest [label="需要保存"];
+        update_manifest -> write_manifest;
+        write_manifest -> cleanup;
+        cleanup -> end;
+
+        // 错误处理分支
+        error_handling -> end [label="存在错误\n渲染错误并退出"];
+
+        // 参数解析中的致命错误
+        parse_args -> end [label="致命错误\nfatal() 调用"];
+        validate_path -> end [label="缺少参数\nfatal() 调用"];
+    }
+}

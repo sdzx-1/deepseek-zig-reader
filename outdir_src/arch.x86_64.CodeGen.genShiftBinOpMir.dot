@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="genShiftBinOpMir开始"];
+    check_abi_size_16 [label="abi_size > 16?"];
+    handle_large_shift [label="处理大整数移位（abi_size>16）"];
+    check_shift_imm_zero [label="移位值是0？"];
+    lock_rcx [label="锁定RCX寄存器"];
+    alloc_temp_regs [label="分配4个临时寄存器"];
+    handle_shift_direction [label="根据tag选择左移/右移逻辑"];
+    generate_loop [label="生成循环处理多精度移位"];
+    check_shift_imm_remaining [label="检查剩余移位位数"];
+    cleanup_temp_regs [label="释放临时寄存器"];
+    handle_small_shift [label="处理小整数移位（abi_size≤16）"];
+    check_shift_mcv [label="移位值是立即数/寄存器？"];
+    lock_rcx_small [label="锁定RCX寄存器"];
+    handle_register_pair [label="处理寄存器对操作"];
+    handle_memory_shift [label="处理内存中的移位"];
+    finalize [label="生成最终移位指令"];
+    error_handling [label="错误处理/断言"];
+    end [label="返回"];
+
+    start -> check_abi_size_16;
+
+    check_abi_size_16 -> handle_large_shift [label="是"];
+    check_abi_size_16 -> handle_small_shift [label="否"];
+
+    handle_large_shift -> check_shift_imm_zero;
+    check_shift_imm_zero -> end [label="是"];
+    check_shift_imm_zero -> lock_rcx [label="否"];
+    lock_rcx -> alloc_temp_regs;
+    alloc_temp_regs -> handle_shift_direction;
+    handle_shift_direction -> generate_loop;
+    generate_loop -> check_shift_imm_remaining;
+    check_shift_imm_remaining -> cleanup_temp_regs [label="无剩余"];
+    check_shift_imm_remaining -> generate_loop [label="有剩余"];
+    cleanup_temp_regs -> finalize;
+
+    handle_small_shift -> check_shift_mcv;
+    check_shift_mcv -> lock_rcx_small [label="需要RCX"];
+    check_shift_mcv -> handle_register_pair [label="寄存器对"];
+    check_shift_mcv -> handle_memory_shift [label="内存操作"];
+    lock_rcx_small -> handle_register_pair;
+    handle_register_pair -> finalize;
+    handle_memory_shift -> finalize;
+
+    finalize -> error_handling;
+    error_handling -> end;
+
+    edge [style=invis];
+    {rank=same; handle_large_shift handle_small_shift}
+    {rank=same; check_shift_imm_zero lock_rcx_small}
+}

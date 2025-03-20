@@ -1,0 +1,55 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier New", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier New"];
+
+    start [label="开始 coerceInMemoryAllowedPtrs"];
+    check_ptr_size [label="检查指针大小:\n(src.size == dest.size) 或其中一个是.c?"];
+    ptr_size_error [label="返回 ptr_size 错误"];
+    check_const [label="检查常量性:\n(src.is_const == dest.is_const) 或\n(!dest_is_mut 且 dest.is_const)"];
+    const_error [label="返回 ptr_const 错误"];
+    check_volatile [label="检查 volatile:\n(src.is_volatile == dest.is_volatile) 或\n(!dest_is_mut 且 dest.is_volatile)"];
+    volatile_error [label="返回 ptr_volatile 错误"];
+    check_allowzero [label="检查 allowzero:\n(src.allowzero == dest.allowzero) 或\n(!dest_is_mut 且 dest.allowzero)"];
+    allowzero_error [label="返回 ptr_allowzero 错误"];
+    check_addrspace [label="地址空间是否相同?"];
+    addrspace_error [label="返回 ptr_addrspace 错误"];
+    check_child [label="递归检查子类型\n(coerceInMemoryAllowed)"];
+    child_error [label="返回 ptr_child 错误"];
+    check_bit_range [label="检查 packed offset:\nhost_size 和 bit_offset 是否相同?"];
+    bit_range_error [label="返回 ptr_bit_range 错误"];
+    check_sentinel [label="检查 sentinel 兼容性"];
+    sentinel_error [label="返回 ptr_sentinel 错误"];
+    check_alignment [label="检查对齐要求:\n计算实际对齐并比较"];
+    alignment_error [label="返回 ptr_alignment 错误"];
+    ok [label="返回 .ok"];
+
+    start -> check_ptr_size;
+    
+    check_ptr_size -> ptr_size_error [label="否"];
+    check_ptr_size -> check_const [label="是"];
+    
+    check_const -> const_error [label="否"];
+    check_const -> check_volatile [label="是"];
+    
+    check_volatile -> volatile_error [label="否"];
+    check_volatile -> check_allowzero [label="是"];
+    
+    check_allowzero -> allowzero_error [label="否"];
+    check_allowzero -> check_addrspace [label="是"];
+    
+    check_addrspace -> addrspace_error [label="不同"];
+    check_addrspace -> check_child [label="相同"];
+    
+    check_child -> child_error [label="失败且\n!dest_is_mut"];
+    check_child -> check_bit_range [label="成功或允许特殊数组情况"];
+    
+    check_bit_range -> bit_range_error [label="不同"];
+    check_bit_range -> check_sentinel [label="相同"];
+    
+    check_sentinel -> sentinel_error [label="不兼容"];
+    check_sentinel -> check_alignment [label="兼容"];
+    
+    check_alignment -> alignment_error [label="对齐不满足"];
+    check_alignment -> ok [label="对齐满足"];
+}

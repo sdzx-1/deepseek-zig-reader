@@ -1,0 +1,37 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect];
+    edge [fontname="Helvetica"];
+    rankdir=TB;
+
+    start [label="Start: targetTriple()", shape=ellipse];
+    init [label="Initialize llvm_triple ArrayList"];
+    process_arch [label="Process CPU Arch:\nSwitch(target.cpu.arch)\nDetermine llvm_arch"];
+    process_subarch [label="Process Sub-Arch:\nCall subArchName() for ARM/PowerPC/SPIR-V"];
+    check_subarch [label="Sub-Arch exists?", shape=diamond];
+    add_subarch [label="Append Sub-Arch to llvm_triple"];
+    add_vendor [label="Add Vendor:\nSwitch(target.os.tag)\n(e.g., apple/ibm/amd)"];
+    process_os [label="Process OS Name:\nSwitch(target.os.tag)\n(e.g., linux/windows)"];
+    process_os_version [label="Process OS Version:\nFormat version based on semver/linux/hurd"];
+    add_abi [label="Add ABI:\nSwitch(target.abi)\n(e.g., gnu/musl/msvc)"];
+    handle_glibc_android [label="Check Glibc/Android version\nand append if needed"];
+    return_result [label="Return llvm_triple.toOwnedSlice()", shape=ellipse];
+
+    start -> init;
+    init -> process_arch;
+    process_arch -> process_subarch;
+    process_subarch -> check_subarch;
+    check_subarch -> add_subarch [label="Yes"];
+    check_subarch -> add_vendor [label="No"];
+    add_subarch -> add_vendor;
+    add_vendor -> process_os;
+    process_os -> process_os_version;
+    process_os_version -> add_abi;
+    add_abi -> handle_glibc_android;
+    handle_glibc_android -> return_result;
+
+    // Invisible edges to enforce ordering
+    { rank=same; process_subarch check_subarch }
+    { rank=same; add_vendor process_os }
+    { rank=same; process_os_version add_abi }
+}

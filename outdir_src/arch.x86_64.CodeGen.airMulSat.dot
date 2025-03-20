@@ -1,0 +1,37 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start airMulSat"];
+    check_i128 [label="Check if type is i128"];
+    call_muloti4 [label="Call __muloti4\nAllocate temp registers"];
+    handle_i128 [label="Resolve lhs/rhs\nGenerate asm (mov/xor/not/cmp/cmov)"];
+    check_vector [label="Check if vector or size >8"];
+    fail_todo [label="Return TODO error"];
+    spill_registers [label="Spill registers (rax, rcx, rdx)"];
+    resolve_operands [label="Resolve lhs/rhs operands"];
+    gen_set_reg [label="Generate limit_reg\n(XOR/SA/XOR or set max)"];
+    gen_mul [label="Generate mul operation"];
+    cmov_overflow [label="Conditional move (cmovcc)"];
+    finish [label="Finish and return result"];
+
+    start -> check_i128;
+    
+    check_i128 -> call_muloti4 [label="Yes"];
+    check_i128 -> check_vector [label="No"];
+    
+    call_muloti4 -> handle_i128;
+    handle_i128 -> finish [label="Break result"];
+    
+    check_vector -> fail_todo [label="Yes"];
+    check_vector -> spill_registers [label="No"];
+    
+    spill_registers -> resolve_operands;
+    resolve_operands -> gen_set_reg;
+    gen_set_reg -> gen_mul;
+    gen_mul -> cmov_overflow;
+    cmov_overflow -> finish;
+    
+    fail_todo -> finish;
+}

@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize="10"];
+    edge [fontname="Courier", fontsize="10"];
+
+    start [label="开始 getNavShdrIndex"];
+    check_function_type [label="nav_val 是函数类型吗？"];
+    handle_text_section [label="处理 .text 节\n添加 SHT_PROGBITS/SHF_EXECINSTR 节"];
+    check_threadlocal [label="any_non_single_threaded && is_threadlocal?"];
+    check_bss_tls [label="检查 TLS BSS 条件\n(code 全为0且无重定位)"];
+    handle_tbss [label="处理 .tbss 节\n添加 SHT_NOBITS/TLS 节"];
+    handle_tdata [label="处理 .tdata 节\n添加 SHT_PROGBITS/TLS 节"];
+    check_const [label="is_const 为真?"];
+    handle_data_relro [label="处理 .data.rel.ro 节"];
+    check_init_undef [label="nav_init 未定义且优化模式?"];
+    handle_debug_data [label="处理 .data 节（Debug/ReleaseSafe）"];
+    handle_release_bss [label="处理 .bss 节（ReleaseFast/Small）"];
+    check_bss_common [label="检查通用 BSS 条件\n(code 全为0且无重定位)"];
+    handle_bss [label="处理 .bss 节"];
+    handle_data [label="处理 .data 节"];
+    return [label="返回 osec 索引", shape=oval];
+
+    start -> check_function_type;
+
+    // 函数类型分支
+    check_function_type -> handle_text_section [label="是"];
+    handle_text_section -> return;
+
+    // 非函数类型分支
+    check_function_type -> check_threadlocal [label="否"];
+
+    // TLS 分支
+    check_threadlocal -> check_bss_tls [label="是"];
+    check_bss_tls -> handle_tbss [label="是"];
+    check_bss_tls -> handle_tdata [label="否"];
+    handle_tbss -> return;
+    handle_tdata -> return;
+
+    // 非 TLS 分支
+    check_threadlocal -> check_const [label="否"];
+
+    // 常量分支
+    check_const -> handle_data_relro [label="是"];
+    handle_data_relro -> return;
+
+    // 非常量分支
+    check_const -> check_init_undef [label="否"];
+    check_init_undef -> handle_debug_data [label="Debug/ReleaseSafe"];
+    check_init_undef -> handle_release_bss [label="ReleaseFast/Small"];
+    handle_debug_data -> return;
+    handle_release_bss -> return;
+
+    // 未命中初始化检查的分支
+    check_init_undef -> check_bss_common [label="其他情况"];
+    check_bss_common -> handle_bss [label="是"];
+    check_bss_common -> handle_data [label="否"];
+    handle_bss -> return;
+    handle_data -> return;
+}

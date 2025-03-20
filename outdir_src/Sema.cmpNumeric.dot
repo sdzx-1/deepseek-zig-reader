@@ -1,0 +1,39 @@
+
+digraph cmpNumeric {
+    node [shape=rectangle, fontname="Courier"];
+    start [label="Start cmpNumeric"];
+    get_types [label="Get lhs_ty and rhs_ty"];
+    assert_numeric [label="Assert both are numeric"];
+    handle_comptime_float [label="Handle comptime_float coercion:\n- lhs to rhs_ty if rhs is float\n- rhs to lhs_ty if lhs is float"];
+    resolve_values [label="Resolve maybe_lhs_val and maybe_rhs_val"];
+    check_lhs_special [label="Check lhs special cases:\n- Out-of-bounds int comparison\n- NaN\n- Inf vs int"];
+    check_rhs_special [label="Check rhs special cases:\n- Out-of-bounds int comparison\n- NaN\n- Inf vs int"];
+    check_undef [label="Return undef if either value is undef"];
+    runtime_check [label="Check if runtime evaluation is needed"];
+    handle_floats [label="Determine dest_ty for floats:\n- Choose larger float type\n- Coerce both operands"];
+    handle_ints [label="Determine dest_ty for ints:\n- Signedness and bit width logic\n- Coerce both operands"];
+    generate_float_cmp [label="Generate float comparison instruction"];
+    generate_int_cmp [label="Generate int comparison instruction"];
+    end [label="Return comparison result"];
+
+    start -> get_types;
+    get_types -> assert_numeric;
+    assert_numeric -> handle_comptime_float;
+    handle_comptime_float -> resolve_values;
+    resolve_values -> check_lhs_special;
+    check_lhs_special -> check_rhs_special;
+    check_rhs_special -> check_undef;
+    check_undef -> runtime_check;
+    runtime_check -> handle_floats [label="Both are floats"];
+    runtime_check -> handle_ints [label="Mixed or integers"];
+    handle_floats -> generate_float_cmp;
+    handle_ints -> generate_int_cmp;
+    generate_float_cmp -> end;
+    generate_int_cmp -> end;
+    
+    // Special case branches
+    check_lhs_special -> end [label="Return early for\nspecial cases"];
+    check_rhs_special -> end [label="Return early for\nspecial cases"];
+    check_undef -> end [label="Return undef"];
+    runtime_check -> end [label="Direct comparison\nif both values known"];
+}

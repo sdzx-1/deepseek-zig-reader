@@ -1,0 +1,74 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始"];
+    check_generic_poison [label="dest_ty.isGenericPoison()?"];
+    return_inst_generic [label="返回 inst"];
+    check_types_equal [label="dest_ty.eql(inst_ty)?"];
+    return_inst_equal [label="返回 inst"];
+    resolve_maybe_inst_val [label="解析 maybe_inst_val"];
+    coerce_in_memory [label="调用 coerceInMemoryAllowed"];
+    handle_in_memory_ok [label="In Memory 允许?"];
+    coerce_in_memory_val [label="处理值并返回"];
+    require_runtime_block [label="请求运行时块"];
+    bitcast_and_check [label="位转换并检查指针"];
+    switch_dest_type [label="根据 dest_ty 的类型标签分支"];
+    optional_handling [label="处理 Optional 类型"];
+    pointer_handling [label="处理 Pointer 类型"];
+    int_float_handling [label="处理 Int/Float 类型"];
+    error_handling [label="错误处理分支"];
+    generate_error_msg [label="生成错误消息"];
+    return_error [label="返回错误"];
+    check_undef [label="检查 undef 值"];
+    return_undef [label="返回 undef"];
+    final_check [label="最终检查是否可转换"];
+    not_coercible [label="返回 NotCoercible"];
+
+    start -> check_generic_poison;
+    check_generic_poison -> return_inst_generic [label="是"];
+    check_generic_poison -> check_types_equal [label="否"];
+    check_types_equal -> return_inst_equal [label="是"];
+    check_types_equal -> resolve_maybe_inst_val [label="否"];
+    resolve_maybe_inst_val -> coerce_in_memory;
+    coerce_in_memory -> handle_in_memory_ok;
+    handle_in_memory_ok -> coerce_in_memory_val [label=".ok"];
+    handle_in_memory_ok -> switch_dest_type [label="其他"];
+    coerce_in_memory_val -> require_runtime_block [label="需要运行时块"];
+    require_runtime_block -> bitcast_and_check;
+    bitcast_and_check -> switch_dest_type;
+    switch_dest_type -> optional_handling [label=".optional"];
+    switch_dest_type -> pointer_handling [label=".pointer"];
+    switch_dest_type -> int_float_handling [label=".int/.float"];
+    switch_dest_type -> error_handling [label="其他类型"];
+
+    optional_handling -> check_undef;
+    check_undef -> return_undef [label="是"];
+    check_undef -> pointer_conversion [label="检查指针转换"];
+
+    pointer_handling -> handle_c_ptr [label="处理 C 指针"];
+    pointer_handling -> anyopaque_conversion [label="转 anyopaque"];
+    pointer_handling -> slice_conversion [label="切片转换"];
+
+    int_float_handling -> handle_comptime [label="编译时检查"];
+    int_float_handling -> runtime_cast [label="运行时转换"];
+
+    error_handling -> generate_error_msg;
+    generate_error_msg -> return_error;
+
+    final_check -> not_coercible [label="不可转换"];
+    final_check -> check_undef [label="可转换且为 undef"];
+
+    edge [style=dashed];
+    optional_handling -> coerceExtra_recursive [label="递归调用 coerceExtra"];
+    coerceExtra_recursive -> wrap_optional [label="包装 Optional"];
+    wrap_optional -> return_result;
+
+    subgraph cluster_recursion {
+        label="递归处理";
+        coerceExtra_recursive;
+        wrap_optional;
+        return_result [label="返回结果"];
+    }
+}

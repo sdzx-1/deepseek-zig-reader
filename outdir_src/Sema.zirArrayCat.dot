@@ -1,0 +1,84 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: zirArrayCat", shape=ellipse];
+    end [label="返回结果", shape=ellipse];
+    tracy [label="tracy跟踪开始"];
+    resolve_inst [label="解析ZIR指令数据\n获取lhs和rhs"];
+    check_tuple [label="检查lhs和rhs是否为元组"];
+    analyze_tuple [label="调用analyzeTupleCat"];
+    get_array_info [label="调用getArrayCatInfo\n检查可索引性"];
+    check_indexable [label="检查是否可索引"];
+    fail_lhs [label="返回错误: lhs不可索引"];
+    fail_rhs [label="返回错误: rhs不可索引"];
+    resolve_elem_type [label="解析元素类型\n创建临时块进行类型推断"];
+    sentinel_check [label="哨兵值匹配检查"];
+    handle_sentinel [label="处理哨兵值转换\n并确定最终哨兵"];
+    calc_length [label="计算总长度\n处理溢出"];
+    check_overflow [label="检查长度溢出"];
+    fail_overflow [label="返回溢出错误"];
+    build_result_ty [label="构建结果数组类型"];
+    check_ptr_addrspace [label="检查指针地址空间"];
+    runtime_check [label="确定是否需要运行时处理"];
+    memcpy_hotpath [label="指针模式: 使用memcpy优化"];
+    alloc_memory [label="分配内存\n处理可变/常量指针"];
+    loop_copy_lhs [label="循环复制lhs元素"];
+    loop_copy_rhs [label="循环复制rhs元素"];
+    store_sentinel [label="存储哨兵值"];
+    aggregate_init [label="生成聚合初始化结果"];
+    return_alloc [label="返回分配的内存"];
+
+    start -> tracy;
+    tracy -> resolve_inst;
+    resolve_inst -> check_tuple;
+
+    check_tuple -> analyze_tuple [label="均为元组"];
+    check_tuple -> get_array_info [label="非元组或单侧元组"];
+
+    analyze_tuple -> end;
+
+    get_array_info -> check_indexable;
+    check_indexable -> fail_lhs [label="lhs不可索引"];
+    check_indexable -> fail_rhs [label="rhs不可索引"];
+    check_indexable -> resolve_elem_type [label="均可索引"];
+
+    resolve_elem_type -> sentinel_check;
+    sentinel_check -> handle_sentinel;
+    handle_sentinel -> calc_length;
+    calc_length -> check_overflow;
+    check_overflow -> fail_overflow [label="溢出"];
+    check_overflow -> build_result_ty [label="正常"];
+    fail_overflow -> end;
+
+    build_result_ty -> check_ptr_addrspace;
+    check_ptr_addrspace -> runtime_check [label="存在指针地址空间"];
+    check_ptr_addrspace -> runtime_check [label="无指针地址空间"];
+
+    runtime_check -> memcpy_hotpath [label="双指针模式"];
+    runtime_check -> alloc_memory [label="其他情况"];
+
+    memcpy_hotpath -> loop_copy_lhs;
+    loop_copy_lhs -> loop_copy_rhs;
+    loop_copy_rhs -> store_sentinel;
+    store_sentinel -> return_alloc;
+    return_alloc -> end;
+
+    alloc_memory -> loop_copy_lhs;
+    loop_copy_rhs -> store_sentinel;
+
+    runtime_check -> aggregate_init [label="非指针模式"];
+    aggregate_init -> end;
+
+    fail_lhs -> end;
+    fail_rhs -> end;
+
+    // 虚线表示隐式控制流
+    edge [style=dashed];
+    resolve_inst -> end [label="错误路径"];
+    check_indexable -> end [label="错误路径"];
+    sentinel_check -> end [label="错误路径"];
+    handle_sentinel -> end [label="错误路径"];
+    store_sentinel -> end [label="错误路径"];
+}

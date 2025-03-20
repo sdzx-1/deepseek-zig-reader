@@ -1,0 +1,65 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airIntCast"];
+    get_info [label="获取源类型(src_ty)和目标类型(dst_ty)"];
+    check_vector [label="dst_ty 是向量类型吗？", shape=diamond];
+
+    subgraph cluster_vector {
+        label="处理向量类型";
+        vector_lt [label="元素大小: dst < src"];
+        vector_eq [label="元素大小: dst = src\n重用操作数或拷贝"];
+        vector_gt [label="元素大小: dst > src"];
+        vector_lt -> handle_lt;
+        vector_eq -> handle_eq;
+        vector_gt -> handle_gt;
+
+        handle_lt [label="生成窄化指令\n处理AVX/SSE差异"];
+        handle_eq [label="直接重用或拷贝"];
+        handle_gt [label="生成扩展指令\n处理符号扩展/零扩展"];
+    }
+
+    subgraph cluster_scalar {
+        label="处理标量类型";
+        scalar_min [label="确定最小类型(min_ty)"];
+        scalar_reuse [label="可重用操作数吗？", shape=diamond];
+        scalar_alloc [label="分配寄存器/内存"];
+        scalar_truncate [label="截断寄存器或内存"];
+        scalar_extend [label="处理高位扩展\n(符号/零扩展)"];
+    }
+
+    start -> get_info;
+    get_info -> check_vector;
+
+    check_vector -> vector_lt [label="是"];
+    check_vector -> scalar_min [label="否"];
+
+    vector_lt -> mir_tag_select [label="选择MIR指令"];
+    mir_tag_select -> gen_code [label="生成机器码"];
+    gen_code -> result_mcv;
+
+    scalar_min -> scalar_reuse;
+    scalar_reuse -> scalar_alloc [label="否"];
+    scalar_reuse -> reuse_operand [label="是"];
+    scalar_alloc -> gen_copy;
+    gen_copy -> scalar_truncate;
+    scalar_truncate -> scalar_extend;
+    scalar_extend -> check_high_bits;
+
+    check_high_bits [label="高位需要处理吗？", shape=diamond];
+    check_high_bits -> handle_high [label="是"];
+    check_high_bits -> finish [label="否"];
+
+    handle_high [label="生成高位填充\n(符号扩展/零扩展)"];
+    handle_high -> finish;
+
+    result_mcv [label="返回结果MCValue"];
+    reuse_operand [label="直接重用操作数"];
+    gen_copy [label="生成拷贝指令"];
+
+    finish [label="完成air指令\n返回结果"];
+    result_mcv -> finish;
+    reuse_operand -> finish;
+}

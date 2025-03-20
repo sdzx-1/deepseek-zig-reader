@@ -1,0 +1,117 @@
+
+digraph writeToMemory {
+    graph [fontname="Arial", nodesep=0.5, ranksep=1];
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="Start writeToMemory", shape=ellipse, fillcolor="#c0ffc0"];
+    end [label="Return", shape=ellipse, fillcolor="#ffc0c0"];
+    error [label="Error Return", shape=ellipse, fillcolor="#ffc0c0"];
+
+    subgraph cluster_main {
+        label="Main Logic";
+        is_undef [label="val.isUndef(zcu)?", shape=diamond];
+        handle_undef [label="@memset(buffer, 0xaa\nReturn"];
+        type_switch [label="Switch ty.zigTypeTag(zcu)", shape=hexagon];
+        
+        // Type handlers
+        void [label="Case: void\n(No operation)"];
+        bool [label="Case: bool\nbuffer[0] = @intFromBool()"];
+        int_enum [label="Case: int/enum/error/pointer\nHandle integer types"];
+        float [label="Case: float\nWrite IEEE bytes"];
+        array [label="Case: array\nRecursive element write"];
+        vector [label="Case: vector\nCall writeToPackedMemory"];
+        struct [label="Case: struct\nHandle struct layouts"];
+        union [label="Case: union\nHandle union layouts"];
+        optional [label="Case: optional\nHandle optional value"];
+        default [label="Default case\nReturn Unimplemented error"];
+
+        // Common operations
+        handle_bigint [label="Convert to BigInt\nWrite two's complement"];
+        recursive_call [label="Recursive writeToMemory call", shape=box3d];
+    }
+
+    start -> is_undef;
+    is_undef -> handle_undef [label="Yes"];
+    is_undef -> type_switch [label="No"];
+    handle_undef -> end;
+
+    type_switch -> void;
+    type_switch -> bool;
+    type_switch -> int_enum;
+    type_switch -> float;
+    type_switch -> array;
+    type_switch -> vector;
+    type_switch -> struct;
+    type_switch -> union;
+    type_switch -> optional;
+    type_switch -> default [label="else"];
+
+    // Void case
+    void -> end;
+
+    // Bool case
+    bool -> end;
+
+    // Integer/enum/pointer case
+    int_enum -> handle_bigint [label="Handle integer\nconvert/write"];
+    handle_bigint -> end;
+
+    // Float case
+    float -> end;
+
+    // Array case
+    array -> recursive_call [label="For each element"];
+    recursive_call -> array [label="Next element"];
+    array -> end [label="Loop complete"];
+
+    // Vector case
+    vector -> end [label="via writeToPackedMemory"];
+
+    // Struct case
+    struct -> struct_layout [label="Handle layout"];
+    struct_layout [label="struct_type.layout", shape=diamond];
+    struct_layout -> struct_extern [label="extern"];
+    struct_layout -> struct_packed [label="packed"];
+    struct_layout -> error [label="auto"];
+
+    subgraph cluster_struct {
+        struct_extern [label="For each field:\nWrite at offset"];
+        struct_extern -> recursive_call;
+        recursive_call -> struct_extern [label="Next field"];
+        struct_packed [label="Call writeToPackedMemory"];
+    }
+    struct_extern -> end;
+    struct_packed -> end;
+
+    // Union case
+    union -> union_layout [label="containerLayout"];
+    union_layout [label="containerLayout", shape=diamond];
+    union_layout -> union_extern [label="extern"];
+    union_layout -> union_packed [label="packed"];
+    union_layout -> error [label="auto"];
+
+    union_extern -> union_tag_check [label="Has tag?"];
+    union_tag_check [shape=diamond];
+    union_tag_check -> write_active_field [label="Yes"];
+    union_tag_check -> write_backing [label="No"];
+
+    write_active_field -> recursive_call;
+    write_backing -> recursive_call;
+    union_packed -> writeToPackedMemory [label="Call"];
+    writeToPackedMemory [shape=box3d];
+    writeToPackedMemory -> end;
+
+    // Optional case
+    optional -> check_optional [label="isPtrLikeOptional?"];
+    check_optional [shape=diamond];
+    check_optional -> error [label="No"];
+    check_optional -> write_optional [label="Yes"];
+    write_optional [label="Write some/null value"];
+    write_optional -> recursive_call;
+    recursive_call -> end;
+
+    // Error paths
+    default -> error;
+    error [xlabel="Multiple error\nreturn points"];
+}

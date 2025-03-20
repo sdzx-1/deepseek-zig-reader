@@ -1,0 +1,45 @@
+
+digraph reifyUnion_flowchart {
+    node [shape=rectangle, style=rounded];
+    edge [fontsize=10];
+
+    start [label="开始 reifyUnion"];
+    init_vars [label="初始化变量\n(pt, zcu, gpa, ip)"];
+    calc_fields_len [label="计算 fields_len"];
+    init_hasher [label="初始化哈希器"];
+    process_fields [label="遍历每个字段:\n- 获取字段名、类型、对齐值\n- 更新哈希\n- 检查对齐值是否非零"];
+    check_any_aligns [label="any_aligns = 存在非零对齐值?", shape=diamond];
+    get_wip_type [label="尝试获取现有类型或创建 WIP 类型"];
+    existing_type [label="返回现有类型引用"];
+    handle_tag_type [label="处理标签类型", shape=diamond];
+    explicit_tag [label="显式标签类型验证:\n- 检查是否为枚举类型\n- 确保字段对应枚举项\n- 检查重复项"];
+    generate_tag [label="生成标签类型:\n- 收集字段名\n- 创建枚举类型"];
+    check_field_types [label="检查每个字段类型:\n- 不允许 opaque 类型\n- 符合 extern/packed 布局要求"];
+    setup_union [label="设置联合类型信息:\n- 字段类型/对齐\n- 标签类型\n- 完成类型构建"];
+    return_result [label="返回 Air 引用"];
+    error_handling [label="错误处理", shape=octagon, color=red];
+
+    start -> init_vars;
+    init_vars -> calc_fields_len;
+    calc_fields_len -> init_hasher;
+    init_hasher -> process_fields;
+    process_fields -> check_any_aligns;
+    check_any_aligns -> get_wip_type [label="是/否"];
+    get_wip_type -> existing_type [label="存在"];
+    get_wip_type -> handle_tag_type [label="创建 WIP"];
+
+    handle_tag_type -> explicit_tag [label="有显式标签"];
+    handle_tag_type -> generate_tag [label="无显式标签"];
+    explicit_tag -> check_field_types;
+    generate_tag -> check_field_types;
+
+    check_field_types -> setup_union [label="所有字段有效"];
+    setup_union -> return_result;
+
+    // 错误路径
+    process_fields -> error_handling [label="字段处理错误"];
+    get_wip_type -> error_handling [label="创建失败"];
+    explicit_tag -> error_handling [label="验证失败"];
+    generate_tag -> error_handling [label="生成失败"];
+    check_field_types -> error_handling [label="类型无效"];
+}

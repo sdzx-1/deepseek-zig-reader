@@ -1,0 +1,122 @@
+
+digraph readFromPackedMemory {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle];
+    edge [fontname="Arial"];
+
+    start [label="Start readFromPackedMemory", shape=ellipse];
+    end [label="Return Value", shape=ellipse];
+    error [label="Error Handling:\nIllDefinedMemoryLayout\nOutOfMemory", shape=hexagon];
+
+    start -> switch_ty_tag;
+
+    subgraph cluster_switch {
+        label="Switch on ty.zigTypeTag(zcu)";
+        switch_ty_tag [label="Type Tag Switch", shape=diamond];
+        
+        switch_ty_tag -> void [label="void"];
+        switch_ty_tag -> bool [label="bool"];
+        switch_ty_tag -> int [label="int"];
+        switch_ty_tag -> enum [label="enum"];
+        switch_ty_tag -> float [label="float"];
+        switch_ty_tag -> vector [label="vector"];
+        switch_ty_tag -> struct [label="struct"];
+        switch_ty_tag -> union [label="union"];
+        switch_ty_tag -> pointer [label="pointer"];
+        switch_ty_tag -> optional [label="optional"];
+        switch_ty_tag -> todo [label="else"];
+    }
+
+    // Void case
+    void [label="Return Value.void"];
+    void -> end;
+
+    // Bool case
+    bool [label="Get byte from buffer\nbased on endianness"];
+    bool -> check_bit;
+    check_bit [label="Check bit (bit_offset % 8)", shape=diamond];
+    check_bit -> return_false [label="0"];
+    check_bit -> return_true [label="1"];
+    return_false [label="Return Value.false"];
+    return_true [label="Return Value.true"];
+    return_false -> end;
+    return_true -> end;
+
+    // Int case
+    int [label="Check bits <= 64", shape=diamond];
+    int -> fast_path [label="Yes"];
+    int -> slow_path [label="No"];
+    fast_path [label="Read u64/i64\nvia readVarPackedInt"];
+    fast_path -> pt_int_value;
+    pt_int_value [label="pt.intValue(ty, ...)"];
+    pt_int_value -> end;
+    slow_path [label="Alloc limbs_buffer\nConstruct BigInt"];
+    slow_path -> bigint_init;
+    bigint_init [label="bigint.readPackedTwosComplement(...)"];
+    bigint_init -> pt_int_value_big;
+    pt_int_value_big [label="pt.intValue_big(...)"];
+    pt_int_value_big -> end;
+
+    // Enum case
+    enum [label="Read underlying int\nvia recursive call"];
+    enum -> get_coerced;
+    get_coerced [label="pt.getCoerced(...)"];
+    get_coerced -> end;
+
+    // Float case
+    float [label="Read packed float\nbased on bit-width"];
+    float -> intern_float;
+    intern_float [label="pt.intern(...)"];
+    intern_float -> end;
+
+    // Vector case
+    vector [label="Iterate elements\nreverse order if big-endian"];
+    vector -> recursive_vector_elements;
+    recursive_vector_elements [label="Recursive readFromPackedMemory\nfor each element"];
+    recursive_vector_elements -> intern_aggregate;
+    intern_aggregate [label="pt.intern(.aggregate)"];
+    intern_aggregate -> end;
+
+    // Struct case
+    struct [label="Iterate struct fields"];
+    struct -> recursive_struct_fields;
+    recursive_struct_fields [label="Recursive readFromPackedMemory\nfor each field"];
+    recursive_struct_fields -> intern_aggregate;
+
+    // Union case
+    union [label="Read backing type\nvia recursive call"];
+    union -> intern_union;
+    intern_union [label="pt.internUnion(...)"];
+    intern_union -> end;
+
+    // Pointer case
+    pointer [label="Read usize\nvia recursive call"];
+    pointer -> intern_ptr;
+    intern_ptr [label="pt.intern(.ptr)"];
+    intern_ptr -> end;
+
+    // Optional case
+    optional [label="Read child type\nvia recursive call"];
+    optional -> check_zero;
+    check_zero [label="Check child_val == 0", shape=diamond];
+    check_zero -> return_none [label="EQ"];
+    check_zero -> return_child [label="GT"];
+    return_none [label="Return .none"];
+    return_child [label="Return child_val"];
+    return_none -> intern_opt;
+    return_child -> intern_opt;
+    intern_opt [label="pt.intern(.opt)"];
+    intern_opt -> end;
+
+    // Error handling
+    slow_path -> error [label="Alloc failure"];
+    recursive_vector_elements -> error [label="Possible errors"];
+    recursive_struct_fields -> error;
+    enum -> error [label="Possible errors"];
+    // ...其他可能出错的路径连接到error节点
+
+    todo [label="@panic(\"TODO...\")", shape=octagon];
+    todo -> end;
+
+    error -> end [style=dashed];
+}

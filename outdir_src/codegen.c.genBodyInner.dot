@@ -1,0 +1,61 @@
+
+digraph genBodyInner {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+    
+    // 入口节点
+    start [label="genBodyInner(f, body)"];
+    start -> loop;
+
+    // 主循环
+    loop [label="for (body) |inst|"];
+    start -> loop;
+
+    // 循环内部检查
+    check_naked [label="检查是否在naked函数中"];
+    loop -> check_naked;
+    check_naked -> check_unused [label="否"];
+    check_naked -> fail_naked [label="是"];
+    
+    fail_naked [label="f.fail(...)"];
+    fail_naked -> end;
+
+    // 检查未使用指令
+    check_unused [label="检查指令是否未使用"];
+    check_unused -> process_inst [label="需要处理"];
+    check_unused -> loop [label="跳过"];
+
+    // 处理指令的switch结构
+    process_inst [label="switch(air_tags[inst])"];
+    check_unused -> process_inst;
+
+    // 主要分支示例（实际应包含所有case）
+    subgraph cluster_switch {
+        label="指令处理分支";
+        style=dashed;
+        
+        // 典型分支示例
+        arg_case [label=".arg\n调用airArg"];
+        bin_op_case [label=".add/.sub/.mul\n调用airBinOp"];
+        builtin_case [label="内置函数调用\n如airUnBuiltinCall"];
+        ret_case [label=".ret/.br\n直接return"];
+        todo_case [label="未实现指令\n返回TODO错误"];
+        
+        process_inst -> {arg_case, bin_op_case, builtin_case, ret_case, todo_case};
+    }
+
+    // 处理结果映射
+    handle_result [label="处理result_value\n存入value_map"];
+    {arg_case bin_op_case builtin_case} -> handle_result;
+    handle_result -> loop;
+
+    // 直接返回的路径
+    ret_case -> end;
+
+    // 错误处理路径
+    todo_case -> end [label="返回错误"];
+
+    // 循环结束后的不可达节点
+    end [label="unreachable"];
+    loop -> end [label="循环结束"];
+}

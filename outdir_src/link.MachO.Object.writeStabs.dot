@@ -1,0 +1,68 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 writeStabs"];
+    define_writeFuncStab [label="定义 writeFuncStab 结构"];
+    check_compile_unit [label="检查 self.compile_unit 是否存在？", shape=diamond];
+    process_compile_unit [label="处理 compile_unit"];
+    process_stab_files [label="处理 stab_files"];
+    open_scope_comp_dir [label="打开作用域:\n写入 N_SO comp_dir 到 symtab"];
+    copy_comp_dir [label="复制 comp_dir 到 strtab"];
+    open_scope_tu_name [label="写入 N_SO tu_name 到 symtab"];
+    copy_tu_name [label="复制 tu_name 到 strtab"];
+    write_oso_path [label="写入 N_OSO path 到 symtab"];
+    process_symbols [label="遍历 self.symbols.items"];
+    check_symbol_conditions [label="过滤符号条件\n(文件匹配、output_symtab 等)", shape=diamond];
+    check_sect_code [label="sect.isCode()?", shape=diamond];
+    call_writeFuncStab [label="调用 writeFuncStab\n写入4个符号项"];
+    handle_global_symbol [label="写入 N_GSYM 到 symtab"];
+    handle_stsym [label="写入 N_STSYM 到 symtab"];
+    close_scope [label="关闭作用域:\n写入 N_SO 结束标记"];
+    process_stab_files_loop [label="遍历 self.stab_files.items"];
+    process_stab_file [label="处理单个 stab_file"];
+    process_stabs [label="遍历 sf.stabs.items"];
+    check_stab_conditions [label="过滤符号条件", shape=diamond];
+    check_stab_is_func [label="stab.is_func?", shape=diamond];
+    end [label="结束"];
+
+    start -> define_writeFuncStab;
+    define_writeFuncStab -> check_compile_unit;
+
+    check_compile_unit -> process_compile_unit [label="是"];
+    check_compile_unit -> process_stab_files [label="否"];
+
+    // Compile Unit 分支
+    process_compile_unit -> open_scope_comp_dir;
+    open_scope_comp_dir -> copy_comp_dir;
+    copy_comp_dir -> open_scope_tu_name;
+    open_scope_tu_name -> copy_tu_name;
+    copy_tu_name -> write_oso_path;
+    write_oso_path -> process_symbols;
+
+    process_symbols -> check_symbol_conditions;
+    check_symbol_conditions -> check_sect_code [label="符合条件"];
+    check_sect_code -> call_writeFuncStab [label="是"];
+    check_sect_code -> handle_global_symbol [label="否\n且 visibility=global"];
+    check_sect_code -> handle_stsym [label="否\n其他情况"];
+
+    call_writeFuncStab -> close_scope;
+    handle_global_symbol -> close_scope;
+    handle_stsym -> close_scope;
+
+    close_scope -> end;
+
+    // Stab Files 分支
+    process_stab_files -> process_stab_files_loop;
+    process_stab_files_loop -> process_stab_file;
+    process_stab_file -> open_scope_comp_dir [label="类似 compile_unit 流程"];
+    process_stab_file -> process_stabs;
+    process_stabs -> check_stab_conditions;
+    check_stab_conditions -> check_stab_is_func [label="符合条件"];
+    check_stab_is_func -> call_writeFuncStab [label="是"];
+    check_stab_is_func -> handle_global_symbol [label="否\nvisibility=global"];
+    check_stab_is_func -> handle_stsym [label="否\n其他情况"];
+    process_stab_file -> close_scope [label="关闭作用域"];
+    process_stab_files_loop -> end [label="遍历结束"];
+}

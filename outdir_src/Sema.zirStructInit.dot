@@ -1,0 +1,83 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start zirStructInit", shape=ellipse];
+    resolve_type [label="Resolve first field type"];
+    check_type_known [label="Type known?", shape=diamond];
+    anon_struct [label="Handle anon struct init\n(structInitAnon)"];
+    get_resolved_ty [label="Get resolved_ty (base type)"];
+    check_struct [label="resolved_ty is struct?", shape=diamond];
+    handle_struct [label="Handle struct initialization"];
+    check_union [label="resolved_ty is union?", shape=diamond];
+    handle_union [label="Handle union initialization"];
+    end [label="Return result", shape=ellipse];
+
+    // 主流程分支
+    start -> resolve_type;
+    resolve_type -> check_type_known;
+    check_type_known:w -> anon_struct [label="No"];
+    check_type_known:e -> get_resolved_ty [label="Yes"];
+    get_resolved_ty -> check_struct;
+
+    // 结构体处理分支
+    check_struct:s -> handle_struct [label="Yes"];
+    check_struct:ne -> check_union [label="No"];
+    handle_struct -> end;
+
+    // 联合体处理分支
+    check_union:s -> handle_union [label="Yes"];
+    check_union:ne -> end [label="其他类型\n(unreachable)"];
+    handle_union -> end;
+
+    // 匿名结构体分支
+    anon_struct -> end;
+
+    // 结构体处理子流程
+    subgraph cluster_struct {
+        label="Struct Initialization";
+        struct_start [label="Allocate found_fields\nfield_inits\nfield_assign_idxs"];
+        loop_fields [label="Loop through fields", shape=box];
+        check_packed [label="Is packed?", shape=diamond];
+        validate_default [label="Validate default value"];
+        finish_struct [label="Call finishStructInit"];
+
+        handle_struct -> struct_start;
+        struct_start -> loop_fields;
+        loop_fields -> check_packed;
+        check_packed:e -> validate_default [label="No"];
+        check_packed:w -> loop_fields [label="Continue loop"];
+        validate_default -> loop_fields;
+        loop_fields -> finish_struct [label="Loop end"];
+        finish_struct -> end;
+    }
+
+    // 联合体处理子流程
+    subgraph cluster_union {
+        label="Union Initialization";
+        check_fields_len [label="fields_len == 1?", shape=diamond];
+        error_fields [label="Fail: union需要1个字段"];
+        resolve_field [label="解析字段名/类型"];
+        check_noreturn [label="字段类型是noreturn?", shape=diamond];
+        error_noreturn [label="Fail: 不能初始化noreturn字段"];
+        handle_value [label="处理初始化值"];
+        check_comptime [label="是否是编译时常量?", shape=diamond];
+        runtime_init [label="运行时初始化流程"];
+        return_result [label="返回联合体结果"];
+
+        handle_union -> check_fields_len;
+        check_fields_len:s -> error_fields [label="No"];
+        check_fields_len:n -> resolve_field [label="Yes"];
+        resolve_field -> check_noreturn;
+        check_noreturn:s -> error_noreturn [label="Yes"];
+        check_noreturn:n -> handle_value [label="No"];
+        handle_value -> check_comptime;
+        check_comptime:s -> runtime_init [label="No"];
+        check_comptime:n -> return_result [label="Yes"];
+        runtime_init -> return_result;
+        return_result -> end;
+        error_fields -> end;
+        error_noreturn -> end;
+    }
+}

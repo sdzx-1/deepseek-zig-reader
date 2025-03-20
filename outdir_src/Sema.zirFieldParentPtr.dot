@@ -1,0 +1,57 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier"];
+
+    start [label="开始: zirFieldParentPtr函数入口"];
+    parse_params [label="解析参数\n提取Zir指令数据"];
+    check_ptr_type [label="检查parent_ptr_ty\n是否为单指针"];
+    verify_parent_type [label="验证parent_ty\n是否为struct/union"];
+    resolve_field_name [label="解析字段名\n获取field_index"];
+    check_comptime_field [label="检查是否comptime字段"];
+    process_field_ptr [label="处理field_ptr类型\n获取指针信息"];
+    container_layout [label="根据容器布局类型处理:\n-auto/extern/packed"];
+    generate_ptr_types [label="生成actual_field_ptr_ty\n和actual_parent_ptr_ty"];
+    resolve_value [label="尝试解析field_ptr的值"];
+    handle_extern_struct [label="处理extern结构体\n计算字节偏移"];
+    handle_packed_struct [label="处理packed结构体\n计算位偏移"];
+    handle_union [label="处理union类型\n指针强制转换"];
+    check_ptr_base [label="验证指针是否基于父结构"];
+    runtime_inst [label="生成运行时指令"];
+    ptr_cast [label="执行ptrCastFull操作"];
+    error_return [label="返回错误", fillcolor="#ffdddd"];
+    success_return [label="返回结果", fillcolor="#ddffdd"];
+
+    start -> parse_params;
+    parse_params -> check_ptr_type;
+    check_ptr_type -> verify_parent_type [label="是单指针"];
+    check_ptr_type -> error_return [label="非单指针"];
+
+    verify_parent_type -> resolve_field_name [label="struct/union"];
+    verify_parent_type -> error_return [label="其他类型"];
+
+    resolve_field_name -> check_comptime_field;
+    check_comptime_field -> process_field_ptr [label="非comptime"];
+    check_comptime_field -> error_return [label="comptime字段"];
+
+    process_field_ptr -> container_layout;
+    container_layout -> generate_ptr_types [label="auto布局"];
+    container_layout -> handle_extern_struct [label="extern布局"];
+    container_layout -> handle_packed_struct [label="packed布局"];
+
+    generate_ptr_types -> resolve_value;
+    resolve_value -> handle_extern_struct [label="值存在\n且为extern结构体"];
+    resolve_value -> handle_packed_struct [label="值存在\n且为packed结构体"];
+    resolve_value -> handle_union [label="值存在\n且为union"];
+    resolve_value -> check_ptr_base [label="值存在\n基础指针验证"];
+    resolve_value -> runtime_inst [label="值不存在"];
+
+    handle_extern_struct -> ptr_cast;
+    handle_packed_struct -> ptr_cast;
+    handle_union -> ptr_cast;
+    check_ptr_base -> ptr_cast [label="验证通过"];
+    check_ptr_base -> error_return [label="验证失败"];
+    runtime_inst -> ptr_cast;
+
+    ptr_cast -> success_return;
+}

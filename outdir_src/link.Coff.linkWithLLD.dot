@@ -1,0 +1,54 @@
+
+digraph linkWithLLD {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start linkWithLLD", shape=ellipse];
+    check_lld [label="Check LLD linker availability"];
+    init_paths [label="Initialize paths:\n- full_out_path\n- module_obj_path"];
+    sub_prog_node [label="Create LLD progress node"];
+    cache_check [label="Cache enabled?", shape=diamond];
+    hash_inputs [label="Hash inputs and dependencies"];
+    read_prev_digest [label="Read previous digest"];
+    digest_match [label="Digest matches?", shape=diamond];
+    skip_invocation [label="Skip LLD invocation\nLock cache", shape=ellipse];
+    delete_old_digest [label="Delete old digest file"];
+    output_mode_obj [label="Output mode is .Obj?", shape=diamond];
+    copy_object_file [label="Copy object file"];
+    build_lld_command [label="Build LLD command line"];
+    add_subsystem [label="Add subsystem flags"];
+    handle_mode [label="Handle mode (uefi/win32)"];
+    add_crt [label="Add CRT libraries"];
+    add_libs [label="Add Windows libraries"];
+    spawn_lld [label="Spawn LLD process"];
+    write_digest [label="Write new digest\nUpdate cache"];
+    end [label="End", shape=ellipse];
+
+    start -> check_lld;
+    check_lld -> init_paths;
+    init_paths -> sub_prog_node;
+    sub_prog_node -> cache_check;
+
+    cache_check -> hash_inputs [label="Yes"];
+    hash_inputs -> read_prev_digest;
+    read_prev_digest -> digest_match;
+    digest_match -> skip_invocation [label="Match"];
+    digest_match -> delete_old_digest [label="No match"];
+    delete_old_digest -> output_mode_obj;
+
+    cache_check -> output_mode_obj [label="No"];
+
+    output_mode_obj -> copy_object_file [label="Yes"];
+    copy_object_file -> end;
+
+    output_mode_obj -> build_lld_command [label="No"];
+    build_lld_command -> add_subsystem;
+    add_subsystem -> handle_mode;
+    handle_mode -> add_crt;
+    add_crt -> add_libs;
+    add_libs -> spawn_lld;
+    spawn_lld -> write_digest;
+
+    write_digest -> end;
+    skip_invocation -> end;
+}

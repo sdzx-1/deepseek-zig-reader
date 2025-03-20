@@ -1,0 +1,96 @@
+
+digraph doTask {
+    graph [fontname="Arial", bgcolor="#f0f0f0"];
+    node [shape=box, fontname="Arial", style="rounded,filled", fillcolor="#e0e0e0"];
+    edge [fontname="Arial"];
+
+    start [label="Start doTask(comp, tid, task)", shape=ellipse];
+    end [label="Return from doTask", shape=ellipse];
+    switch_task [label="Switch task", shape=diamond];
+
+    start -> switch_task;
+
+    // Common elements
+    subgraph cluster_common {
+        label="Common Patterns";
+        comp_check [label="comp.bin_file exists?", shape=diamond];
+        remaining_dec [label="comp.remaining_prelink_tasks -= 1"];
+        prog_start [label="Create progress node"];
+        prog_end [label="End progress node (defer)"];
+    }
+
+    // Task cases
+    subgraph cluster_main {
+        label="Task Cases";
+        
+        // .load_explicitly_provided
+        load_explicitly_provided [label="Case: load_explicitly_provided"];
+        loop_inputs [label="For each link_input", shape=box];
+        load_input [label="base.loadInput(input)"];
+        input_errors [label="Error Handling", shape=diamond];
+        input_switch [label="Switch input type", shape=diamond];
+        error_report [label="diags.addParseError(...)"];
+
+        // .load_host_libc
+        load_host_libc [label="Case: load_host_libc"];
+        loop_flags [label="For each flag", shape=box];
+        mode_switch [label="Switch link_mode", shape=diamond];
+        dynamic_path [label="Build DSO path"];
+        static_path [label="Build static path"];
+        open_error [label="Error Handling", shape=diamond];
+
+        // Other cases (collapsed for brevity)
+        load_object [label="Case: load_object"];
+        load_archive [label="Case: load_archive"];
+        load_dso [label="Case: load_dso"];
+        codegen_nav [label="Case: codegen_nav"];
+        codegen_func [label="Case: codegen_func"];
+        codegen_type [label="Case: codegen_type"];
+        update_line [label="Case: update_line_number"];
+    }
+
+    // Main connections
+    switch_task -> load_explicitly_provided [label=".load_explicitly_provided"];
+    switch_task -> load_host_libc [label=".load_host_libc"];
+    switch_task -> load_object [label=".load_object"];
+    switch_task -> load_archive [label=".load_archive"];
+    switch_task -> load_dso [label=".load_dso"];
+    switch_task -> codegen_nav [label=".codegen_nav"];
+    switch_task -> codegen_func [label=".codegen_func"];
+    switch_task -> codegen_type [label=".codegen_type"];
+    switch_task -> update_line [label=".update_line_number"];
+
+    // .load_explicitly_provided flow
+    load_explicitly_provided -> comp_check;
+    comp_check -> remaining_dec [label="Yes"];
+    remaining_dec -> prog_start;
+    prog_start -> loop_inputs;
+    loop_inputs -> load_input;
+    load_input -> input_errors [label="catch"];
+    input_errors -> input_switch [label="error"];
+    input_switch -> error_report [label="input type"];
+    error_report -> prog_end;
+    load_input -> prog_end [label="success"];
+    prog_end -> end;
+
+    // .load_host_libc flow
+    load_host_libc -> comp_check;
+    comp_check -> remaining_dec [label="Yes"];
+    remaining_dec -> prog_start;
+    prog_start -> loop_flags;
+    loop_flags -> mode_switch;
+    mode_switch -> dynamic_path [label=".dynamic"];
+    dynamic_path -> open_error [label="base.openLoadDso()"];
+    open_error -> static_path [label="FileNotFound"];
+    open_error -> error_report [label="other errors"];
+    mode_switch -> static_path [label=".static"];
+    static_path -> open_error [label="base.openLoadArchive()"];
+    error_report -> prog_end;
+    prog_end -> end;
+
+    // Simplified error handling
+    error_report -> end [label="error.LinkFailure"];
+
+    // Default connection for normal exit
+    {rank=same; prog_end end}
+}

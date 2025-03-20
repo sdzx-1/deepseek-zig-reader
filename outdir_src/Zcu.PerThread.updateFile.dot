@@ -1,0 +1,52 @@
+
+digraph updateFile_flowchart {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle];
+    edge [fontname="Arial"];
+
+    start [label="Start updateFile"];
+    initial_checks [label="Initial checks:\n- dev.check(.ast_gen)\n- Assert non-builtin module"];
+    open_file [label="Open source file\nGet file stat"];
+    decide_lock [label="Check file.status:\n- never_loaded/retry_failure → Shared lock\n- astgen_failure/success → Check metadata"];
+    metadata_unchanged [label="Metadata unchanged?", shape=diamond];
+    return_early [label="Return early"];
+    clear_errors [label="Lock and clear\nfile compile errors"];
+    preserve_prev_zir [label="Preserve previous ZIR\nif needed"];
+    unload_resources [label="Unload source/AST/ZIR/ZOIR"];
+    create_cache_file [label="Create/open cache file\nHandle macOS ENOENT special case"];
+    load_cache [label="Load ZIR/ZOIR cache\nCheck result"];
+    cache_valid [label="Cache valid?", shape=diamond];
+    need_update [label="Need update?", shape=diamond];
+    read_source [label="Read source content\nParse AST"];
+    generate_zir_zoir [label="Generate ZIR/ZOIR\nSave to cache"];
+    update_stats [label="Update file.stat"];
+    check_errors [label="Check for compile errors\nUpdate file status"];
+    final_status [label="Return based on\nfinal status"];
+    end [label="End"];
+
+    start -> initial_checks;
+    initial_checks -> open_file;
+    open_file -> decide_lock;
+    decide_lock -> metadata_unchanged;
+    metadata_unchanged -> return_early [label="Yes"];
+    metadata_unchanged -> clear_errors [label="No"];
+    return_early -> end;
+    clear_errors -> preserve_prev_zir;
+    preserve_prev_zir -> unload_resources;
+    unload_resources -> create_cache_file;
+    create_cache_file -> load_cache;
+    load_cache -> cache_valid;
+    cache_valid -> need_update [label="Invalid/Stale"];
+    cache_valid -> update_stats [label="Success"];
+    need_update -> read_source [label="Yes"];
+    need_update -> update_stats [label="No"];
+    read_source -> generate_zir_zoir;
+    generate_zir_zoir -> update_stats;
+    update_stats -> check_errors;
+    check_errors -> final_status;
+    final_status -> end;
+
+    // Loop handling for cache validation
+    load_cache -> load_cache [label="Retry if\nmacOS ENOENT", style=dashed];
+    create_cache_file -> load_cache [label="Retry on\nPathAlreadyExists", style=dashed];
+}

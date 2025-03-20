@@ -1,0 +1,40 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start resolveCallingConventionValues"];
+    init_result [label="Initialize result with .args allocation"];
+    check_cc [label="Switch on calling convention (cc)"];
+    handle_naked [label="Case .naked:\n- Assert no args\n- Set return_value to unreach\n- stack_byte_count=0\n- stack_align=1"];
+    handle_aarch64 [label="Case aarch64 variants:\n- Initialize ncrn/nsaa\n- Handle return type\n- Loop params:\n  - Check alignment\n  - Alloc registers or stack"];
+    handle_auto [label="Case .auto:\n- Handle return type\n- Loop params:\n  - Calculate stack offsets"];
+    handle_else [label="Default case:\nReturn fail()"];
+    process_return [label="Process return value:\n- Check noreturn\n- Check zero-size types\n- Handle error/small/large returns"];
+    loop_params [label="Loop through parameters:\n- Check param_size\n- Assign registers or stack\n- Update ncrn/nsaa"];
+    set_stack [label="Set stack_byte_count and stack_align"];
+    return [label="Return result"];
+    errdefer [label="errdefer: Free result.args"];
+
+    start -> init_result;
+    init_result -> check_cc;
+    check_cc -> handle_naked [label=".naked"];
+    check_cc -> handle_aarch64 [label="aarch64_*"];
+    check_cc -> handle_auto [label=".auto"];
+    check_cc -> handle_else [label="else"];
+
+    handle_naked -> return;
+    
+    handle_aarch64 -> process_return;
+    process_return -> loop_params;
+    loop_params -> set_stack;
+    set_stack -> return;
+
+    handle_auto -> process_return [label="Handle return"];
+    process_return -> loop_params [label="Loop params (stack)"];
+    loop_params -> set_stack;
+    
+    handle_else -> return [label="Fail path"];
+
+    init_result -> errdefer [style="dashed", constraint=false];
+}

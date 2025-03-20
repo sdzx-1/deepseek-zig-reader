@@ -1,0 +1,102 @@
+
+digraph hasRuntimeBitsInner {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="Start: hasRuntimeBitsInner(...)", shape=ellipse, fillcolor="#c0ffc0"];
+    end_true [label="Return true", shape=ellipse, fillcolor="#ffc0c0"];
+    end_false [label="Return false", shape=ellipse, fillcolor="#ffc0c0"];
+    error_needed [label="Error: NeedLazy", shape=ellipse, fillcolor="#ffc0c0"];
+
+    // Main switch structure
+    start -> switch_ty_intern;
+    switch_ty_intern [label="Switch ty.toIntern()"];
+
+    // Empty tuple case
+    switch_ty_intern -> case_empty_tuple [label=".empty_tuple_type"];
+    case_empty_tuple [label="Return false"];
+    case_empty_tuple -> end_false;
+
+    // Other cases branch
+    switch_ty_intern -> switch_ip_key [label="else → ip.indexToKey(...)"];
+
+    // IP key switch structure
+    switch_ip_key [label="Switch ip.indexToKey(...)"];
+
+    // Int type
+    switch_ip_key -> case_int_type [label=".int_type"];
+    case_int_type [label="int_type.bits != 0 ?"];
+    case_int_type -> end_true [label="Yes"];
+    case_int_type -> end_false [label="No"];
+
+    // Pointer type logic
+    switch_ip_key -> case_ptr_type [label=".ptr_type"];
+    case_ptr_type [label="ignore_comptime_only?"];
+    case_ptr_type -> end_true [label="Yes"];
+    case_ptr_type -> switch_strat_ptr [label="No"];
+    switch_strat_ptr [label="Switch strat"];
+    switch_strat_ptr -> sema_ptr [label=".sema"];
+    sema_ptr [label="Check comptimeOnlySema"];
+    sema_ptr -> end_true [label="false"];
+    sema_ptr -> end_false [label="true"];
+    switch_strat_ptr -> eager_ptr [label=".eager"];
+    eager_ptr [label="Check comptimeOnly(zcu)"];
+    eager_ptr -> end_true [label="false"];
+    eager_ptr -> end_false [label="true"];
+    switch_strat_ptr -> error_needed [label=".lazy"];
+
+    // Array type logic
+    switch_ip_key -> case_array_type [label=".array_type"];
+    case_array_type [label="len > 0 && check child type"];
+    case_array_type -> check_child_array [label="Yes"];
+    check_child_array [label="Recursive call on child"];
+    check_child_array -> end_true [label="true"];
+    check_child_array -> end_false [label="false"];
+    case_array_type -> end_false [label="No"];
+
+    // Struct type logic
+    switch_ip_key -> case_struct_type [label=".struct_type"];
+    case_struct_type [label="Check struct fields"];
+    case_struct_type -> resolve_fields [label="Resolve fields"];
+    resolve_fields -> loop_fields;
+    loop_fields [label="Loop through fields"];
+    loop_fields -> field_has_bits [label="Next field"];
+    field_has_bits [label="Check field type"];
+    field_has_bits -> end_true [label="true"];
+    field_has_bits -> loop_fields [label="false"];
+    loop_fields -> end_false [label="All fields checked"];
+
+    // Union type logic
+    switch_ip_key -> case_union_type [label=".union_type"];
+    case_union_type [label="Check union fields and tags"];
+    case_union_type -> check_tag_type [label="Check tag type"];
+    check_tag_type -> end_true [label="true"];
+    check_tag_type -> loop_union_fields [label="false"];
+    loop_union_fields [label="Loop through union fields"];
+    loop_union_fields -> check_union_field [label="Next field"];
+    check_union_field [label="Check field type"];
+    check_union_field -> end_true [label="true"];
+    check_union_field -> loop_union_fields [label="false"];
+    loop_union_fields -> end_false [label="All fields checked"];
+
+    // Error cases and other types
+    switch_ip_key -> end_true [label=".anyframe_type,.error_union_type,..."];
+    switch_ip_key -> end_false [label=".func_type"];
+    switch_ip_key -> end_true [label=".opaque_type"];
+    switch_ip_key -> check_enum_tag [label=".enum_type"];
+    check_enum_tag [label="Check enum tag type"];
+    check_enum_tag -> end_true [label="true"];
+    check_enum_tag -> end_false [label="false"];
+
+    // Unreachable cases
+    switch_ip_key -> unreachable [label="values/memoization types"];
+    unreachable [label="unreachable", shape=ellipse, fillcolor="#ffc0c0"];
+
+    // Connect all end nodes
+    end_true -> end;
+    end_false -> end;
+    error_needed -> end;
+    unreachable -> end;
+    end [shape=point];
+}

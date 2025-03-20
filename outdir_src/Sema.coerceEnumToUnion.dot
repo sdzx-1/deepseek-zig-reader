@@ -1,0 +1,57 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize="10"];
+    edge [fontname="Courier", fontsize="10"];
+
+    start [label="Start coerceEnumToUnion"];
+    check_tag_ty [label="Check if union_ty has a tag type"];
+    err_no_tag [label="生成错误：无法将枚举转换为无标签联合"];
+    coerce_enum [label="尝试将inst强制转换为tag_ty"];
+    resolve_val [label="尝试解析enum_tag的值"];
+    val_exists [label="值是否存在？"];
+    find_field_index [label="查找联合中对应的字段索引"];
+    check_noreturn [label="字段类型是否为noreturn？"];
+    err_noreturn [label="生成错误：无法初始化noreturn字段"];
+    check_one_possible_value [label="字段是否有唯一可能的值？"];
+    err_need_init [label="生成错误：必须初始化字段"];
+    return_opv [label="返回联合值的Air引用"];
+    require_runtime_block [label="需要运行时块"];
+    check_nonexhaustive [label="tag_ty是否为非穷举枚举？"];
+    err_nonexhaustive [label="生成错误：运行时转换非穷举枚举"];
+    check_noreturn_fields [label="检查联合是否有noreturn字段"];
+    err_has_noreturn [label="生成错误：联合包含noreturn字段"];
+    check_zero_bit_fields [label="联合是否全零比特字段？"];
+    return_bitcast [label="返回位转换结果"];
+    err_non_void_fields [label="生成错误：联合存在非空字段"];
+    end [label="End"];
+
+    start -> check_tag_ty;
+    check_tag_ty -> err_no_tag [label="无tag_ty"];
+    check_tag_ty -> coerce_enum [label="有tag_ty"];
+    coerce_enum -> resolve_val;
+    resolve_val -> val_exists;
+    val_exists -> find_field_index [label="存在"];
+    val_exists -> require_runtime_block [label="不存在"];
+    find_field_index -> check_noreturn [label="找到索引"];
+    check_noreturn -> err_noreturn [label="是"];
+    check_noreturn -> check_one_possible_value [label="否"];
+    check_one_possible_value -> err_need_init [label="否"];
+    check_one_possible_value -> return_opv [label="是"];
+    require_runtime_block -> check_nonexhaustive;
+    check_nonexhaustive -> err_nonexhaustive [label="是"];
+    check_nonexhaustive -> check_noreturn_fields [label="否"];
+    check_noreturn_fields -> err_has_noreturn [label="存在noreturn"];
+    check_noreturn_fields -> check_zero_bit_fields [label="无noreturn"];
+    check_zero_bit_fields -> return_bitcast [label="是"];
+    check_zero_bit_fields -> err_non_void_fields [label="否"];
+
+    // 错误处理统一指向end
+    err_no_tag -> end;
+    err_noreturn -> end;
+    err_need_init -> end;
+    err_nonexhaustive -> end;
+    err_has_noreturn -> end;
+    err_non_void_fields -> end;
+    return_opv -> end;
+    return_bitcast -> end;
+}

@@ -1,0 +1,66 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect, style=rounded];
+
+    start [label="开始", shape=ellipse];
+    resolve_inst [label="解析指令和操作数\n获取scalar_ty, operand, operand_ty"];
+    determine_use_op [label="判断use_operator\n(scalar_ty位宽<=64?)", shape=diamond];
+    select_op [label="根据reduce.operation\n和类型选择操作符类型", shape=diamond];
+    init_accum [label="分配accum变量\n设置初始值"];
+    vectorize_start [label="开始向量化处理\n(v = Vectorize.start)"];
+    generate_code [label="根据op类型生成代码\n(builtin/infix/ternary)"];
+    vectorize_end [label="结束向量化处理\n(v.end)"];
+    return_accum [label="返回accum", shape=ellipse];
+
+    // 条件分支节点
+    op_and [label="operation 是 And?", shape=diamond];
+    op_or [label="operation 是 Or?", shape=diamond];
+    op_xor [label="operation 是 Xor?", shape=diamond];
+    op_min [label="operation 是 Min?", shape=diamond];
+    op_max [label="operation 是 Max?", shape=diamond];
+    op_add [label="operation 是 Add?", shape=diamond];
+    op_mul [label="operation 是 Mul?", shape=diamond];
+    
+    // 类型判断分支
+    tag_int [label="类型是 int?", shape=diamond];
+    tag_float [label="类型是 float?", shape=diamond];
+    tag_bool [label="类型是 bool?", shape=diamond];
+
+    start -> resolve_inst;
+    resolve_inst -> determine_use_op;
+
+    // use_operator判断
+    determine_use_op -> select_op [label="是"];
+    determine_use_op -> select_op [label="否"];
+
+    // 主操作选择分支
+    select_op -> op_and;
+    select_op -> op_or;
+    select_op -> op_xor;
+    select_op -> op_min;
+    select_op -> op_max;
+    select_op -> op_add;
+    select_op -> op_mul;
+
+    // And分支
+    op_and -> tag_int [label="是"];
+    tag_int -> init_accum [label="int类型\n选择infix或builtin"];
+    
+    // Or/Xor分支类似处理
+    op_or -> tag_bool;
+    tag_bool -> init_accum [label="设置初始值"];
+
+    // Min/Max分支
+    op_min -> tag_int;
+    tag_int -> init_accum [label="int用三元操作\nfloat用builtin"];
+
+    // Add/Mul分支
+    op_add -> tag_int;
+    tag_int -> init_accum [label="int用+=或addw\nfloat用builtin"];
+
+    // 公共流程
+    init_accum -> vectorize_start;
+    vectorize_start -> generate_code;
+    generate_code -> vectorize_end;
+    vectorize_end -> return_accum;
+}

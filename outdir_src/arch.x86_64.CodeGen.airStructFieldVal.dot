@@ -1,0 +1,72 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airStructFieldVal"];
+    get_info [label="获取类型信息\n(container_ty, field_ty)"];
+    check_runtime_bits [label="检查字段是否有运行时位"];
+    return_none [label="返回 .none", shape=oval];
+    switch_src_mcv [label="switch(src_mcv)", shape=diamond];
+
+    // 寄存器分支
+    handle_register [label="处理寄存器情况"];
+    reg_shift_truncate [label="处理移位和截断操作"];
+    reg_reuse_or_copy [label="复用寄存器或复制到新寄存器"];
+
+    // 寄存器对分支
+    handle_register_pair [label="处理寄存器对情况"];
+    regpair_shift_split [label="处理64/128位分割与移位"];
+    regpair_reuse_or_alloc [label="复用或分配新寄存器对"];
+
+    // 溢出寄存器分支
+    handle_overflow [label="处理溢出寄存器情况"];
+    overflow_get_value [label="获取溢出值"];
+    overflow_get_bit [label="获取溢出位"];
+
+    // 加载帧地址分支
+    handle_load_frame [label="处理加载帧地址"];
+    frame_offset_calc [label="计算字段偏移"];
+    frame_load_ops [label="加载并移位操作"];
+
+    // 其他分支
+    handle_else [label="返回未实现错误", shape=oval];
+
+    finish [label="返回结果并清理资源", shape=oval];
+
+    start -> get_info;
+    get_info -> check_runtime_bits;
+    check_runtime_bits -> return_none [label="无运行时位"];
+    check_runtime_bits -> switch_src_mcv [label="有运行时位"];
+
+    switch_src_mcv -> handle_register [label=".register"];
+    switch_src_mcv -> handle_register_pair [label=".register_pair"];
+    switch_src_mcv -> handle_overflow [label=".register_overflow"];
+    switch_src_mcv -> handle_load_frame [label=".load_frame"];
+    switch_src_mcv -> handle_else [label="其他"];
+
+    // 寄存器分支流程
+    handle_register -> reg_reuse_or_copy;
+    reg_reuse_or_copy -> reg_shift_truncate [label="field_off > 0"];
+    reg_shift_truncate -> finish;
+    reg_reuse_or_copy -> finish [label="field_off == 0"];
+
+    // 寄存器对分支流程
+    handle_register_pair -> regpair_shift_split;
+    regpair_shift_split -> regpair_reuse_or_alloc;
+    regpair_reuse_or_alloc -> finish;
+
+    // 溢出寄存器分支流程
+    handle_overflow -> overflow_get_value [label="index == 0"];
+    handle_overflow -> overflow_get_bit [label="index == 1"];
+    overflow_get_value -> finish;
+    overflow_get_bit -> finish;
+
+    // 加载帧地址分支流程
+    handle_load_frame -> frame_offset_calc;
+    frame_offset_calc -> frame_load_ops;
+    frame_load_ops -> finish;
+
+    // 其他分支直接结束
+    handle_else -> finish;
+}

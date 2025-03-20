@@ -1,0 +1,115 @@
+
+digraph coerceInMemoryAllowed {
+    graph [fontname="Arial", nodesep=0.2, ranksep=0.5];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="#f0f0f0", fontsize=12];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="Start coerceInMemoryAllowed", shape=ellipse, fillcolor="#e0ffe0"];
+    check_equal [label="dest_ty == src_ty?"];
+    return_ok1 [label="Return .ok", shape=ellipse, fillcolor="#ffe0e0"];
+    check_types [label="Get dest_tag and src_tag"];
+    check_int [label="Both are int?"];
+    handle_int [label="Check signedness and bits"];
+    return_int_ok [label="Return .ok", shape=ellipse, fillcolor="#ffe0e0"];
+    return_int_error [label="Return int_not_coercible", shape=ellipse, fillcolor="#ffe0e0"];
+    check_comptime_int [label="dest_tag == int && src_tag == comptime_int?"];
+    handle_comptime_int [label="Check val fits in dest_ty"];
+    return_comptime_error [label="Return comptime_int_not_coercible", shape=ellipse, fillcolor="#ffe0e0"];
+    check_float [label="Both are float?"];
+    return_float_ok [label="Return .ok", shape=ellipse, fillcolor="#ffe0e0"];
+    check_ptr_optional [label="Check pointer/optional types"];
+    handle_ptrs [label="coerceInMemoryAllowedPtrs"];
+    check_slice [label="Both are slices?"];
+    handle_slices [label="coerceInMemoryAllowedPtrs"];
+    check_fn [label="Both are functions?"];
+    handle_fns [label="coerceInMemoryAllowedFns"];
+    check_error_union [label="Both are error unions?"];
+    handle_error_union [label="Check payload and error set"];
+    check_error_set [label="Both are error sets?"];
+    handle_error_sets [label="coerceInMemoryAllowedErrorSets"];
+    check_array [label="Both are arrays?"];
+    handle_array [label="Check len, elem_type, sentinel"];
+    check_vector [label="Both are vectors?"];
+    handle_vector [label="Check len and elem_type"];
+    check_array_vector [label="Array <-> Vector interop"];
+    handle_array_vector [label="Check len and elem_type"];
+    check_optional [label="Both are optionals?"];
+    handle_optional [label="Check child types"];
+    check_tuple [label="Both are tuples?"];
+    handle_tuple [label="Check field compatibility"];
+    default_return [label="Return no_match", shape=ellipse, fillcolor="#ffe0e0"];
+
+    start -> check_equal;
+    check_equal -> return_ok1 [label="Yes"];
+    check_equal -> check_types [label="No"];
+
+    check_types -> check_int;
+    check_int -> handle_int [label="Yes"];
+    check_int -> check_comptime_int [label="No"];
+
+    handle_int -> return_int_ok [label="Same signedness\nand bits"];
+    handle_int -> return_int_error [label="Invalid combination"];
+
+    check_comptime_int -> handle_comptime_int [label="Yes"];
+    check_comptime_int -> check_float [label="No"];
+
+    handle_comptime_int -> return_comptime_error [label="Val doesn't fit"];
+    handle_comptime_int -> check_float [label="Val fits"];
+
+    check_float -> return_float_ok [label="Same bits"];
+    check_float -> check_ptr_optional [label="No"];
+
+    check_ptr_optional -> handle_ptrs [label="Pointer types found"];
+    check_ptr_optional -> check_slice [label="No"];
+
+    check_slice -> handle_slices [label="Yes"];
+    check_slice -> check_fn [label="No"];
+
+    check_fn -> handle_fns [label="Yes"];
+    check_fn -> check_error_union [label="No"];
+
+    check_error_union -> handle_error_union [label="Yes"];
+    check_error_union -> check_error_set [label="No"];
+
+    check_error_set -> handle_error_sets [label="Yes"];
+    check_error_set -> check_array [label="No"];
+
+    check_array -> handle_array [label="Yes"];
+    check_array -> check_vector [label="No"];
+
+    check_vector -> handle_vector [label="Yes"];
+    check_vector -> check_array_vector [label="No"];
+
+    check_array_vector -> handle_array_vector [label="Yes"];
+    check_array_vector -> check_optional [label="No"];
+
+    check_optional -> handle_optional [label="Yes"];
+    check_optional -> check_tuple [label="No"];
+
+    check_tuple -> handle_tuple [label="Yes"];
+    check_tuple -> default_return [label="No"];
+
+    // Edge connections for error handling paths
+    handle_ptrs -> return_ok1 [label="Success"];
+    handle_slices -> return_ok1 [label="Success"];
+    handle_fns -> return_ok1 [label="Success"];
+    handle_error_union -> return_ok1 [label="Success"];
+    handle_error_sets -> return_ok1 [label="Success"];
+    handle_array -> return_ok1 [label="Success"];
+    handle_vector -> return_ok1 [label="Success"];
+    handle_array_vector -> return_ok1 [label="Success"];
+    handle_optional -> return_ok1 [label="Success"];
+    handle_tuple -> return_ok1 [label="Success"];
+
+    // Error return paths
+    handle_ptrs -> default_return [label="Error"];
+    handle_slices -> default_return [label="Error"];
+    handle_fns -> default_return [label="Error"];
+    handle_error_union -> default_return [label="Error"];
+    handle_error_sets -> default_return [label="Error"];
+    handle_array -> default_return [label="Error"];
+    handle_vector -> default_return [label="Error"];
+    handle_array_vector -> default_return [label="Error"];
+    handle_optional -> default_return [label="Error"];
+    handle_tuple -> default_return [label="Error"];
+}

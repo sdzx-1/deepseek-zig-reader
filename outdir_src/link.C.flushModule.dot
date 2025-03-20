@@ -1,0 +1,106 @@
+
+digraph flushModule {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    end [label="结束"];
+
+    subgraph cluster_init {
+        label="初始化";
+        init_tracy [label="启动Tracy跟踪"];
+        init_sub_prog [label="创建子进度节点sub_prog_node"];
+        get_context [label="获取comp, diags, gpa, zcu, ip等上下文"];
+        activate_pt [label="激活PerThread(pt)"];
+        defer_pt_deactivate [label="defer pt.deactivate()"];
+    }
+
+    subgraph cluster_loop_uavs {
+        label="处理UAVs循环";
+        loop_uavs_start [label="i = 0"];
+        loop_condition [label="i < self.uavs.count()?" shape=diamond];
+        update_uav [label="调用self.updateUav(pt, i)"];
+        increment_i [label="i += 1"];
+    }
+
+    subgraph cluster_flush_init {
+        label="初始化Flush结构";
+        init_flush [label="初始化Flush结构f"];
+        defer_deinit [label="defer f.deinit(gpa)"];
+    }
+
+    subgraph cluster_abi_defines {
+        label="处理ABI定义";
+        gen_abi_defines [label="生成abi_defines"];
+        ensure_buffers [label="确保all_buffers容量"];
+        append_abi [label="添加abi_defines和zig_h到缓冲区"];
+    }
+
+    subgraph cluster_asm {
+        label="生成全局汇编";
+        gen_global_asm [label="调用codegen.genGlobalAsm"];
+        append_asm [label="将汇编代码加入缓冲区"];
+    }
+
+    subgraph cluster_lazy {
+        label="处理延迟声明";
+        init_lazy_pool [label="初始化lazy_ctype_pool"];
+        flush_err_decls [label="调用flushErrDecls"];
+        clear_buffers [label="清空lazy_fwd_decl_buf和lazy_code_buf"];
+    }
+
+    subgraph cluster_exports {
+        label="处理导出名称";
+        init_export_names [label="初始化export_names哈希表"];
+        collect_single_exports [label="收集single_exports名称"];
+        collect_multi_exports [label="收集multi_exports名称"];
+        process_uavs_navs [label="遍历uavs和navs调用flushAvBlock"];
+    }
+
+    subgraph cluster_ctypes {
+        label="处理CTypes";
+        init_ctype_pool [label="初始化ctype_pool"];
+        flush_lazy_ctypes [label="调用flushCTypes处理lazy_ctype_pool"];
+        loop_uavs_ctypes [label="遍历uavs处理ctype_pool"];
+        loop_navs_ctypes [label="遍历navs处理ctype_pool"];
+    }
+
+    subgraph cluster_final_buffers {
+        label="填充最终缓冲区";
+        update_ctypes_index [label="更新ctypes_index缓冲区"];
+        update_lazy_index [label="更新lazy_index缓冲区"];
+        append_lazy_code [label="添加lazy_code_buf内容"];
+        loop_append_uavs_code [label="遍历uavs添加代码"];
+        loop_append_navs_code [label="遍历navs添加代码"];
+    }
+
+    subgraph cluster_file_write {
+        label="写入文件";
+        set_file_pos [label="设置文件结束位置"];
+        pwritev_all [label="执行pwritevAll写入数据"];
+    }
+
+    start -> init_tracy -> init_sub_prog -> get_context -> activate_pt -> defer_pt_deactivate;
+
+    defer_pt_deactivate -> loop_uavs_start;
+    loop_uavs_start -> loop_condition;
+    loop_condition -> update_uav [label="是"];
+    update_uav -> increment_i -> loop_condition;
+    loop_condition -> init_flush [label="否"];
+
+    init_flush -> defer_deinit -> gen_abi_defines;
+    gen_abi_defines -> ensure_buffers -> append_abi;
+    append_abi -> gen_global_asm;
+    gen_global_asm -> append_asm -> init_lazy_pool;
+    init_lazy_pool -> flush_err_decls -> clear_buffers;
+
+    clear_buffers -> init_export_names;
+    init_export_names -> collect_single_exports -> collect_multi_exports -> process_uavs_navs;
+
+    process_uavs_navs -> init_ctype_pool;
+    init_ctype_pool -> flush_lazy_ctypes -> loop_uavs_ctypes -> loop_navs_ctypes;
+
+    loop_navs_ctypes -> update_ctypes_index -> update_lazy_index;
+    update_lazy_index -> append_lazy_code -> loop_append_uavs_code -> loop_append_navs_code;
+
+    loop_append_navs_code -> set_file_pos -> pwritev_all -> end;
+}

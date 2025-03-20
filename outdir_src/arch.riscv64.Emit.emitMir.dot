@@ -1,0 +1,52 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+    edge [arrowhead=vee];
+
+    start [label="开始 emitMir"];
+    log_debug [label="记录日志: mir指令长度"];
+    loop_start [label="循环遍历每个MIR指令"];
+    code_offset_mapping [label="存入code_offset_mapping"];
+    lower_mir [label="调用lowerMir生成lowered指令"];
+    loop_lowered_insts [label="遍历每个lowered_inst"];
+    encode_inst [label="编码指令到emit.code"];
+    process_relocs [label="处理重定位条目"];
+    check_reloc_type [label="重定位类型判断" shape=diamond];
+    handle_inst [label="添加inst重定位"];
+    handle_load_symbol [label="处理符号重定位\n(ELF HI20/LO12)"];
+    handle_tlv [label="处理TLV重定位\n(TPREL_HI20/ADD/LO12)"];
+    handle_call_extern [label="处理外部调用重定位\n(CALL_PLT)"];
+    check_empty_insts [label="检查lowered.insts是否为空" shape=diamond];
+    handle_pseudo_dbg [label="处理调试伪指令\n(prologue/line/epilogue)"];
+    fixup_relocs [label="调用fixupRelocs处理重定位"];
+    end [label="结束函数"];
+
+    start -> log_debug;
+    log_debug -> loop_start;
+
+    loop_start -> code_offset_mapping;
+    code_offset_mapping -> lower_mir;
+    lower_mir -> loop_lowered_insts;
+
+    loop_lowered_insts -> encode_inst;
+    encode_inst -> process_relocs;
+
+    process_relocs -> check_reloc_type;
+    check_reloc_type -> handle_inst [label=".inst"];
+    check_reloc_type -> handle_load_symbol [label=".load_symbol_reloc"];
+    check_reloc_type -> handle_tlv [label=".load_tlv_reloc"];
+    check_reloc_type -> handle_call_extern [label=".call_extern_fn_reloc"];
+
+    handle_inst -> process_relocs [label="继续处理下一个重定位"];
+    handle_load_symbol -> process_relocs;
+    handle_tlv -> process_relocs;
+    handle_call_extern -> process_relocs;
+
+    process_relocs -> check_empty_insts [label="重定位处理完成"];
+    check_empty_insts -> handle_pseudo_dbg [label="是"];
+    check_empty_insts -> loop_lowered_insts [label="否"];
+
+    handle_pseudo_dbg -> loop_start [label="继续下一个MIR指令"];
+    loop_start -> fixup_relocs [label="所有MIR指令处理完成"];
+    fixup_relocs -> end;
+}

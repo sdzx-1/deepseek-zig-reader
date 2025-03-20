@@ -1,0 +1,70 @@
+
+digraph airShuffle {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始airShuffle"];
+    get_params [label="获取指令参数\nty_pl, extra"];
+    alloc_stack [label="分配栈空间\n处理mask元素"];
+    analyze_mask [label="解析mask元素\n判断是否为undef"];
+    check_simple_cases [label="检查简单情况\n(直接复制lhs/rhs)"];
+
+    check_unpck [label="检查是否满足\nunpck指令条件"];
+    gen_unpck [label="生成unpck指令"];
+
+    check_pshufd [label="检查是否满足\npshufd指令条件"];
+    gen_pshufd [label="生成pshufd指令"];
+
+    check_shufps [label="检查是否满足\nshufps指令条件"];
+    gen_shufps [label="生成shufps指令"];
+
+    check_shufpd [label="检查是否满足\nshufpd指令条件"];
+    gen_shufpd [label="生成shufpd指令"];
+
+    check_blend [label="检查是否满足\nblend指令条件"];
+    gen_blend [label="生成blend指令"];
+
+    check_blendv [label="检查是否满足\nblendv指令条件"];
+    gen_blendv [label="生成blendv指令"];
+
+    check_pshufb [label="检查是否满足\npshufb指令条件"];
+    gen_pshufb [label="生成pshufb指令"];
+
+    fallback [label="所有优化路径失败\n返回TODO错误"];
+    finish [label="完成指令生成\n返回结果"];
+
+    start -> get_params -> alloc_stack -> analyze_mask -> check_simple_cases;
+
+    check_simple_cases -> check_unpck [label="不满足简单复制"];
+    check_simple_cases -> gen_unpck [label="满足直接复制"];
+
+    check_unpck -> gen_unpck [label="条件满足"];
+    check_unpck -> check_pshufd [label="条件不满足"];
+
+    check_pshufd -> gen_pshufd [label="条件满足"];
+    check_pshufd -> check_shufps [label="条件不满足"];
+
+    check_shufps -> gen_shufps [label="条件满足"];
+    check_shufps -> check_shufpd [label="条件不满足"];
+
+    check_shufpd -> gen_shufpd [label="条件满足"];
+    check_shufpd -> check_blend [label="条件不满足"];
+
+    check_blend -> gen_blend [label="条件满足"];
+    check_blend -> check_blendv [label="条件不满足"];
+
+    check_blendv -> gen_blendv [label="条件满足"];
+    check_blendv -> check_pshufb [label="条件不满足"];
+
+    check_pshufb -> gen_pshufb [label="条件满足"];
+    check_pshufb -> fallback [label="条件不满足"];
+
+    gen_unpck -> finish;
+    gen_pshufd -> finish;
+    gen_shufps -> finish;
+    gen_shufpd -> finish;
+    gen_blend -> finish;
+    gen_blendv -> finish;
+    gen_pshufb -> finish;
+    fallback -> finish;
+}

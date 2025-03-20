@@ -1,0 +1,39 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: 初始化跟踪信息，解析指令数据"];
+    resolve_operand [label="解析操作数和类型"];
+    check_continue [label="检查是否有continue和运行时情况"];
+    handle_union_errset [label="处理联合体/错误集合类型"];
+    process_cases [label="处理各种case类型（枚举/整数/布尔等）"];
+    validate_cases [label="验证case合法性（重复/遗漏/范围）"];
+    generate_air [label="生成中间代码（Air指令）"];
+    handle_merges [label="处理代码块合并"];
+    end [label="返回结果或错误"];
+
+    start -> resolve_operand;
+    resolve_operand -> check_continue;
+    check_continue -> handle_union_errset [label="联合体/错误集合"];
+    check_continue -> process_cases [label="其他类型"];
+    
+    handle_union_errset -> process_cases;
+    
+    process_cases -> validate_cases [label="枚举类型"];
+    process_cases -> validate_cases [label="整数类型"];
+    process_cases -> validate_cases [label="布尔类型"];
+    process_cases -> validate_cases [label="其他类型"];
+    
+    validate_cases -> generate_air [label="验证通过"];
+    validate_cases -> end [label="发现错误", style=dashed];
+    
+    generate_air -> handle_merges;
+    handle_merges -> end;
+    
+    // 错误处理路径
+    edge [color=red, style=dashed];
+    resolve_operand -> end [label="操作数类型错误"];
+    check_continue -> end [label="comptime-only类型错误"];
+    validate_cases -> end [label="缺少else分支/重复case"];
+}

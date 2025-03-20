@@ -1,0 +1,71 @@
+
+digraph airSqrt {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 airSqrt"];
+    get_pt_zcu [label="获取 pt, zcu, un_op, ty, abi_size"];
+    switch_ty_tag [label="switch (ty.zigTypeTag(zcu))", shape=diamond];
+    case_float [label="case .float"];
+    switch_float_bits [label="switch (float_bits)", shape=diamond];
+    case_16bit [label="16位浮点"];
+    check_f16c [label="支持f16c?", shape=diamond];
+    gen_libcall [label="生成库函数调用\n(__sqrt? 系列)"];
+    handle_16bit_avx [label="转换并生成指令\n(cvtph2, sqrt, cvtps2ph)"];
+    case_32_64bit [label="32/64位浮点"];
+    choose_avx_ss_sd [label="选择 AVX/SSE指令\n(v_ss/sd 或 _ss/sd)"];
+    case_vector [label="case .vector"];
+    check_child_type [label="子类型是.float?", shape=diamond];
+    switch_vector_float_bits [label="子类型位数检查", shape=diamond];
+    handle_vector_16bit [label="处理16位向量\n转换和SIMD指令"];
+    handle_vector_32_64bit [label="生成SIMD sqrt指令\n(v_ps/pd)"];
+    resolve_src [label="解析源操作数 (resolveInst)"];
+    reuse_operand [label="重用操作数?", shape=diamond];
+    copy_to_reg [label="复制到寄存器"];
+    lock_reg [label="锁定寄存器"];
+    gen_mir_inst [label="生成MIR指令"];
+    asm_ops [label="生成汇编指令\n(asmRegisterRegister等)"];
+    finish [label="finishAir 返回结果"];
+
+    start -> get_pt_zcu;
+    get_pt_zcu -> switch_ty_tag;
+
+    switch_ty_tag -> case_float [label=".float"];
+    switch_ty_tag -> case_vector [label=".vector"];
+    switch_ty_tag -> finish [label="其他类型"];
+
+    case_float -> switch_float_bits;
+    switch_float_bits -> case_16bit [label="16"];
+    switch_float_bits -> case_32_64bit [label="32/64"];
+    switch_float_bits -> gen_libcall [label="80/128"];
+
+    case_16bit -> check_f16c;
+    check_f16c -> gen_libcall [label="否"];
+    check_f16c -> handle_16bit_avx [label="是"];
+
+    case_32_64bit -> choose_avx_ss_sd;
+    choose_avx_ss_sd -> resolve_src;
+
+    case_vector -> check_child_type;
+    check_child_type -> switch_vector_float_bits [label="是"];
+    check_child_type -> finish [label="否"];
+
+    switch_vector_float_bits -> handle_vector_16bit [label="16"];
+    switch_vector_float_bits -> handle_vector_32_64bit [label="32/64"];
+
+    handle_vector_16bit -> resolve_src;
+    handle_vector_32_64bit -> resolve_src;
+
+    resolve_src -> reuse_operand;
+    reuse_operand -> copy_to_reg [label="否"];
+    reuse_operand -> lock_reg [label="是"];
+
+    copy_to_reg -> lock_reg;
+    lock_reg -> gen_mir_inst;
+
+    gen_mir_inst -> asm_ops;
+    asm_ops -> finish;
+
+    gen_libcall -> finish;
+    handle_16bit_avx -> finish;
+}

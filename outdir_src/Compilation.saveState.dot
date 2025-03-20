@@ -1,0 +1,60 @@
+
+digraph saveState {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 saveState"];
+    check_incremental [label="dev.check(.incremental)"];
+    check_bin_file [label="检查 comp.bin_file 是否存在", shape=diamond];
+    init_buffers [label="初始化 bufs 和 pt_headers"];
+    process_zcu [label="处理 comp.zcu 存在", shape=diamond];
+    fill_header [label="填充 Header 结构"];
+    loop_locals [label="循环处理 ip.locals\n填充 pt_headers"];
+    add_deps [label="添加所有依赖项数据到 bufs"];
+    process_linker [label="处理链接器状态\nswitch(lf.tag)", shape=diamond];
+    handle_wasm [label="处理 Wasm 链接状态"];
+    handle_other [label="处理其他链接器类型\n记录错误"];
+    prepare_filename [label="生成文件名 basename"];
+    write_file [label="原子写入文件到 .zcs"];
+    end [label="结束"];
+
+    start -> check_incremental;
+    check_incremental -> check_bin_file;
+    check_bin_file -> init_buffers [label="存在"];
+    check_bin_file -> end [label="不存在"];
+    init_buffers -> process_zcu;
+
+    process_zcu -> fill_header [label="是"];
+    fill_header -> loop_locals;
+    loop_locals -> add_deps;
+    add_deps -> process_linker;
+
+    process_zcu -> process_linker [label="否"];
+
+    process_linker -> handle_wasm [label=".wasm"];
+    process_linker -> handle_other [label="其他"];
+
+    handle_wasm -> prepare_filename;
+    handle_other -> prepare_filename;
+
+    prepare_filename -> write_file;
+    write_file -> end;
+
+    // 子流程细化
+    subgraph cluster_zcu {
+        label="处理 zcu 数据";
+        fill_header -> loop_locals [label="遍历 locals"];
+        loop_locals -> add_deps [label="添加内存段数据"];
+        add_deps -> process_linker;
+    }
+
+    subgraph cluster_wasm {
+        label="Wasm 处理分支";
+        handle_wasm -> add_wasm_data [label="添加函数/全局/表等数据"];
+        add_wasm_data -> prepare_filename [style=invis];
+    }
+
+    // 隐藏边用于布局优化
+    add_deps -> handle_wasm [style=invis];
+    add_deps -> handle_other [style=invis];
+}

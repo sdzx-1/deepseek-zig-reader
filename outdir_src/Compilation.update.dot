@@ -1,0 +1,70 @@
+
+digraph CompilationUpdateFlow {
+    node [shape=rectangle, style="rounded", fillcolor="#E0E0E0", color="#404040", fontname="Helvetica"];
+    edge [color="#606060", arrowhead=normal];
+
+    start [label="开始", shape=ellipse, fillcolor="#FFE4B5"];
+    end [label="结束", shape=ellipse, fillcolor="#FFE4B5"];
+    
+    subgraph cluster_init {
+        label="初始化与清理";
+        init_resources [label="初始化跟踪器、内存分配器"];
+        clear_failures [label="清除失败记录"];
+        defer_cleanup [label="注册清理函数 (defer)"];
+    }
+
+    subgraph cluster_cache_mode {
+        label="缓存模式处理";
+        check_cache_mode [label="检查缓存模式", shape=diamond];
+        whole_cache [label="全缓存模式 (whole)"];
+        incremental_cache [label="增量模式 (incremental)"];
+    }
+
+    subgraph cluster_whole_cache {
+        label="全缓存模式流程";
+        obtain_manifest [label="获取缓存清单 (Cache.Manifest)"];
+        check_cache_hit [label="检查缓存命中", shape=diamond];
+        cache_hit [label="设置路径\n标记缓存命中\n返回"];
+        cache_miss [label="创建临时目录\n处理C对象/Win32资源"];
+        compile_artifacts [label="编译生成目标文件"];
+        rename_dir [label="重命名临时目录到缓存"];
+        write_manifest [label="写入缓存清单"];
+    }
+
+    subgraph cluster_incremental_cache {
+        label="增量模式流程";
+        process_work [label="处理任务队列\n(C对象/Win32资源/AST生成)"];
+        flush_output [label="刷新输出 (flush)"];
+    }
+
+    subgraph cluster_error_handling {
+        label="错误处理";
+        handle_errors [label="检测到错误？", shape=diamond];
+        skip_flush [label="跳过刷新\n保留错误信息"];
+    }
+
+    // 主流程连接
+    start -> init_resources -> clear_failures -> check_cache_mode;
+    
+    check_cache_mode -> whole_cache [label="whole"];
+    check_cache_mode -> incremental_cache [label="incremental"];
+
+    // Whole Cache分支
+    whole_cache -> obtain_manifest -> check_cache_hit;
+    check_cache_hit -> cache_hit [label="命中"];
+    check_cache_hit -> cache_miss [label="未命中"];
+    cache_miss -> compile_artifacts -> rename_dir -> write_manifest;
+    write_manifest -> handle_errors;
+
+    // Incremental分支
+    incremental_cache -> process_work -> flush_output -> handle_errors;
+
+    // 公共流程
+    handle_errors -> skip_flush [label="是"];
+    handle_errors -> end [label="否"];
+    skip_flush -> end;
+
+    // 清理与结束
+    init_resources -> defer_cleanup [style=dashed, color="#808080"];
+    defer_cleanup -> end [style=invis];
+}

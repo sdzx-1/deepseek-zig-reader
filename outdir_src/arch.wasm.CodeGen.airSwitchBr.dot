@@ -1,0 +1,63 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始airSwitchBr", shape=ellipse];
+    init [label="初始化变量\n获取switch_br信息"];
+    check_cases_len0 [label="switch_br.cases_len == 0?", shape=diamond];
+    handle_else_only [label="处理else_body\n结束块\n返回"];
+    compute_minmax [label="遍历cases计算min/max\n计算branching_size"];
+    check_br_table [label="use_br_table条件成立?", shape=diamond];
+    gen_br_table [label="生成br_table逻辑\n填充跳转表"];
+    gen_br_ifs [label="生成br_if条件链"];
+    iterate_cases [label="遍历cases生成分支代码块"];
+    handle_else [label="处理else_body或插入unreachable"];
+    end_blocks [label="结束所有块\n处理dispatch循环结束"];
+    finish [label="返回finishAir", shape=ellipse];
+
+    start -> init;
+    init -> check_cases_len0;
+
+    check_cases_len0 -> handle_else_only [label="是"];
+    check_cases_len0 -> compute_minmax [label="否"];
+
+    handle_else_only -> finish;
+
+    compute_minmax -> check_br_table;
+
+    check_br_table -> gen_br_table [label="是"];
+    check_br_table -> gen_br_ifs [label="否"];
+
+    gen_br_table -> iterate_cases;
+    gen_br_ifs -> iterate_cases;
+
+    iterate_cases -> handle_else;
+
+    handle_else -> end_blocks;
+    end_blocks -> finish;
+
+    // 详细子流程
+    subgraph cluster_br_table {
+        label="生成br_table细节";
+        gen_br_table -> calc_width [label="计算宽度"];
+        calc_width -> add_jump_table [label="创建跳转表"];
+        add_jump_table -> fill_table [label="填充case索引"];
+    }
+
+    subgraph cluster_br_ifs {
+        label="生成br_if细节";
+        gen_br_ifs -> gen_item_checks [label="生成item比较"];
+        gen_item_checks -> gen_range_checks [label="生成range比较"];
+        gen_range_checks -> add_final_br [label="添加默认跳转"];
+    }
+
+    subgraph cluster_case_handling {
+        label="case处理循环";
+        iterate_cases -> end_case_block [label="结束当前case块"];
+        end_case_block -> gen_case_body [label="生成case体代码"];
+        gen_case_body -> add_exit_br [label="添加退出跳转"];
+        add_exit_br -> next_case [label="下一个case"];
+        next_case -> iterate_cases [style=dashed];
+    }
+}

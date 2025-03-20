@@ -1,0 +1,51 @@
+
+digraph buildCrtFile {
+    graph [fontname="Arial", bgcolor="transparent"];
+    node [shape=box, fontname="Arial", style="filled", fillcolor="lightgray"];
+    edge [fontname="Arial"];
+
+    start [label="Start buildCrtFile", shape=ellipse];
+    check_llvm [label="Check build_options.have_llvm"];
+    init_arena [label="Initialize ArenaAllocator"];
+    switch_crt [label="Switch in_crt_file", shape=diamond];
+
+    // Common error path
+    error_llvm [label="Return error.ZigCompilerNotBuiltWithLLVMExtensions", shape=parallelogram];
+
+    // Case branches
+    crt1_o [label="Case .crt1_o\n- Add C flags\n- Set crt1.c path\n- Build crt1.o"];
+    rcrt1_o [label="Case .rcrt1_o\n- Add C flags\n- Set rcrt1.c path\n- Build rcrt1.o (PIC)"];
+    scrt1_o [label="Case .Scrt1_o\n- Add C flags\n- Set Scrt1.c path\n- Build Scrt1.o (PIC)"];
+    libc_a [label="Case .libc_a\n- Handle arch-specific sources\n- Build static lib"];
+    libc_so [label="Case .libc_so\n- Resolve config\n- Create sub compilation\n- Build shared lib"];
+
+    // Common end
+    end [label="Return/Complete", shape=ellipse];
+
+    // Error handling
+    defer_arena [label="Defer arena_allocator.deinit()", shape=note];
+
+    // Flow connections
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="No"];
+    check_llvm -> init_arena [label="Yes"];
+    init_arena -> defer_arena [style=dotted];
+    defer_arena -> switch_crt [style=invis]; // Visual hint
+    
+    init_arena -> switch_crt;
+    switch_crt -> crt1_o [label=".crt1_o"];
+    switch_crt -> rcrt1_o [label=".rcrt1_o"];
+    switch_crt -> scrt1_o [label=".Scrt1_o"];
+    switch_crt -> libc_a [label=".libc_a"];
+    switch_crt -> libc_so [label=".libc_so"];
+    
+    // Branch outcomes
+    crt1_o -> end;
+    rcrt1_o -> end;
+    scrt1_o -> end;
+    libc_a -> end;
+    libc_so -> end;
+
+    // Annotation for resource cleanup
+    { rank=same; init_arena; defer_arena }
+}

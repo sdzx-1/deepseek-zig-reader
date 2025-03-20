@@ -1,0 +1,59 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: emit函数入口"];
+    init_vars [label="初始化变量\nemit_prefix = prefix\nemit_mnemonic = mnemonic\nemit_ops_storage分配"];
+    loop_start [label="循环遍历每个操作数 (ops)"];
+    check_op_type [label="检查操作数类型\nswitch(op)"];
+    handle_mem_op [label="处理 .mem 操作数\n检查 base() 类型"];
+    handle_reloc [label="base 是 .reloc (重定位符号)"];
+    check_bin_format [label="检查二进制文件格式\nswitch(lower.bin_file)"];
+    elf_case [label="ELF 文件处理"];
+    check_tls [label="检查是否是 TLS 符号"];
+    handle_tls_ld [label="处理 TLS LD 模型 (PIC)"];
+    handle_tls_le [label="处理 TLS LE 模型 (非PIC)"];
+    check_mnemonic_elf [label="根据 mnemonic 处理\nlea/mov/call"];
+    macho_case [label="Mach-O 文件处理"];
+    check_tlv [label="处理 TLV 符号"];
+    check_mnemonic_macho [label="根据 mnemonic 处理"];
+    other_format [label="返回错误\n不支持的文件格式"];
+    gen_inst [label="生成指令并添加到\nresult_insts 数组"];
+    loop_end [label="循环结束"];
+    end [label="函数结束"];
+
+    start -> init_vars;
+    init_vars -> loop_start;
+    loop_start -> check_op_type;
+
+    check_op_type -> handle_mem_op [label=".mem"];
+    check_op_type -> gen_inst [label="其他类型"];
+
+    handle_mem_op -> handle_reloc [label=".reloc"];
+    handle_reloc -> check_bin_format;
+
+    check_bin_format -> elf_case [label=".elf"];
+    check_bin_format -> macho_case [label=".macho"];
+    check_bin_format -> other_format [label="其他"];
+
+    elf_case -> check_tls;
+    check_tls -> handle_tls_ld [label="是 TLS 且 PIC"];
+    check_tls -> handle_tls_le [label="是 TLS 且非 PIC"];
+    check_tls -> check_mnemonic_elf [label="非 TLS"];
+
+    handle_tls_ld -> gen_inst;
+    handle_tls_le -> gen_inst;
+
+    check_mnemonic_elf -> gen_inst [label="处理 lea/mov/call"];
+
+    macho_case -> check_tlv;
+    check_tlv -> check_mnemonic_macho [label="处理 TLV"];
+    check_mnemonic_macho -> gen_inst;
+
+    other_format -> gen_inst [label="返回错误"];
+
+    gen_inst -> loop_end;
+    loop_end -> loop_start [label="继续循环"];
+    loop_end -> end [label="所有操作数处理完毕"];
+}

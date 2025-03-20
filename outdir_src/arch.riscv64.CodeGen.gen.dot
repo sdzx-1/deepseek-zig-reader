@@ -1,0 +1,62 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 gen(func)"];
+    check_features [label="检查 required_features"];
+    error [label="返回错误\nfunc.fail(...)"];
+    check_naked [label="fn_info.cc == .naked?"];
+    handle_naked [label="非 naked 分支"];
+    handle_non_naked [label="naked 分支"];
+    add_prologue_end [label="添加伪指令\npseudo_dbg_prologue_end"];
+    setup_backpatches [label="创建多个伪指令\n(backpatch_*)"];
+    handle_ret_mcv [label="处理返回值存储\n(间接返回值存储到栈)"];
+    gen_body [label="生成函数体\nfunc.genBody(...)"];
+    process_exitlude [label="处理 exitlude_jump_relocs"];
+    add_epilogue_begin [label="添加伪指令\npseudo_dbg_epilogue_begin"];
+    setup_restore [label="创建恢复伪指令\n(backpatch_*_restore)"];
+    jalr_ret [label="添加 ret 指令\njalr zero, ra, 0"];
+    compute_frame [label="计算 frame_layout\n和 need_save_reg"];
+    update_backpatches [label="更新伪指令\n设置堆栈调整、寄存器保存/恢复"];
+    need_save_reg_check [label="need_save_reg?"];
+    spill_regs [label="设置伪指令\npseudo_spill_regs"];
+    restore_regs [label="设置伪指令\npseudo_restore_regs"];
+    add_debug_end [label="添加调试信息\npseudo_dbg_line_column"];
+    end [label="结束"];
+
+    start -> check_features;
+    check_features -> error [label="有缺失"];
+    check_features -> check_naked [label="全部满足"];
+    check_naked -> handle_non_naked [label="否"];
+    check_naked -> handle_naked [label="是"];
+
+    handle_non_naked -> add_prologue_end;
+    add_prologue_end -> setup_backpatches;
+    setup_backpatches -> handle_ret_mcv [label="处理间接返回值"];
+    handle_ret_mcv -> gen_body;
+    gen_body -> process_exitlude;
+    process_exitlude -> add_epilogue_begin;
+    add_epilogue_begin -> setup_restore;
+    setup_restore -> jalr_ret;
+    jalr_ret -> compute_frame;
+    compute_frame -> update_backpatches;
+    update_backpatches -> need_save_reg_check;
+
+    need_save_reg_check -> spill_regs [label="是"];
+    spill_regs -> restore_regs;
+    need_save_reg_check -> restore_regs [label="否"];
+    restore_regs -> add_debug_end;
+
+    handle_naked -> add_prologue_end_naked [label="添加伪指令\npseudo_dbg_prologue_end"];
+    add_prologue_end_naked -> gen_body_naked [label="生成函数体"];
+    gen_body_naked -> add_epilogue_begin_naked [label="添加伪指令\npseudo_dbg_epilogue_begin"];
+    add_epilogue_begin_naked -> add_debug_end;
+
+    add_debug_end -> end [label="添加结束调试信息"];
+
+    // 隐藏相同节点的重复定义
+    add_prologue_end_naked [label="添加伪指令\npseudo_dbg_prologue_end"];
+    gen_body_naked [label="生成函数体\nfunc.genBody(...)"];
+    add_epilogue_begin_naked [label="添加伪指令\npseudo_dbg_epilogue_begin"];
+}

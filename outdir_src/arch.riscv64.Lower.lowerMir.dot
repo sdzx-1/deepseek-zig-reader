@@ -1,0 +1,76 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="lowerMir 函数入口"];
+    init_vars [label="初始化变量\nlower.result_insts_len = 0\nlower.result_relocs_len = 0"];
+    get_inst [label="获取 MIR 指令 inst = lower.mir.instructions.get(index)"];
+    switch_tag [label="switch(inst.tag)", shape=diamond];
+
+    subgraph cluster_main {
+        label="主要处理分支";
+        style=filled;
+        color=lightgrey;
+
+        default_case [label="默认分支\ntry lower.generic(inst)"];
+        pseudo_dead [label="空操作\n.pseudo_dead 等伪指令"];
+        pseudo_load_store [label="处理 .pseudo_load_rm/.pseudo_store_rm"];
+        pseudo_mv [label="处理 .pseudo_mv"];
+        pseudo_j [label="处理 .pseudo_j"];
+        pseudo_spill_restore [label="处理 .pseudo_spill_regs/.pseudo_restore_regs"];
+        pseudo_load_symbol [label="处理 .pseudo_load_symbol"];
+        pseudo_load_tlv [label="处理 .pseudo_load_tlv"];
+        pseudo_lea_rm [label="处理 .pseudo_lea_rm"];
+        pseudo_compare [label="处理 .pseudo_compare"];
+        pseudo_not [label="处理 .pseudo_not"];
+        pseudo_extern_fn_reloc [label="处理 .pseudo_extern_fn_reloc"];
+    }
+
+    handle_load_store [label="计算 frame_loc\n根据寄存器类型选择 Mnemonic\n生成指令"];
+    handle_mv [label="根据寄存器类型选择移动指令\n处理跨类移动的失败分支"];
+    handle_compare [label="根据操作类型和寄存器类\n生成比较逻辑"];
+    handle_reloc [label="生成重定位指令\n(lui + addi/jalr)"];
+    return_result [label="返回结果\n.insts 和 .relocs 切片"];
+
+    start -> init_vars;
+    init_vars -> get_inst;
+    get_inst -> switch_tag;
+
+    switch_tag -> default_case [label="else"];
+    switch_tag -> pseudo_dead [label=".pseudo_dbg_*, .pseudo_dead"];
+    switch_tag -> pseudo_load_store [label=".pseudo_load_rm\n.pseudo_store_rm"];
+    switch_tag -> pseudo_mv [label=".pseudo_mv"];
+    switch_tag -> pseudo_j [label=".pseudo_j"];
+    switch_tag -> pseudo_spill_restore [label=".pseudo_spill_regs\n.pseudo_restore_regs"];
+    switch_tag -> pseudo_load_symbol [label=".pseudo_load_symbol"];
+    switch_tag -> pseudo_load_tlv [label=".pseudo_load_tlv"];
+    switch_tag -> pseudo_lea_rm [label=".pseudo_lea_rm"];
+    switch_tag -> pseudo_compare [label=".pseudo_compare"];
+    switch_tag -> pseudo_not [label=".pseudo_not"];
+    switch_tag -> pseudo_extern_fn_reloc [label=".pseudo_extern_fn_reloc"];
+
+    pseudo_load_store -> handle_load_store;
+    handle_load_store -> return_result;
+
+    pseudo_mv -> handle_mv;
+    handle_mv -> return_result;
+
+    pseudo_compare -> handle_compare;
+    handle_compare -> return_result;
+
+    pseudo_load_symbol -> handle_reloc;
+    pseudo_load_tlv -> handle_reloc;
+    pseudo_extern_fn_reloc -> handle_reloc;
+    handle_reloc -> return_result;
+
+    pseudo_j -> return_result [label="生成 jal 指令"];
+    pseudo_spill_restore -> return_result [label="push/pop 寄存器列表"];
+    pseudo_lea_rm -> return_result [label="生成 addi 指令"];
+    pseudo_not -> return_result [label="生成 andi + sltiu"];
+    pseudo_dead -> return_result [label="空操作"];
+
+    default_case -> return_result;
+
+    return_result [shape=ellipse];
+}

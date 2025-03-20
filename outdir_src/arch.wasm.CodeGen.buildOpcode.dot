@@ -1,0 +1,72 @@
+
+digraph buildOpcode {
+    graph [fontname="Arial", rankdir=TB];
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    // 入口节点
+    start [label="开始 buildOpcode", shape=ellipse, fillcolor="#b3cde3"];
+    end [label="返回对应 Opcode", shape=ellipse, fillcolor="#b3cde3"];
+    error [label="unreachable", shape=octagon, fillcolor="#fbb4ae"];
+
+    // 主操作选择
+    switch_op [label="switch(args.op)", shape=diamond];
+    start -> switch_op;
+
+    // 常见操作分支（示例部分分支）
+    switch_op -> load [label=".load"];
+    switch_op -> store [label=".store"];
+    switch_op -> const_op [label=".const"];
+    switch_op -> memory_size [label=".memory_size"];
+    switch_op -> memory_grow [label=".memory_grow"];
+    switch_op -> error [label="其他未实现操作\n(.block/.loop/...)"];
+
+    // Load操作处理逻辑
+    subgraph cluster_load {
+        label="Load操作处理";
+        load [label="检查args.width", shape=diamond];
+        load_8 [label="width=8\n检查valtype1", shape=diamond];
+        load_16 [label="width=16\n检查valtype1", shape=diamond];
+        load_32 [label="width=32\n检查valtype1", shape=diamond];
+        load_64 [label="width=64\n检查valtype1", shape=diamond];
+        load_default [label="无width\n检查valtype1", shape=diamond];
+
+        load -> load_8 [label="存在"];
+        load -> load_default [label="不存在"];
+        load_8 -> i32_load8 [label="i32 + signed"];
+        load_8 -> i64_load8 [label="i64 + signed"];
+        load_16 -> i32_load16 [label="i32 + signed"];
+        load_16 -> i64_load16 [label="i64 + signed"];
+        load_32 -> i32_load [label="i32"];
+        load_32 -> f32_load [label="f32"];
+        load_64 -> i64_load [label="i64"];
+        load_default -> i32_load [label="i32"];
+        load_default -> i64_load [label="i64"];
+    }
+
+    // Store操作处理逻辑（简化示例）
+    subgraph cluster_store {
+        label="Store操作处理";
+        store [label="检查args.width", shape=diamond];
+        store_8 [label="width=8\n检查valtype1"];
+        store -> store_8 [label="存在"];
+        store_8 -> i32_store8 [label="i32"];
+        store_8 -> i64_store8 [label="i64"];
+    }
+
+    // Const操作处理逻辑
+    const_op [label="检查valtype1", shape=diamond];
+    const_op -> i32_const [label="i32"];
+    const_op -> i64_const [label="i64"];
+    const_op -> f32_const [label="f32"];
+    const_op -> f64_const [label="f64"];
+
+    // 连接最终返回
+    i32_load8 -> end;
+    i64_load8 -> end;
+    i32_store8 -> end;
+    i64_store8 -> end;
+    i32_const -> end;
+    memory_size -> end;
+    error -> end [style=dashed];
+}

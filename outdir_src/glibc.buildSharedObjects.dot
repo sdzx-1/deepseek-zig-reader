@@ -1,0 +1,44 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=rect];
+    start [label="开始", shape=ellipse];
+    check_llvm [label="检查LLVM支持"];
+    error_llvm [label="返回错误\nZigCompilerNotBuiltWithLLVMExtensions", shape=box];
+    init_arena [label="初始化ArenaAllocator和缓存"];
+    get_target [label="获取目标平台和版本"];
+    load_metadata [label="加载元数据(abilists)"];
+    find_target_index [label="查找目标平台索引"];
+    find_version_index [label="查找版本索引"];
+    warn_version [label="警告版本不兼容并返回错误", shape=box];
+    generate_map [label="生成映射文件(all.map)"];
+    loop_libs [label="遍历每个库(libs)"];
+    check_lib_removed [label="检查库是否被移除"];
+    generate_stubs [label="生成函数和对象的存根汇编"];
+    write_asm [label="写入.s文件"];
+    build_lib [label="构建共享库"];
+    next_lib [label="下一个库"];
+    write_manifest [label="写入缓存清单"];
+    queue_result [label="返回生成的共享对象"];
+
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="没有LLVM"];
+    check_llvm -> init_arena [label="有LLVM"];
+    init_arena -> get_target;
+    get_target -> load_metadata;
+    load_metadata -> find_target_index;
+    find_target_index -> find_version_index;
+    find_version_index -> warn_version [label="版本过高"];
+    find_version_index -> generate_map [label="找到有效版本"];
+    generate_map -> loop_libs;
+    loop_libs -> check_lib_removed;
+    check_lib_removed -> loop_libs [label="已移除"];
+    check_lib_removed -> generate_stubs [label="未移除"];
+    generate_stubs -> write_asm;
+    write_asm -> build_lib;
+    build_lib -> next_lib;
+    next_lib -> loop_libs [label="继续循环"];
+    loop_libs -> write_manifest [label="所有库处理完毕"];
+    write_manifest -> queue_result;
+    warn_version -> queue_result [label="终止流程"];
+    queue_result -> end [label="返回结果", shape=ellipse];
+}

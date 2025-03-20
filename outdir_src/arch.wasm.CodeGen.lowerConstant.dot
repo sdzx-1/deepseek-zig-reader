@@ -1,0 +1,80 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#E5E5E5"];
+    edge [fontname="Arial"];
+
+    start [label="Start lowerConstant", shape=ellipse];
+    check_byref [label="Assert !isByRef(ty)"];
+    check_undef [label="Check val.isUndefDeep(zcu)"];
+    return_undef [label="Return cg.emitUndefined(ty)"];
+    switch_main [label="Switch ip.indexToKey(val.ip_index)", shape=diamond];
+    
+    subgraph cluster_simple_value {
+        label=".simple_value";
+        simple_switch [label="Switch simple_value", shape=diamond];
+        handle_false [label="Return .imm32 = 0"];
+        handle_true [label="Return .imm32 = 1"];
+    }
+    
+    subgraph cluster_int {
+        label=".int";
+        int_signedness [label="Switch signedness", shape=diamond];
+        signed_bits [label="Switch bits (0-32 / 33-64)"];
+        unsigned_bits [label="Switch bits (0-32 / 33-64)"];
+        return_imm32 [label="Return .imm32"];
+        return_imm64 [label="Return .imm64"];
+    }
+    
+    handle_err [label="Get error value\nReturn .imm32 = int"];
+    handle_error_union [label="Error union handling"];
+    handle_enum_tag [label="Recurse with enum_tag.int"];
+    handle_float [label="Return float32/float64"];
+    handle_ptr [label="Call lowerPtr()"];
+    handle_opt [label="Optional type handling"];
+    handle_aggregate [label="Handle array/vector/struct"];
+    handle_un [label="Handle packed union"];
+    unreachable_node [label="Unreachable", shape=octagon];
+    fail_node [label="cg.fail()", shape=octagon];
+    
+    start -> check_byref;
+    check_byref -> check_undef;
+    check_undef -> return_undef [label="isUndef"];
+    check_undef -> switch_main [label="Valid value"];
+    
+    switch_main -> simple_switch [label=".simple_value"];
+    simple_switch -> handle_false [label=".false"];
+    simple_switch -> handle_true [label=".true"];
+    simple_switch -> unreachable_node [label="其他非运行值"];
+    
+    switch_main -> int_signedness [label=".int"];
+    int_signedness -> signed_bits [label="signed"];
+    int_signedness -> unsigned_bits [label="unsigned"];
+    signed_bits -> return_imm32 [label="0-32"];
+    signed_bits -> return_imm64 [label="33-64"];
+    unsigned_bits -> return_imm32 [label="0-32"];
+    unsigned_bits -> return_imm64 [label="33-64"];
+    
+    switch_main -> handle_err [label=".err"];
+    switch_main -> handle_error_union [label=".error_union"];
+    handle_error_union -> fail_node [label="Payload有运行时位"];
+    
+    switch_main -> handle_enum_tag [label=".enum_tag"];
+    switch_main -> handle_float [label=".float"];
+    handle_float -> return_imm32 [label="f16"];
+    handle_float -> return_float32 [label="f32"];
+    handle_float -> return_float64 [label="f64"];
+    
+    switch_main -> handle_ptr [label=".ptr"];
+    switch_main -> handle_opt [label=".opt"];
+    handle_opt -> return_imm32 [label="Optional为null"];
+    
+    switch_main -> handle_aggregate [label=".aggregate"];
+    handle_aggregate -> fail_node [label="array_type"];
+    handle_aggregate -> store_simd [label="vector_type"];
+    handle_aggregate -> packed_struct [label="struct_type"];
+    
+    switch_main -> handle_un [label=".un"];
+    switch_main -> unreachable_node [label="类型类目"];
+    
+    { rank=same; return_undef; return_imm32; return_imm64; return_float32; return_float64; }
+}

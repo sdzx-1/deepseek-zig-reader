@@ -1,0 +1,65 @@
+
+digraph flowchart {
+    node [shape=box, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 genCall"];
+    get_fn_ty [label="获取函数类型 fn_ty"];
+    prepare_alloc [label="准备内存分配器\n(栈回退分配器)"];
+    handle_var_args [label="处理可变参数\n(var_args)"];
+    resolve_call_conv [label="解析调用约定\n(resolveCallingConventionValues)"];
+    setup_call_frame [label="设置调用帧\n(对齐和大小调整)"];
+    spill_ops [label="保存eflags和调用者保留寄存器"];
+    setup_stack_args [label="设置栈参数\n(可能破坏寄存器)"];
+    handle_return_value [label="处理返回值位置"];
+    setup_reg_args [label="设置寄存器参数"];
+    handle_varargs_flag [label="设置可变参数标记\n(mov al, fp_count)"];
+    gen_call_inst [label="生成调用指令\n(根据链接目标处理不同格式)"];
+    return_result [label="返回 call_info.return_value.short"];
+    error_handling [label="错误处理", shape=diamond];
+
+    start -> get_fn_ty;
+    get_fn_ty -> prepare_alloc;
+    prepare_alloc -> handle_var_args;
+    handle_var_args -> resolve_call_conv;
+    resolve_call_conv -> setup_call_frame;
+    setup_call_frame -> spill_ops;
+    spill_ops -> setup_stack_args;
+    setup_stack_args -> handle_return_value;
+    handle_return_value -> setup_reg_args;
+    setup_reg_args -> handle_varargs_flag;
+    handle_varargs_flag -> gen_call_inst;
+    gen_call_inst -> return_result;
+
+    // 条件分支
+    setup_stack_args -> error_handling [label="失败时"];
+    handle_return_value -> error_handling [label="失败时"];
+    setup_reg_args -> error_handling [label="失败时"];
+    gen_call_inst -> error_handling [label="失败时"];
+    error_handling -> return_result [label="向上传播错误"];
+
+    // 调用指令详细分支
+    subgraph cluster_callgen {
+        label="生成调用指令细节";
+        check_info_type [label="检查info类型", shape=diamond];
+        air_case [label="处理AIR函数调用"];
+        lib_case [label="处理库函数调用"];
+        elf_case [label="ELF格式处理"];
+        coff_case [label="COFF格式处理"];
+        macho_case [label="Mach-O格式处理"];
+        plan9_case [label="Plan9格式处理"];
+        extern_case [label="外部符号处理"];
+
+        check_info_type -> air_case [label=".air"];
+        check_info_type -> lib_case [label=".lib"];
+        air_case -> elf_case [label="ELF"];
+        air_case -> coff_case [label="COFF"];
+        air_case -> macho_case [label="Mach-O"];
+        air_case -> plan9_case [label="Plan9"];
+        lib_case -> elf_case;
+        lib_case -> macho_case;
+        lib_case -> extern_case;
+    }
+
+    gen_call_inst -> check_info_type;
+}

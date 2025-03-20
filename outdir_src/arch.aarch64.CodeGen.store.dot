@@ -1,0 +1,40 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="store(ptr, value)", shape=ellipse];
+    check_ptr [label="检查 ptr 类型", shape=diamond];
+    ptr_immediate [label="ptr = immediate\n调用 setRegOrMem"];
+    ptr_stack_offset [label="ptr = ptr_stack_offset\n调用 genSetStack"];
+    ptr_register [label="ptr = register", shape=diamond];
+    value_register [label="value = register\n调用 genStrRegister"];
+    value_undef [label="value = undef\n调用 genSetReg"];
+    abi_size_check [label="abi_size ≤ 8?", shape=diamond];
+    small_value [label="分配临时寄存器\n调用 genSetReg\n递归调用 store"];
+    large_value [label="分配4个寄存器\n处理不同value类型\n调用 genInlineMemcpy"];
+    ptr_memory_stack [label="ptr = memory/stack_offset/\nstack_argument_offset/linker_load\n复制到临时寄存器\n递归调用 store"];
+    end [label="返回", shape=ellipse];
+
+    start -> check_ptr;
+
+    check_ptr -> ptr_immediate [label=".immediate"];
+    check_ptr -> ptr_stack_offset [label=".ptr_stack_offset"];
+    check_ptr -> ptr_register [label=".register"];
+    check_ptr -> ptr_memory_stack [label=".memory/.stack_offset/\n.stack_argument_offset/.linker_load"];
+
+    ptr_register -> value_register [label="value=register"];
+    ptr_register -> value_undef [label="value=undef"];
+    ptr_register -> abi_size_check [label="其他value类型"];
+
+    abi_size_check -> small_value [label="是"];
+    abi_size_check -> large_value [label="否"];
+
+    small_value -> end;
+    large_value -> end;
+    value_register -> end;
+    value_undef -> end;
+    ptr_immediate -> end;
+    ptr_stack_offset -> end;
+    ptr_memory_stack -> end;
+}

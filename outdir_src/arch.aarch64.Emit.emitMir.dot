@@ -1,0 +1,112 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始", shape=ellipse];
+    lower_branches [label="调用 emit.lowerBranches()"];
+    loop_start [label="循环遍历 mir_tags 的每个 tag 和 index"];
+    switch_tag [label="根据 tag 分发处理", shape=diamond];
+
+    // 分组处理函数
+    add_subtract_imm [label="调用 mirAddSubtractImmediate"];
+    data_proc_2src [label="调用 mirDataProcessing2Source"];
+    shift_imm [label="调用 mirShiftImmediate"];
+    cond_branch_imm [label="调用 mirConditionalBranchImmediate"];
+    branch [label="调用 mirBranch"];
+    compare_branch [label="调用 mirCompareAndBranch"];
+    uncond_branch_reg [label="调用 mirUnconditionalBranchRegister"];
+    exception_gen [label="调用 mirExceptionGeneration"];
+    call_extern [label="调用 mirCallExtern"];
+    logical_imm [label="调用 mirLogicalImmediate"];
+    add_sub_shift_reg [label="调用 mirAddSubtractShiftedRegister"];
+    add_sub_ext_reg [label="调用 mirAddSubtractExtendedRegister"];
+    cond_select [label="调用 mirConditionalSelect"];
+    dbg_line [label="调用 mirDbgLine"];
+    dbg_prologue_epilogue [label="调用 mirDebugPrologueEnd/EpilogueBegin"];
+    logical_shifted_reg [label="调用 mirLogicalShiftedRegister"];
+    load_memory_pie [label="调用 mirLoadMemoryPie"];
+    load_store_pair [label="调用 mirLoadStoreRegisterPair"];
+    load_store_stack [label="调用 mirLoadStoreStack"];
+    load_stack_arg [label="调用 mirLoadStackArgument"];
+    load_store_reg_reg [label="调用 mirLoadStoreRegisterRegister"];
+    load_store_imm [label="调用 mirLoadStoreRegisterImmediate"];
+    move_reg [label="调用 mirMoveRegister"];
+    move_wide_imm [label="调用 mirMoveWideImmediate"];
+    data_proc_3src [label="调用 mirDataProcessing3Source"];
+    nop [label="调用 mirNop"];
+    push_pop_regs [label="调用 mirPushPopRegs"];
+    bitfield_extract [label="调用 mirBitfieldExtract"];
+    extend [label="调用 mirExtend"];
+    end [label="结束", shape=ellipse];
+
+    // 连接节点
+    start -> lower_branches;
+    lower_branches -> loop_start;
+    loop_start -> switch_tag;
+
+    // Switch 分支连接（分组简化）
+    switch_tag -> add_subtract_imm [label=".add_immediate\n.adds_immediate\n.cmp_immediate\n..."];
+    switch_tag -> data_proc_2src [label=".asr_register\n.lsl_register\n..."];
+    switch_tag -> shift_imm [label=".asr_immediate\n.lsl_immediate\n..."];
+    switch_tag -> cond_branch_imm [label=".b_cond"];
+    switch_tag -> branch [label=".b\n.bl"];
+    switch_tag -> compare_branch [label=".cbz"];
+    switch_tag -> uncond_branch_reg [label=".blr\n.ret"];
+    switch_tag -> exception_gen [label=".brk\n.svc"];
+    switch_tag -> call_extern [label=".call_extern"];
+    switch_tag -> logical_imm [label=".eor_immediate\n.tst_immediate"];
+    switch_tag -> add_sub_shift_reg [label=".add_shifted_register\n..."];
+    switch_tag -> add_sub_ext_reg [label=".add_extended_register\n..."];
+    switch_tag -> cond_select [label=".csel\n.cset"];
+    switch_tag -> dbg_line [label=".dbg_line"];
+    switch_tag -> dbg_prologue_epilogue [label=".dbg_prologue_end\n.dbg_epilogue_begin"];
+    switch_tag -> logical_shifted_reg [label=".and_shifted_register\n..."];
+    switch_tag -> load_memory_pie [label=".load_memory_got\n..."];
+    switch_tag -> load_store_pair [label=".ldp\n.stp"];
+    switch_tag -> load_store_stack [label=".ldr_stack\n.str_stack\n..."];
+    switch_tag -> load_stack_arg [label=".ldr_stack_argument\n..."];
+    switch_tag -> load_store_reg_reg [label=".ldr_register\n..."];
+    switch_tag -> load_store_imm [label=".ldr_immediate\n..."];
+    switch_tag -> move_reg [label=".mov_register\n..."];
+    switch_tag -> move_wide_imm [label=".movk\n.movz"];
+    switch_tag -> data_proc_3src [label=".msub\n.mul\n..."];
+    switch_tag -> nop [label=".nop"];
+    switch_tag -> push_pop_regs [label=".push_regs\n.pop_regs"];
+    switch_tag -> bitfield_extract [label=".sbfx\n.ubfx"];
+    switch_tag -> extend [label=".sxtb\n.sxth\n..."];
+
+    // 返回到循环
+    add_subtract_imm -> loop_start [style=dashed];
+    data_proc_2src -> loop_start [style=dashed];
+    shift_imm -> loop_start [style=dashed];
+    cond_branch_imm -> loop_start [style=dashed];
+    branch -> loop_start [style=dashed];
+    compare_branch -> loop_start [style=dashed];
+    uncond_branch_reg -> loop_start [style=dashed];
+    exception_gen -> loop_start [style=dashed];
+    call_extern -> loop_start [style=dashed];
+    logical_imm -> loop_start [style=dashed];
+    add_sub_shift_reg -> loop_start [style=dashed];
+    add_sub_ext_reg -> loop_start [style=dashed];
+    cond_select -> loop_start [style=dashed];
+    dbg_line -> loop_start [style=dashed];
+    dbg_prologue_epilogue -> loop_start [style=dashed];
+    logical_shifted_reg -> loop_start [style=dashed];
+    load_memory_pie -> loop_start [style=dashed];
+    load_store_pair -> loop_start [style=dashed];
+    load_store_stack -> loop_start [style=dashed];
+    load_stack_arg -> loop_start [style=dashed];
+    load_store_reg_reg -> loop_start [style=dashed];
+    load_store_imm -> loop_start [style=dashed];
+    move_reg -> loop_start [style=dashed];
+    move_wide_imm -> loop_start [style=dashed];
+    data_proc_3src -> loop_start [style=dashed];
+    nop -> loop_start [style=dashed];
+    push_pop_regs -> loop_start [style=dashed];
+    bitfield_extract -> loop_start [style=dashed];
+    extend -> loop_start [style=dashed];
+
+    // 循环结束
+    loop_start -> end [label="所有指令处理完毕"];
+}

@@ -1,0 +1,48 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start airCall"];
+    check_naked [label="Check if in naked function"];
+    return_none_naked [label="return .none"];
+    alloc_resolved_args [label="Alloc resolved_args array"];
+    process_args_loop [label="Loop over args"];
+    arg_ctype_void [label="arg_ctype.index == .void?"];
+    resolve_arg [label="Resolve argument"];
+    need_memcpy [label="Check if arg_ctype mismatch"];
+    do_memcpy [label="memcpy array_local"];
+    resolve_callee [label="Resolve callee"];
+    iterate_big_tomb [label="Iterate BigTomb"];
+    determine_callee_type [label="Determine callee type (fn/ptr)"];
+    handle_result_local [label="Handle result_local based on modifier/ret_ctype"];
+    render_callee [label="Render callee (direct/extern/func/ptr)"];
+    write_call_args [label="Write function call arguments"];
+    handle_return_value [label="Handle return value memcpy if needed"];
+    return_result [label="Return result"];
+    error_never_tail [label="Fail: never_tail unsupported"];
+    error_never_inline [label="Fail: never_inline unsupported"];
+
+    start -> check_naked;
+    check_naked -> return_none_naked [label="Yes"];
+    check_naked -> alloc_resolved_args [label="No"];
+    alloc_resolved_args -> process_args_loop;
+    process_args_loop -> arg_ctype_void;
+    arg_ctype_void -> return_none_naked [label="Yes"];
+    arg_ctype_void -> resolve_arg [label="No"];
+    resolve_arg -> need_memcpy;
+    need_memcpy -> do_memcpy [label="Yes"];
+    need_memcpy -> process_args_loop [label="No"];
+    do_memcpy -> process_args_loop;
+    process_args_loop -> resolve_callee [label="Loop end"];
+    resolve_callee -> iterate_big_tomb;
+    iterate_big_tomb -> determine_callee_type;
+    determine_callee_type -> handle_result_local;
+    handle_result_local -> render_callee;
+    render_callee -> write_call_args [label="Direct/Extern"];
+    render_callee -> error_never_tail [label="never_tail modifier"];
+    render_callee -> error_never_inline [label="never_inline modifier"];
+    write_call_args -> handle_return_value;
+    handle_return_value -> return_result;
+    return_none_naked -> return_result [style=invis]; // Hidden edge for layout
+}

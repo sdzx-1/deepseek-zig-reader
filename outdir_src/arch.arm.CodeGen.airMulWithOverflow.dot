@@ -1,0 +1,68 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 airMulWithOverflow", shape=ellipse];
+    check_unused [label="检查指令是否未被使用 (liveness.isUnused)"];
+    return_dead [label="返回 .dead\nfinishAir(inst, .dead, ...)", shape=ellipse];
+    get_ty_pl [label="获取 ty_pl 和 extra 数据"];
+    check_vector [label="检查类型是否为向量 (zigTypeTag)"];
+    return_vector_error [label="返回错误：TODO 向量未实现", shape=ellipse];
+    handle_int [label="处理整数类型"];
+    check_bits_16 [label="int_info.bits ≤ 16?"];
+    handle_16bit [label="处理 16 位及以下整数"];
+    check_bits_32 [label="int_info.bits ≤ 32?"];
+    handle_32bit [label="处理 32 位整数"];
+    return_overflow_error [label="返回错误：>32 位未实现", shape=ellipse];
+    gen_result [label="生成结果 MCValue"];
+    finish_air [label="完成并返回结果\nfinishAir(inst, result, ...)", shape=ellipse];
+
+    subgraph cluster_16bit {
+        label="16 位处理逻辑";
+        style=filled;
+        color=lightgrey;
+        
+        alloc_stack_16 [label="分配栈空间 allocMem"];
+        spill_flags [label="溢出比较标志 spillCompareFlagsIfOccupied"];
+        bin_op [label="生成乘法指令 binOpRegister"];
+        trunc_reg [label="截断寄存器 truncRegister"];
+        gen_cmp [label="生成比较指令 (cmp)"];
+        set_stack [label="设置栈数据 genSetStack"];
+        set_overflow [label="设置溢出位 genSetStack"];
+    }
+
+    subgraph cluster_32bit {
+        label="32 位处理逻辑";
+        style=filled;
+        color=lightgrey;
+        
+        alloc_stack_32 [label="分配栈空间 allocMem"];
+        spill_flags_32 [label="溢出比较标志 spillCompareFlagsIfOccupied"];
+        alloc_regs [label="分配寄存器 allocRegs"];
+        gen_smull [label="生成 smull/umull 指令"];
+        trunc_reg_32 [label="截断寄存器 truncRegister"];
+        cmp_trunc [label="比较截断值与 rdlo"];
+        mov_ne [label="条件设置溢出标志 (movne)"];
+        cmp_rdhi [label="比较 rdhi 与 0"];
+        set_overflow_32 [label="设置溢出位到栈"];
+    }
+
+    start -> check_unused;
+    check_unused -> return_dead [label="是"];
+    check_unused -> get_ty_pl [label="否"];
+    get_ty_pl -> check_vector;
+    check_vector -> return_vector_error [label=".vector"];
+    check_vector -> handle_int [label=".int"];
+    
+    handle_int -> check_bits_16;
+    check_bits_16 -> handle_16bit [label="是"];
+    check_bits_16 -> check_bits_32 [label="否"];
+    check_bits_32 -> handle_32bit [label="是"];
+    check_bits_32 -> return_overflow_error [label="否"];
+
+    handle_16bit -> alloc_stack_16 -> spill_flags -> bin_op -> trunc_reg -> gen_cmp -> set_stack -> set_overflow -> gen_result;
+    handle_32bit -> alloc_stack_32 -> spill_flags_32 -> alloc_regs -> gen_smull -> trunc_reg_32 -> cmp_trunc -> mov_ne -> cmp_rdhi -> set_overflow_32 -> gen_result;
+    
+    gen_result -> finish_air;
+}

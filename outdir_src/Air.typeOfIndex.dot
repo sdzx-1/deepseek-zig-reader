@@ -1,0 +1,72 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier New", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Courier New"];
+
+    start [label="typeOfIndex(air, inst, ip)", shape=ellipse];
+    switch [label="Switch on air.instructions.items(.tag)[inst]", shape=diamond];
+
+    bin_ops [label="Binary Operations\n(add/sub/mul/div etc)\nReturn typeOf(bin_op.lhs)"];
+    un_ops [label="Unary Operations\n(sqrt/sin/cos etc)\nReturn typeOf(un_op)"];
+    cmp_ops [label="Comparison Operations\nReturn Type.bool"];
+    alloc_ops [label="Allocation/ReturnPtr\nReturn datas[inst].ty"];
+    arg_op [label=".arg\nReturn arg.ty.toType()"];
+    ty_pl_ops [label="Struct/Slice/Aggregate Ops\nReturn ty_pl.ty.toType()"];
+    ty_op_ops [label="Bitcast/Load/IntCast etc\nReturn ty_op.ty.toType()"];
+    noreturn_ops [label="Control Flow Ops\n(loop/br/ret etc)\nReturn Type.noreturn"];
+    void_ops [label="Store/Prefetch etc\nReturn Type.void"];
+    usize_ops [label="SliceLen/RetAddr\nReturn Type.usize"];
+    call_ops [label="Call Operations\nResolve function return type"];
+    elem_val_ops [label="Slice/Array Elem Val\nReturn ptr_ty.childType()"];
+    atomic_ops [label="Atomic Operations\nReturn ptr_ty.childType()"];
+    reduce_ops [label="Reduce Operations\nReturn vector child type"];
+    select_op [label="Select\nReturn lhs type"];
+    try_op [label="Try Operations\nReturn error union payload"];
+    workgroup_ops [label="Workgroup IDs\nReturn Type.u32"];
+    unreachable_ops [label="Inferred Alloc\nUnreachable"];
+    misc_ops [label="TagName/ErrorName\nReturn slice_const_u8"];
+
+    start -> switch;
+    
+    switch -> bin_ops [label=".add/.sub/.mul etc"];
+    switch -> un_ops [label=".sqrt/.sin/.neg etc"];
+    switch -> cmp_ops [label=".cmp_lt/.is_null etc"];
+    switch -> alloc_ops [label=".alloc/.ret_ptr etc"];
+    switch -> arg_op [label=".arg"];
+    switch -> ty_pl_ops [label=".struct_field_ptr/.slice etc"];
+    switch -> ty_op_ops [label=".not/.bitcast/.load etc"];
+    switch -> noreturn_ops [label=".loop/.br/.ret etc"];
+    switch -> void_ops [label=".store/.memset etc"];
+    switch -> usize_ops [label=".slice_len/.frame_addr"];
+    switch -> call_ops [label=".call/.call_always_tail"];
+    switch -> elem_val_ops [label=".slice_elem_val/.array_elem_val"];
+    switch -> atomic_ops [label=".atomic_load/.atomic_rmw"];
+    switch -> reduce_ops [label=".reduce/.reduce_optimized"];
+    switch -> select_op [label=".select"];
+    switch -> try_op [label=".try/.try_cold"];
+    switch -> workgroup_ops [label=".work_item_id etc"];
+    switch -> unreachable_ops [label=".inferred_alloc"];
+    switch -> misc_ops [label=".tag_name/.error_name"];
+
+    // Shared return paths
+    bin_ops -> end;
+    un_ops -> end;
+    cmp_ops -> end [label="Type.bool"];
+    alloc_ops -> end;
+    arg_op -> end;
+    ty_pl_ops -> end;
+    ty_op_ops -> end;
+    noreturn_ops -> end [label="Type.noreturn"];
+    void_ops -> end [label="Type.void"];
+    usize_ops -> end [label="Type.usize"];
+    call_ops -> end [label="func return type"];
+    elem_val_ops -> end;
+    atomic_ops -> end;
+    reduce_ops -> end;
+    select_op -> end;
+    try_op -> end;
+    workgroup_ops -> end [label="Type.u32"];
+    misc_ops -> end [label="slice_const_u8"];
+
+    end [label="Return Type", shape=ellipse];
+}

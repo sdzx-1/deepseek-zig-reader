@@ -1,0 +1,81 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    rankdir=TB;
+
+    start [label="开始 gen()"];
+    check_naked [label="调用约定是否是naked? (cc != .naked)"];
+    non_naked_block [label="非naked处理"];
+    naked_block [label="naked处理"];
+    end [label="结束"];
+
+    // Main decision
+    start -> check_naked;
+    check_naked -> non_naked_block [label="是"];
+    check_naked -> naked_block [label="否"];
+
+    // Non-naked path
+    subgraph cluster_non_naked {
+        label="非naked路径";
+        style="rounded";
+        
+        push_ops [label="生成 push {fp, lr}\n记录push_reloc"];
+        mov_fp_sp [label="生成 mov fp, sp"];
+        sub_sp_reloc [label="生成 sub sp 指令\n记录sub_reloc"];
+        handle_r4 [label="标记r4为已分配"];
+        check_ret_mcv [label="返回值在栈上?\n(self.ret_mcv == .stack_offset)"];
+        save_ret_addr [label="分配栈空间并保存r0到栈"];
+        process_args [label="循环处理参数:\n- 复制寄存器参数到栈\n- 更新arg为栈偏移"];
+        dbg_prologue [label="插入 dbg_prologue_end"];
+        gen_body [label="生成函数体 (genBody)"];
+        backpatch_push [label="后补丁push指令\n计算保存的寄存器列表"];
+        backpatch_sub [label="后补丁sub指令\n计算总栈空间"];
+        dbg_epilogue [label="插入 dbg_epilogue_begin"];
+        handle_exit_jumps [label="处理退出跳转回填"];
+        epilogue_ops [label="生成epilogue:\n- mov sp, fp\n- pop {fp, pc}"];
+
+        // Non-naked flow
+        non_naked_block -> push_ops;
+        push_ops -> mov_fp_sp;
+        mov_fp_sp -> sub_sp_reloc;
+        sub_sp_reloc -> handle_r4;
+        handle_r4 -> check_ret_mcv;
+        check_ret_mcv -> save_ret_addr [label="是"];
+        check_ret_mcv -> process_args [label="否"];
+        save_ret_addr -> process_args;
+        process_args -> dbg_prologue;
+        dbg_prologue -> gen_body;
+        gen_body -> backpatch_push;
+        backpatch_push -> backpatch_sub;
+        backpatch_sub -> dbg_epilogue;
+        dbg_epilogue -> handle_exit_jumps;
+        handle_exit_jumps -> epilogue_ops;
+    }
+
+    // Naked path
+    subgraph cluster_naked {
+        label="naked路径";
+        style="rounded";
+        
+        naked_dbg_prologue [label="插入 dbg_prologue_end"];
+        naked_gen_body [label="生成函数体 (genBody)"];
+        naked_dbg_epilogue [label="插入 dbg_epilogue_begin"];
+
+        // Naked flow
+        naked_block -> naked_dbg_prologue;
+        naked_dbg_prologue -> naked_gen_body;
+        naked_gen_body -> naked_dbg_epilogue;
+    }
+
+    // Common ending
+    non_naked_block -> end [style=invis];  // Hidden connector for alignment
+    naked_block -> end [style=invis];      // Hidden connector for alignment
+    epilogue_ops -> end;
+    naked_dbg_epilogue -> end;
+    
+    // Final debug line
+    add_dbg_line [label="插入 dbg_line 指令"];
+    end -> add_dbg_line [style=invis];
+    add_dbg_line -> end [style=invis];
+}

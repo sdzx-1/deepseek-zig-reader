@@ -1,0 +1,89 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="genSetStack(ty, stack_offset, mcv)"];
+    compute_abi_size [label="abi_size = ty.abiSize(zcu)"];
+    switch_mcv [label="switch(mcv)", shape=diamond];
+
+    start -> compute_abi_size -> switch_mcv;
+
+    // Dead case
+    dead_case [label="case .dead\nunreachable"];
+    switch_mcv -> dead_case [label=".dead"];
+
+    // Unreach/Nothing case
+    unreach_none_case [label="case .unreach/.none\nreturn"];
+    switch_mcv -> unreach_none_case [label=".unreach/.none"];
+
+    // Undef case
+    undef_case [label="case .undef"];
+    check_safety [label="if !wantSafety()", shape=diamond];
+    return_undef [label="return"];
+    switch_abi_size_undef [label="switch(abi_size)", shape=diamond];
+    handle_size_1_4 [label="recursive genSetStack\nwith immediate 0xaa..."];
+    handle_size_other [label="genInlineMemset"];
+
+    switch_mcv -> undef_case [label=".undef"];
+    undef_case -> check_safety;
+    check_safety -> return_undef [label="true"];
+    check_safety -> switch_abi_size_undef [label="false"];
+    switch_abi_size_undef -> handle_size_1_4 [label="1/2/4"];
+    switch_abi_size_undef -> handle_size_other [label="else"];
+
+    // CPSR/Immediate/PtrStack case
+    cpsr_imm_ptr_case [label="case .cpsr_flags/.immediate/.ptr_stack_offset"];
+    copy_to_reg [label="reg = copyToTmpRegister(ty, mcv)"];
+    recursive_call [label="genSetStack(ty, stack_offset, .register)"];
+    switch_mcv -> cpsr_imm_ptr_case [label=".cpsr_flags/.immediate/.ptr_stack_offset"];
+    cpsr_imm_ptr_case -> copy_to_reg -> recursive_call;
+
+    // Register case
+    register_case [label="case .register"];
+    switch_abi_size_reg [label="switch(abi_size)", shape=diamond];
+    handle_size_1_4_reg [label="Generate strb/str"];
+    handle_size_2_reg [label="Generate strh"];
+    fail_other_size [label="fail(\"TODO...\")"];
+    switch_mcv -> register_case [label=".register"];
+    register_case -> switch_abi_size_reg;
+    switch_abi_size_reg -> handle_size_1_4_reg [label="1/4"];
+    switch_abi_size_reg -> handle_size_2_reg [label="2"];
+    switch_abi_size_reg -> fail_other_size [label="else"];
+
+    // Register C/V Flag case
+    reg_cv_case [label="case .register_c_flag/.register_v_flag"];
+    lock_reg [label="lockReg(reg)"];
+    gen_wrapped_ty [label="genSetStack(wrapped_ty, stack_offset, reg)"];
+    handle_overflow_bit [label="Set overflow bit\nwith movcs/movvs"];
+    switch_mcv -> reg_cv_case [label=".register_c_flag/.register_v_flag"];
+    reg_cv_case -> lock_reg -> gen_wrapped_ty -> handle_overflow_bit;
+
+    // Memory/StackArg/StackOffset case
+    mem_stack_case [label="case .memory/.stack_argument_offset/.stack_offset"];
+    check_same_offset [label="if stack_offset == off", shape=diamond];
+    handle_small_abi [label="copyToTmpRegister + recursive call"];
+    handle_large_abi [label="Alloc regs, setup memcpy"];
+    switch_mcv -> mem_stack_case [label=".memory/.stack_argument_offset/.stack_offset"];
+    mem_stack_case -> check_same_offset;
+    check_same_offset -> return_same [label="true"];
+    check_same_offset -> abi_size_check [label="false"];
+    abi_size_check [label="if abi_size <= 4", shape=diamond];
+    abi_size_check -> handle_small_abi [label="true"];
+    abi_size_check -> handle_large_abi [label="false"];
+    handle_large_abi -> genInlineMemcpy;
+
+    // Edge cases and returns
+    return_same [label="return"];
+    fail_other_size -> end [label="return error"];
+    handle_size_1_4 -> end;
+    handle_size_other -> end;
+    recursive_call -> end;
+    handle_size_1_4_reg -> end;
+    handle_size_2_reg -> end;
+    handle_overflow_bit -> end;
+    handle_small_abi -> end;
+    genInlineMemcpy -> end;
+
+    end [label="End", shape=ellipse];
+}

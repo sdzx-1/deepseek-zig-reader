@@ -1,0 +1,80 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize="10"];
+    edge [fontname="Courier", fontsize="10"];
+    
+    start [label="Start airSplat()", shape=ellipse];
+    end [label="Return result\n(finishAir)", shape=ellipse];
+    fail [label="Return fail\n(TODO)", shape=ellipse];
+
+    start -> check_scalar_type;
+
+    subgraph cluster_main {
+        label="Main Logic Flow";
+        
+        check_scalar_type [label="Check scalar_ty.zigTypeTag()", shape=diamond];
+        handle_bool [label="Handle bool type"];
+        handle_int [label="Handle int type"];
+        handle_float [label="Handle float type"];
+        default_case [label="Default case", shape=diamond];
+        
+        check_scalar_type -> handle_bool [label=".bool"];
+        check_scalar_type -> handle_int [label=".int"];
+        check_scalar_type -> handle_float [label=".float"];
+        check_scalar_type -> default_case [label="else"];
+        
+        handle_bool -> gen_cmovcc;
+        gen_cmovcc [label="Generate CMOVcc instructions"];
+        gen_cmovcc -> break_result_1;
+        break_result_1 [label="Break to result: register[0]"];
+
+        handle_int -> check_avx2;
+        check_avx2 [label="Has AVX2?", shape=diamond];
+        check_avx2 -> avx2_case [label="Yes"];
+        check_avx2 -> no_avx2_case [label="No"];
+        
+        avx2_case [label="Use VPBROADCAST* instructions"];
+        no_avx2_case [label="Use SSE shuffle/unpack instructions"];
+        avx2_case -> break_result_2;
+        no_avx2_case -> break_result_2;
+        break_result_2 [label="Break to result: register"];
+        
+        handle_float -> check_float_bits;
+        check_float_bits [label="Switch float bits", shape=diamond];
+        check_float_bits -> handle_32bit_float [label="32"];
+        check_float_bits -> handle_64bit_float [label="64"];
+        check_float_bits -> handle_128bit_float [label="128"];
+        check_float_bits -> others [label="16/80"];
+        others [label="Unreachable"];
+        
+        handle_32bit_float -> vector_len_check_32;
+        vector_len_check_32 [label="Check vector_len\n(1/2-4/5-8)", shape=diamond];
+        vector_len_check_32 -> broadcast_32bit;
+        broadcast_32bit [label="Generate broadcast/shuffle"];
+        broadcast_32bit -> break_result_3;
+        break_result_3 [label="Break to result"];
+        
+        handle_64bit_float -> vector_len_check_64;
+        vector_len_check_64 [label="Check vector_len\n(1/2/3-4)", shape=diamond];
+        vector_len_check_64 -> movddup_or_shuf;
+        movddup_or_shuf [label="Generate MOVDDUP/SHUFPD"];
+        movddup_or_shuf -> break_result_4;
+        break_result_4 [label="Break to result"];
+        
+        handle_128bit_float -> vector_len_check_128;
+        vector_len_check_128 [label="Check vector_len\n(1/2)", shape=diamond];
+        vector_len_check_128 -> broadcast_128bit;
+        broadcast_128bit [label="Generate broadcast"];
+        broadcast_128bit -> break_result_5;
+        break_result_5 [label="Break to result"];
+    }
+
+    break_result_1 -> end;
+    break_result_2 -> end;
+    break_result_3 -> end;
+    break_result_4 -> end;
+    break_result_5 -> end;
+    default_case -> fail;
+    others -> end [style=invis];
+    fail -> end [style=invis];
+}

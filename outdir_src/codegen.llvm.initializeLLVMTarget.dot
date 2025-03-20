@@ -1,0 +1,62 @@
+
+digraph initializeLLVMTarget {
+    rankdir=TB;
+    node [shape=rectangle];
+    start [shape=ellipse, label="Start initializeLLVMTarget"];
+    end [shape=ellipse, label="End"];
+    switch [shape=diamond, label="Switch arch", width=2.5];
+
+    start -> switch;
+
+    // Common structure for all architectures
+    subgraph cluster_common {
+        label="Architecture Branches";
+        edge [minlen=2];
+
+        // AArch64
+        aarch64 [label="aarch64, aarch64_be\n- Initialize AArch64 Target\n- TargetInfo\n- TargetMC\n- AsmPrinter\n- AsmParser"];
+        switch -> aarch64 [label="aarch64"];
+        aarch64 -> end;
+
+        // AMDGCN
+        amdgcn [label="amdgcn\n- Initialize AMDGPU Target\n- TargetInfo\n- TargetMC\n- AsmPrinter\n- AsmParser"];
+        switch -> amdgcn [label="amdgcn"];
+        amdgcn -> end;
+
+        // ARM variants
+        arm [label="thumb/arm variants\n- Initialize ARM Target\n- TargetInfo\n- TargetMC\n- AsmPrinter\n- AsmParser"];
+        switch -> arm [label="thumb/arm"];
+        arm -> end;
+
+        // X86
+        x86 [label="x86/x86_64\n- Initialize X86 Target\n- TargetInfo\n- TargetMC\n- AsmPrinter\n- AsmParser"];
+        switch -> x86 [label="x86"];
+        x86 -> end;
+
+        // Conditional branches (example with Xtensa)
+        subgraph cluster_xtensa {
+            label="Xtensa (conditional)";
+            xtensa_cond [shape=diamond, label="build_options.llvm_has_xtensa?", width=2];
+            xtensa_yes [label="Initialize Xtensa Target\n- TargetInfo\n- TargetMC\n- AsmParser"];
+            xtensa_no [label="No initialization"];
+            switch -> xtensa_cond [label="xtensa"];
+            xtensa_cond -> xtensa_yes [label="Yes"];
+            xtensa_cond -> xtensa_no [label="No"];
+            xtensa_yes -> end;
+            xtensa_no -> end;
+        }
+
+        // NVPTX (no AsmParser)
+        nvptx [label="nvptx/nvptx64\n- Initialize NVPTX Target\n- TargetInfo\n- TargetMC\n- AsmPrinter\n(No AsmParser)"];
+        switch -> nvptx [label="nvptx"];
+        nvptx -> end;
+
+        // Unsupported/No LLVM backend
+        unsupported [label="spirv/kalimba\n- No action\n- Unreachable", color=grey];
+        switch -> unsupported [label="spirv/kalimba"];
+        unsupported -> end [style=dashed];
+    }
+
+    // Edge styling for clarity
+    edge [color=black];
+}

@@ -1,0 +1,72 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize="10"];
+    edge [fontname="Courier", fontsize="10"];
+
+    start [label="Start: ptrField(parent_ptr, field_idx, pt)"];
+    get_aggregate_ty [label="获取 aggregate_ty = parent_ptr_ty.childType(zcu)"];
+    check_aggregate_tag [label="检查 aggregate_ty.zigTypeTag(zcu)", shape=diamond];
+    struct_case [label="结构体分支 (struct)"];
+    union_case [label="联合体分支 (union)"];
+    pointer_case [label="指针分支 (pointer)"];
+    handle_struct_layout [label="检查 struct 容器布局", shape=diamond];
+    handle_auto_struct [label="auto 布局\n计算 field_ty 和 field_align"];
+    handle_extern_struct [label="extern 布局\n计算 byte_off 和 field_align\n直接返回偏移指针"];
+    handle_packed_struct [label="packed 布局\n检查 packedStructFieldPtrInfo", shape=diamond];
+    packed_bit_ptr [label="bit_ptr 分支\n构造 result_ty\n返回强制转换指针"];
+    packed_byte_ptr [label="byte_ptr 分支\n构造 result_ty\n返回偏移指针"];
+    handle_union_layout [label="检查 union 容器布局", shape=diamond];
+    handle_auto_union [label="auto 布局\n计算 field_ty 和 field_align"];
+    handle_extern_union [label="extern 布局\n直接返回类型转换指针"];
+    handle_packed_union [label="packed 布局\n处理对齐和偏移\n构造 result_ty"];
+    handle_pointer_slice [label="处理 slice 指针/长度\n返回对应类型和对齐"];
+    process_alignment [label="计算 new_align\n构造 result_ty"];
+    check_undef [label="检查 parent_ptr.isUndef(zcu)", shape=diamond];
+    build_result [label="构建并返回最终的 Value"];
+
+    start -> get_aggregate_ty;
+    get_aggregate_ty -> check_aggregate_tag;
+
+    check_aggregate_tag -> struct_case [label="struct"];
+    check_aggregate_tag -> union_case [label="union"];
+    check_aggregate_tag -> pointer_case [label="pointer"];
+
+    struct_case -> handle_struct_layout;
+    handle_struct_layout -> handle_auto_struct [label="auto"];
+    handle_struct_layout -> handle_extern_struct [label="extern"];
+    handle_struct_layout -> handle_packed_struct [label="packed"];
+
+    handle_packed_struct -> packed_bit_ptr [label="bit_ptr"];
+    handle_packed_struct -> packed_byte_ptr [label="byte_ptr"];
+    packed_bit_ptr -> process_alignment [color=red, style=dashed]; // 直接返回，不进入后续流程
+    packed_byte_ptr -> process_alignment [color=red, style=dashed];
+
+    union_case -> handle_union_layout;
+    handle_union_layout -> handle_auto_union [label="auto"];
+    handle_union_layout -> handle_extern_union [label="extern"];
+    handle_union_layout -> handle_packed_union [label="packed"];
+
+    pointer_case -> handle_pointer_slice;
+
+    handle_auto_struct -> process_alignment;
+    handle_auto_union -> process_alignment;
+
+    handle_extern_struct -> end [label="直接返回", color=red, style=dashed];
+    handle_extern_union -> end [label="直接返回", color=red, style=dashed];
+    handle_packed_union -> process_alignment;
+
+    handle_pointer_slice -> process_alignment;
+
+    process_alignment -> check_undef;
+    check_undef -> build_result [label="否"];
+    check_undef -> end [label="是\n返回 undef"];
+
+    build_result -> end;
+
+    end [label="返回结果", shape=ellipse];
+
+    // 隐藏非连接的边
+    edge [style=invis];
+    packed_bit_ptr -> end;
+    packed_byte_ptr -> end;
+}

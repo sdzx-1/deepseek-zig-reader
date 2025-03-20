@@ -1,0 +1,67 @@
+
+digraph analyzeNavVal {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 analyzeNavVal"];
+    get_context [label="获取zcu, gpa, ip"];
+    log_debug [label="记录调试信息"];
+    check_inst_resolved [label="解析inst_resolved"];
+    error_analysis_fail [label="返回 error.AnalysisFail"];
+    put_analysis_in_progress [label="标记分析单元进行中"];
+    init_arena [label="初始化分析内存分配器"];
+    init_comptime_err_trace [label="初始化编译时错误追踪"];
+    create_sema [label="创建Sema结构体"];
+    declare_dependency [label="声明依赖项"];
+    handle_zir_decl [label="处理ZIR声明类型"];
+    resolve_maybe_ty [label="解析可能存在的类型体"];
+    resolve_final_val [label="解析最终值"];
+    validate_var_type [label="验证变量类型"];
+    resolve_modifiers [label="解析修饰符（对齐、链接段等）"];
+    determine_nav_val [label="确定nav_val"];
+    check_unreachable [label="检查unreachable值"];
+    resolve_layout [label="解析类型布局"];
+    handle_usingnamespace [label="处理usingnamespace特殊情况"];
+    queue_linker_work [label="判断是否需要链接器工作"];
+    resolve_nav_value [label="解析导航值并更新状态"];
+    mark_analysis_complete [label="标记分析完成"];
+    handle_export [label="处理导出声明"];
+    queue_codegen [label="排队代码生成任务"];
+    check_old_status [label="检查旧状态并返回结果"];
+
+    start -> get_context -> log_debug -> check_inst_resolved;
+    check_inst_resolved -> error_analysis_fail [label="解析失败"];
+    check_inst_resolved -> put_analysis_in_progress [label="解析成功"];
+    put_analysis_in_progress -> init_arena -> init_comptime_err_trace -> create_sema;
+    create_sema -> declare_dependency -> handle_zir_decl;
+
+    handle_zir_decl -> resolve_maybe_ty [label="有类型体"];
+    resolve_maybe_ty -> resolve_final_val;
+    handle_zir_decl -> resolve_final_val [label="无类型体"];
+
+    resolve_final_val -> validate_var_type;
+    validate_var_type -> resolve_modifiers;
+
+    resolve_modifiers -> determine_nav_val;
+    determine_nav_val -> check_unreachable -> resolve_layout;
+
+    resolve_layout -> handle_usingnamespace [label="usingnamespace声明"];
+    handle_usingnamespace -> mark_analysis_complete [label="更新并返回"];
+
+    resolve_layout -> resolve_nav_value [label="普通声明"];
+    resolve_nav_value -> mark_analysis_complete;
+
+    mark_analysis_complete -> handle_export [label="处理导出"];
+    handle_export -> queue_codegen;
+
+    queue_codegen -> check_old_status;
+    check_old_status -> end [label="返回val_changed结果"];
+
+    // 错误处理路径
+    edge [color=red];
+    declare_dependency -> error_analysis_fail [label="依赖声明失败"];
+    validate_var_type -> error_analysis_fail [label="验证失败"];
+    resolve_modifiers -> error_analysis_fail [label="解析修饰符失败"];
+    determine_nav_val -> error_analysis_fail [label="无效nav_val"];
+    handle_usingnamespace -> error_analysis_fail [label="类型检查失败"];
+    handle_export -> error_analysis_fail [label="导出处理失败"];
+}

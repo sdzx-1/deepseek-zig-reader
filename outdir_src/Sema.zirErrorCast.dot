@@ -1,0 +1,59 @@
+
+digraph zirErrorCast {
+    node [shape=rectangle fontname="Courier" style=filled fillcolor="#f0f0f0"];
+    edge [fontname="Courier"];
+
+    start [label="开始" shape=ellipse];
+    resolve_types [label="解析目标类型(dest_ty)和操作数(operand)"];
+    check_dest_tag [label="dest_tag 是 error_set 或 error_union?" shape=diamond];
+    check_operand_tag [label="operand_tag 是 error_set 或 error_union?" shape=diamond];
+    check_dest_error_set_operand_union [label="dest_tag 是 error_set 且 operand_tag 是 error_union?" shape=diamond];
+    check_error_union_payload [label="dest_ty 和 operand_ty 的 error_union 有效载荷是否匹配?" shape=diamond];
+    check_disjoint_errors [label="dest_err_ty 和 operand_err_ty 是否不相交?" shape=diamond];
+    handle_known_value [label="操作数值是否已知?" shape=diamond];
+    generate_ref [label="生成对应类型的引用"];
+    runtime_checks [label="添加运行时安全检查"];
+    final_conversion [label="生成最终转换指令"];
+    error_dest_type [label="返回错误：目标类型不符合要求" shape=parallelogram];
+    error_operand_type [label="返回错误：操作数类型不符合要求" shape=parallelogram];
+    error_cast_union_to_set [label="返回错误：不能将 error_union 转换为 error_set" shape=parallelogram];
+    error_payload_mismatch [label="返回错误：有效载荷类型不匹配" shape=parallelogram];
+    error_no_common_errors [label="返回错误：错误集无共同错误" shape=parallelogram];
+    error_not_member [label="返回错误：错误不在目标集中" shape=parallelogram];
+    end [label="返回结果" shape=ellipse];
+
+    start -> resolve_types;
+    resolve_types -> check_dest_tag;
+
+    check_dest_tag -> error_dest_type [label="否"];
+    check_dest_tag -> check_operand_tag [label="是"];
+
+    check_operand_tag -> error_operand_type [label="否"];
+    check_operand_tag -> check_dest_error_set_operand_union [label="是"];
+
+    check_dest_error_set_operand_union -> error_cast_union_to_set [label="是"];
+    check_dest_error_set_operand_union -> check_error_union_payload [label="否"];
+
+    check_error_union_payload -> error_payload_mismatch [label="否"];
+    check_error_union_payload -> check_disjoint_errors [label="是"];
+
+    check_disjoint_errors -> error_no_common_errors [label="是且条件不满足"];
+    check_disjoint_errors -> handle_known_value [label="否或条件满足"];
+
+    handle_known_value -> generate_ref [label="是"];
+    handle_known_value -> runtime_checks [label="否"];
+
+    generate_ref -> error_not_member [label="错误不在目标集"];
+    generate_ref -> end [label="成功"];
+
+    runtime_checks -> final_conversion;
+    final_conversion -> end;
+
+    // 错误处理连接
+    error_dest_type -> end;
+    error_operand_type -> end;
+    error_cast_union_to_set -> end;
+    error_payload_mismatch -> end;
+    error_no_common_errors -> end;
+    error_not_member -> end;
+}

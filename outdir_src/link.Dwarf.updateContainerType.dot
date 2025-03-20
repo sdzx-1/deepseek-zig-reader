@@ -1,0 +1,65 @@
+
+digraph updateContainerType {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle, style=rounded];
+    edge [fontname="Arial"];
+
+    start [label="开始 updateContainerType"];
+    get_zcu [label="获取 zcu 和 intern_pool"];
+    log_debug [label="记录调试日志"];
+    check_main_struct_inst [label="inst_info.inst == .main_struct_inst?" shape=diamond];
+
+    // Main struct branch
+    main_struct_true [label="处理主结构体实例"];
+    get_or_create_type_entry [label="创建/获取类型条目"];
+    init_wip_nav [label="初始化 WipNav"];
+    process_struct_fields [label="处理结构体字段"];
+    handle_loaded_struct [label="加载结构体类型"];
+    process_field [label="循环处理每个字段"];
+    field_conditions [label="检查字段属性\n（comptime/runtime bits）"];
+    write_field_info [label="写入字段信息\n（名称/类型/偏移等）"];
+    finalize_main_struct [label="更新调试信息条目\n替换 DWARF 条目"];
+
+    // Other types branch
+    other_types_false [label="处理其他容器类型"];
+    check_zir_instruction [label="检查 ZIR 指令跟踪版本"];
+    name_strategy_check [label="名称策略是否为 .parent?" shape=diamond];
+    handle_container_types [label="处理结构体/枚举/联合/不透明类型"];
+    struct_layout [label="结构体布局判断\n(auto/extern/packed)"];
+    enum_processing [label="处理枚举类型字段"];
+    union_processing [label="处理联合类型\n（tagged/untagged）"];
+    opaque_processing [label="生成空结构体条目"];
+    finalize_other_types [label="更新调试信息\n替换 DWARF 条目"];
+
+    // Common flow
+    end [label="结束"];
+
+    start -> get_zcu -> log_debug -> check_main_struct_inst;
+
+    // Main struct path
+    check_main_struct_inst -> main_struct_true [label="是"];
+    main_struct_true -> get_or_create_type_entry -> init_wip_nav;
+    init_wip_nav -> handle_loaded_struct -> process_struct_fields;
+    process_struct_fields -> process_field [label="循环每个字段"];
+    process_field -> field_conditions -> write_field_info;
+    process_struct_fields -> finalize_main_struct -> end;
+
+    // Other types path
+    check_main_struct_inst -> other_types_false [label="否"];
+    other_types_false -> check_zir_instruction -> name_strategy_check;
+    name_strategy_check -> end [label="是"];
+    name_strategy_check -> handle_container_types [label="否"];
+    handle_container_types -> struct_layout [label="struct_type"];
+    handle_container_types -> enum_processing [label="enum_type"];
+    handle_container_types -> union_processing [label="union_type"];
+    handle_container_types -> opaque_processing [label="opaque_type"];
+    struct_layout -> process_field;
+    enum_processing -> write_field_info;
+    union_processing -> write_field_info;
+    opaque_processing -> finalize_other_types;
+    finalize_other_types -> end;
+
+    // Common elements
+    write_field_info -> finalize_main_struct [style=invis];
+    write_field_info -> finalize_other_types [style=invis];
+}

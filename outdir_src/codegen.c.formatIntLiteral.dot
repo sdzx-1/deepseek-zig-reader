@@ -1,0 +1,61 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="Start formatIntLiteral"];
+    check_undef [label="检查 data.val.isUndefDeep(zcu)"];
+    handle_undef [label="分配 undef_limbs\n初始化未定义大整数"];
+    get_int [label="获取 int 值\n(int_buf 或 undef_int)"];
+    check_c_limb_count [label="c_limb_info.count == 1?"];
+    handle_single_limb [label="处理单个 limb"];
+    handle_multi_limb [label="处理多个 limbs"];
+    end [label="渲染后缀\n结束"];
+
+    start -> check_undef;
+    check_undef -> handle_undef [label="是"];
+    check_undef -> get_int [label="否"];
+    handle_undef -> get_int;
+    get_int -> check_c_limb_count;
+
+    // 单 limb 分支
+    subgraph cluster_single {
+        label="单 limb 处理";
+        style="rounded";
+        color=blue;
+        check_overflow [label="检查加减溢出"];
+        write_minmax [label="输出 MAX/MIN\n或符号"];
+        check_fmt [label="解析 fmt 参数"];
+        handle_base [label="添加进制前缀\n(0x, 0b)"];
+        write_number [label="写入数值字符串"];
+    }
+
+    check_c_limb_count -> handle_single_limb [label="是"];
+    handle_single_limb -> check_overflow;
+    check_overflow -> write_minmax [label="溢出"];
+    check_overflow -> check_fmt [label="未溢出"];
+    check_fmt -> handle_base;
+    handle_base -> write_number;
+
+    // 多 limb 分支
+    subgraph cluster_multi {
+        label="多 limb 处理";
+        style="rounded";
+        color=green;
+        convert_twoscomp [label="转换为补码形式"];
+        init_limbs [label="初始化 limbs_per_c_limb"];
+        loop_limbs [label="循环处理每个 limb"];
+        recursive_call [label="递归调用 formatIntLiteral"];
+    }
+
+    check_c_limb_count -> handle_multi_limb [label="否"];
+    handle_multi_limb -> convert_twoscomp;
+    convert_twoscomp -> init_limbs;
+    init_limbs -> loop_limbs;
+    loop_limbs -> recursive_call [label="处理每个 limb"];
+
+    // 连接公共出口
+    write_minmax -> end;
+    write_number -> end;
+    recursive_call -> end [label="完成所有 limb"];
+}

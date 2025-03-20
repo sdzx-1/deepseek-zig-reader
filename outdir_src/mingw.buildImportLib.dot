@@ -1,0 +1,54 @@
+
+digraph buildImportLib {
+    graph [fontname="Arial", bgcolor="transparent"];
+    node [shape=rectangle, style=filled, fillcolor="lightgray", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 buildImportLib"];
+    check_def [label="查找 .def 文件"];
+    def_found [label=".def 文件找到？", shape=diamond];
+    log_missing [label="记录调试日志\n返回空"];
+    init_cache [label="初始化全局缓存目录"];
+    hash_setup [label="添加版本/路径/架构\n到哈希"];
+    obtain_cache [label="获取缓存清单"];
+    cache_hit [label="缓存命中？", shape=diamond];
+    use_existing [label="添加现有库到CRT文件列表"];
+    preprocess [label="预处理：添加头文件目录\n处理宏定义/展开"];
+    handle_errors [label="检查预处理错误", shape=diamond];
+    write_def [label="将处理后的def文件\n写入缓存目录"];
+    gen_lib [label="调用LLVM生成导入库"];
+    update_cache [label="更新缓存清单"];
+    add_new_lib [label="添加新库到CRT文件列表"];
+    end [label="返回"];
+
+    start -> check_def;
+    check_def -> def_found;
+    def_found -> log_missing [label="未找到"];
+    def_found -> init_cache [label="找到"];
+    log_missing -> end;
+    init_cache -> hash_setup;
+    hash_setup -> obtain_cache;
+    obtain_cache -> cache_hit;
+    cache_hit -> use_existing [label="是"];
+    use_existing -> end;
+    cache_hit -> preprocess [label="否"];
+    preprocess -> handle_errors;
+    handle_errors -> write_def [label="无错误"];
+    handle_errors -> end [label="有错误"];
+    write_def -> gen_lib;
+    gen_lib -> update_cache;
+    update_cache -> add_new_lib;
+    add_new_lib -> end;
+
+    // 资源管理标注
+    subgraph cluster_resources {
+        label="资源管理";
+        arena [label="初始化竞技场分配器\n(自动释放)"];
+        cache_handle [label="打开/关闭缓存目录句柄"];
+        file_handles [label="DEF文件创建/关闭"];
+    }
+    
+    check_def -> arena [style=dotted];
+    init_cache -> cache_handle [style=dotted];
+    write_def -> file_handles [style=dotted];
+}

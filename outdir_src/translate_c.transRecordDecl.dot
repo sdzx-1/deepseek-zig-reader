@@ -1,0 +1,65 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 transRecordDecl"];
+    check_processed [label="检查是否已处理过该声明"];
+    get_record_loc [label="获取声明位置 record_loc"];
+    determine_toplevel [label="确定是否为顶层作用域 (toplevel)"];
+    handle_union_struct [label="处理联合体/结构体类型"];
+    check_unnamed [label="检查是否为匿名结构体"];
+    handle_naming [label="生成名称 (name)"];
+    check_has_definition [label="检查是否有定义 (record_def)"];
+    process_fields [label="处理字段迭代"];
+    check_bitfield [label="字段是否为位域"];
+    check_flexible_array [label="是否为灵活数组字段"];
+    handle_field_type [label="转换字段类型"];
+    build_record_payload [label="构建记录负载 (record_payload)"];
+    build_var_decl [label="创建变量声明节点"];
+    add_to_scope [label="添加到作用域"];
+    end [label="结束"];
+
+    // 逻辑流程
+    start -> check_processed;
+    check_processed -> get_record_loc [label="未处理"];
+    check_processed -> end [label="已处理，直接返回"];
+    get_record_loc -> determine_toplevel;
+    determine_toplevel -> handle_union_struct;
+    
+    handle_union_struct -> check_unnamed;
+    check_unnamed -> handle_naming [label="是匿名"];
+    check_unnamed -> handle_naming [label="非匿名"];
+    
+    handle_naming -> check_has_definition;
+    
+    check_has_definition -> process_fields [label="有定义"];
+    check_has_definition -> build_var_decl [label="无定义（生成不透明类型）"];
+    
+    process_fields -> check_bitfield;
+    check_bitfield -> build_var_decl [label="是位域（生成不透明类型）"];
+    check_bitfield -> check_flexible_array [label="非位域"];
+    
+    check_flexible_array -> handle_field_type [label="普通字段"];
+    check_flexible_array -> build_var_decl [label="灵活数组（处理失败时生成不透明）"];
+    
+    handle_field_type -> process_fields [label="继续下一个字段"];
+    
+    process_fields -> build_record_payload [label="所有字段处理完成"];
+    build_record_payload -> build_var_decl;
+    
+    build_var_decl -> add_to_scope;
+    add_to_scope -> end;
+
+    // 子流程分支
+    subgraph cluster_fields {
+        label="字段处理循环";
+        process_fields -> check_bitfield;
+        check_bitfield -> check_flexible_array;
+        check_flexible_array -> handle_field_type;
+    }
+    
+    // 错误处理分支
+    edge [color=red];
+    handle_field_type -> build_var_decl [label="转换失败时生成不透明类型"];
+}

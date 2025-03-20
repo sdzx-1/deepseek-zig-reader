@@ -1,0 +1,44 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 genMulDivBinOp"];
+    check_vector_float [label="检查 dst_ty 是否为 vector/float", shape=diamond];
+    fail_todo [label="返回 fail: TODO 实现"];
+    get_abi_sizes [label="获取 dst_abi_size 和 src_abi_size"];
+    assert_registers [label="断言寄存器 rax/rcx/rdx 空闲"];
+    handle_16bit_case [label="处理 dst_abi_size=16 && src_abi_size=16 的情况"];
+    check_tag_conditions [label="检查 tag 类型是否合法", shape=diamond];
+    handle_mul_case [label="处理 mul/mul_wrap 分支"];
+    handle_div_rem_case [label="处理 div/rem/mod 分支"];
+    handle_mod_case [label="处理 mod 分支（有符号/无符号）"];
+    handle_div_floor_case [label="处理 div_floor 分支"];
+    gen_common_ops [label="生成通用乘法/除法指令"];
+    return_result [label="返回结果 MCValue"];
+    end [label="结束"];
+
+    start -> check_vector_float;
+    check_vector_float -> fail_todo [label="是"];
+    check_vector_float -> get_abi_sizes [label="否"];
+    get_abi_sizes -> assert_registers;
+    assert_registers -> handle_16bit_case [label="dst_abi_size=16\n&& src_abi_size=16"];
+    handle_16bit_case -> return_result;
+
+    assert_registers -> check_tag_conditions [label="其他情况"];
+    check_tag_conditions -> handle_mul_case [label="mul/mul_wrap"];
+    check_tag_conditions -> handle_div_rem_case [label="div_trunc/div_exact/rem"];
+    check_tag_conditions -> handle_mod_case [label="mod"];
+    check_tag_conditions -> handle_div_floor_case [label="div_floor"];
+    
+    handle_mul_case -> gen_common_ops;
+    handle_div_rem_case -> gen_common_ops;
+    handle_mod_case -> gen_common_ops [label="无符号"];
+    handle_mod_case -> gen_common_ops [label="有符号（特殊处理）"];
+    handle_div_floor_case -> gen_common_ops [label="无符号"];
+    handle_div_floor_case -> gen_common_ops [label="有符号（特殊处理）"];
+    
+    gen_common_ops -> return_result;
+    return_result -> end;
+    fail_todo -> end;
+}

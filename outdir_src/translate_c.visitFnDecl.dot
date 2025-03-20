@@ -1,0 +1,71 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start visitFnDecl"];
+    check_sym_table [label="Check if fn_name exists in sym_table"];
+    return_if_exists [label="Return"];
+    check_is_definition [label="Check if declaration is a definition"];
+    recurse_on_definition [label="Recursively visit definition"];
+    collect_decl_info [label="Collect fn_decl info:\nlocation, has_body, storage_class"];
+    build_decl_ctx [label="Build FnDeclContext"];
+    process_fn_type [label="Process function type (loop)"];
+    resolve_fn_proto [label="Resolve FunctionProtoType"];
+    resolve_fn_no_proto [label="Resolve FunctionNoProtoType"];
+    handle_variadic [label="Demote to extern if variadic"];
+    create_proto_node [label="Create proto_node"];
+    check_has_body [label="Check if has_body"];
+    add_extern_decl [label="Add top-level extern decl"];
+    process_params [label="Process parameters"];
+    check_param_name [label="Parameter has no name?"];
+    demote_to_extern [label="Demote to extern and warn"];
+    handle_param_const [label="Handle const/non-const params"];
+    trans_compound_stmt [label="Translate compound statement"];
+    add_return_stmt [label="Add return statement if needed"];
+    complete_body [label="Complete function body"];
+    add_top_decl [label="Add top-level declaration"];
+    end [label="End"];
+
+    start -> check_sym_table;
+    check_sym_table -> return_if_exists [label="Exists"];
+    check_sym_table -> check_is_definition [label="Not exists"];
+    check_is_definition -> recurse_on_definition [label="Has definition"];
+    check_is_definition -> collect_decl_info [label="No definition"];
+    recurse_on_definition -> end;
+    collect_decl_info -> build_decl_ctx;
+    build_decl_ctx -> process_fn_type;
+    
+    process_fn_type -> resolve_fn_proto [label="FunctionProto"];
+    process_fn_type -> resolve_fn_no_proto [label="FunctionNoProto"];
+    process_fn_type -> failDecl [label="Unsupported type"];
+    
+    resolve_fn_proto -> handle_variadic [label="Variadic"];
+    handle_variadic -> create_proto_node;
+    resolve_fn_proto -> create_proto_node [label="Not variadic"];
+    resolve_fn_no_proto -> create_proto_node;
+    
+    create_proto_node -> check_has_body;
+    check_has_body -> add_extern_decl [label="No body"];
+    check_has_body -> process_params [label="Has body"];
+    
+    process_params -> check_param_name;
+    check_param_name -> demote_to_extern [label="No name"];
+    check_param_name -> handle_param_const [label="Has name"];
+    demote_to_extern -> add_extern_decl;
+    handle_param_const -> trans_compound_stmt;
+    
+    trans_compound_stmt -> add_return_stmt [label="Success"];
+    trans_compound_stmt -> demote_to_extern [label="Error"];
+    
+    add_return_stmt -> complete_body;
+    complete_body -> add_top_decl;
+    add_extern_decl -> end;
+    add_top_decl -> end;
+    
+    // Error handling edges
+    edge [color=red, style=dashed];
+    resolve_fn_proto -> demote_to_extern [label="UnsupportedType"];
+    resolve_fn_no_proto -> demote_to_extern [label="UnsupportedType"];
+    trans_compound_stmt -> demote_to_extern [label="UnsupportedTranslation/Type"];
+}

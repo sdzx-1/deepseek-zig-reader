@@ -1,0 +1,72 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+    
+    start [label="开始 add_include_dirs_arch", shape=ellipse];
+    check_arch [label="检查arch类型", shape=diamond];
+    x86_branch [label="x86分支"];
+    arm_branch [label="Arm分支"];
+    mips_branch [label="MIPS分支"];
+    sparc_branch [label="SPARC分支"];
+    aarch64_branch [label="AArch64分支"];
+    ppc_branch [label="PowerPC分支"];
+    riscv_branch [label="RISC-V分支"];
+    s390x_branch [label="s390x分支"];
+    loongarch_branch [label="LoongArch分支"];
+    m68k_branch [label="m68k分支"];
+    arc_branch [label="ARC分支"];
+    csky_branch [label="C-SKY分支"];
+    end [label="结束", shape=ellipse];
+
+    start -> check_arch;
+
+    check_arch -> x86_branch [label="is_x86"];
+    check_arch -> arm_branch [label="arch.isArm()"];
+    check_arch -> mips_branch [label="arch.isMIPS()"];
+    check_arch -> sparc_branch [label="is_sparc"];
+    check_arch -> aarch64_branch [label="is_aarch64"];
+    check_arch -> ppc_branch [label="is_ppc"];
+    check_arch -> riscv_branch [label="arch.isRISCV()"];
+    check_arch -> s390x_branch [label="arch == .s390x"];
+    check_arch -> loongarch_branch [label="arch.isLoongArch()"];
+    check_arch -> m68k_branch [label="arch == .m68k"];
+    check_arch -> arc_branch [label="arch == .arc"];
+    check_arch -> csky_branch [label="arch == .csky"];
+    check_arch -> end [label="其他"];
+
+    // x86 分支逻辑
+    subgraph cluster_x86 {
+        label="x86处理逻辑";
+        x86_branch -> x86_64_check [label="arch == .x86_64"];
+        x86_branch -> x86_check [label="arch == .x86"];
+        x86_branch -> x86_common [label="公共路径"];
+        
+        x86_64_check [label="检查ABI和nptl", shape=diamond];
+        x86_64_check -> x86_64_nptl [label="opt_nptl存在"];
+        x86_64_check -> x86_64_gnux32 [label="target.abi == .gnux32"];
+        x86_64_check -> x86_64_default [label="默认"];
+        
+        x86_check [label="检查nptl", shape=diamond];
+        x86_check -> x86_nptl [label="opt_nptl存在"];
+        x86_check -> x86_default [label="默认"];
+        
+        x86_common [label="添加x86公共路径", shape=rect];
+    }
+
+    // 其他分支结构类似，此处省略...
+    
+    // 所有分支最终流向结束
+    x86_common -> end;
+    arm_branch -> end;
+    mips_branch -> end;
+    sparc_branch -> end;
+    aarch64_branch -> end;
+    ppc_branch -> end;
+    riscv_branch -> end;
+    s390x_branch -> end;
+    loongarch_branch -> end;
+    m68k_branch -> end;
+    arc_branch -> end;
+    csky_branch -> end;
+}

@@ -1,0 +1,44 @@
+
+digraph parseTbd {
+    node [shape=rectangle, style=rounded];
+    start [label="Start parseTbd"];
+    end [label="End parseTbd"];
+    init_trace [label="Initialize Tracy trace"];
+    load_libstub [label="Load LibStub from file"];
+    handle_error [label="Report error and return MalformedTbd"];
+    process_umbrella [label="Process umbrella library\n(install name & versions)"];
+    init_matcher [label="Initialize TargetMatcher"];
+    iterate_libs [label="Iterate over lib_stub.inner"];
+    check_v3 [label="Is element v3?"];
+    process_v3_exports [label="Process v3 exports:\n- Symbols\n- Weak symbols\n- ObjC classes/ivars/EH\n- Re-exports"];
+    check_v4 [label="Is element v4?"];
+    process_v4_exports [label="Process v4 exports:\n- Symbols\n- Weak symbols\n- ObjC classes/ivars/EH"];
+    process_v4_reexports [label="Process v4 reexports:\n- Symbols\n- Weak symbols\n- ObjC classes/ivars/EH"];
+    process_v4_globals [label="Process v4 global:\n- ObjC classes/ivars/EH"];
+    collect_reexports [label="Second pass for v4 reexported libraries"];
+    update_dependents [label="Add dependent libraries"];
+
+    start -> init_trace;
+    init_trace -> load_libstub;
+    load_libstub -> handle_error [label="on error"];
+    load_libstub -> process_umbrella [label="success"];
+    process_umbrella -> init_matcher;
+    init_matcher -> iterate_libs;
+
+    iterate_libs -> check_v3 [label="for each element"];
+    check_v3 -> process_v3_exports [label="Yes"];
+    check_v3 -> check_v4 [label="No"];
+    check_v4 -> process_v4_exports [label="Yes"];
+    check_v4 -> iterate_libs [label="No (next element)"];
+    
+    process_v3_exports -> iterate_libs;
+    process_v4_exports -> process_v4_reexports;
+    process_v4_reexports -> process_v4_globals;
+    process_v4_globals -> iterate_libs;
+
+    iterate_libs -> collect_reexports [label="after all elements"];
+    collect_reexports -> update_dependents [label="process reexported libs"];
+    update_dependents -> end;
+
+    handle_error -> end [label="return error"];
+}

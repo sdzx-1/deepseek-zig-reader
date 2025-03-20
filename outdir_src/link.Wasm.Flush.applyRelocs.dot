@@ -1,0 +1,50 @@
+
+digraph applyRelocs {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 applyRelocs"];
+    loop_start [label="遍历 relocs 的 tags, pointees, offsets, addends"];
+    check_offset [label="offset >= relocs.end?", shape=diamond];
+    end_loop [label="结束循环"];
+    process_code [label="sliced_code = code[offset - code_offset..]"];
+    switch_tag [label="switch(tag)", shape=diamond];
+
+    // 定义公共节点
+    panic_todo [label="触发 panic(\"TODO...\")"];
+    call_reloc [label="调用对应的 reloc_* 函数"];
+
+    start -> loop_start;
+    loop_start -> check_offset;
+
+    check_offset -> end_loop [label="是"];
+    check_offset -> process_code [label="否"];
+
+    process_code -> switch_tag;
+
+    // Switch 分支（部分示例）
+    switch_tag -> "case .function_index_i32" [label="function_index_i32"];
+    "case .function_index_i32" -> call_reloc [label="reloc_u32_function"];
+
+    switch_tag -> "case .function_index_leb" [label="function_index_leb"];
+    "case .function_index_leb" -> call_reloc [label="reloc_leb_function"];
+
+    switch_tag -> "case .function_offset_i32" [label="function_offset_i32"];
+    "case .function_offset_i32" -> panic_todo [label="@panic(\"TODO...\")"];
+
+    switch_tag -> "case .table_index_rel_sleb" [label="table_index_rel_sleb"];
+    "case .table_index_rel_sleb" -> panic_todo [label="@panic(\"TODO...\")"];
+
+    // 其他分支用省略节点表示
+    other_cases [label="... 其他 30+ 分支\n（结构类似，根据 tag 调用 reloc_* 或 panic）", shape=note];
+    switch_tag -> other_cases [style=dashed];
+
+    // 公共出口
+    call_reloc -> loop_start [label="继续循环"];
+    panic_todo -> loop_start [label="继续循环"];
+    end_loop -> end [label="函数结束"];
+
+    // 样式调整
+    { rank=same; loop_start check_offset }
+    { rank=same; process_code switch_tag }
+}

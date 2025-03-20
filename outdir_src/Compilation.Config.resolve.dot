@@ -1,0 +1,59 @@
+
+digraph resolve_flow {
+    graph [fontname="Arial", nodesep=0.5, ranksep=1];
+    node [fontname="Arial", shape=rectangle, style=filled, fillcolor="lightgray"];
+    edge [fontname="Arial"];
+
+    start [label="Start resolve(options)", shape=ellipse, fillcolor="skyblue"];
+    end [label="Return Config", shape=ellipse, fillcolor="skyblue"];
+
+    // WASI exec model
+    check_wasi_os [label="target.os.tag == .wasi?", shape=diamond];
+    check_wasi_os -> error_wasi_exec_model [label="No\n&& wasi_exec_model set"];
+    check_wasi_os -> set_wasi_exec_model [label="Yes/Default"];
+    error_wasi_exec_model [label="return error.WasiExecModelRequiresWasi", shape=box, fillcolor="pink"];
+    set_wasi_exec_model [label="wasi_exec_model = options.wasi_exec_model\norelse .command"];
+
+    // Shared memory logic
+    check_wasm_arch [label="target.cpu.arch.isWasm()?", shape=diamond];
+    check_wasm_arch -> error_shared_memory_wasm [label="No\n&& shared_memory == true"];
+    check_wasm_arch -> check_output_mode [label="Yes"];
+    error_shared_memory_wasm [label="return error.SharedMemoryIsWasmOnly", shape=box, fillcolor="pink"];
+
+    check_output_mode [label="options.output_mode == .Obj?", shape=diamond];
+    check_output_mode -> error_obj_shared_memory [label="Yes\n&& shared_memory == true"];
+    check_output_mode -> check_atomics [label="No"];
+    error_obj_shared_memory [label="return error.ObjectFilesCannotShareMemory", shape=box, fillcolor="pink"];
+
+    check_atomics [label="Has atomics & bulk_memory?", shape=diamond];
+    check_atomics -> error_atomics_required [label="No\n&& shared_memory == true"];
+    check_atomics -> check_threads [label="Yes"];
+    error_atomics_required [label="return error.SharedMemoryRequiresAtomicsAndBulkMemory", shape=box, fillcolor="pink"];
+
+    check_threads [label="options.any_non_single_threaded?", shape=diamond];
+    check_threads -> error_threads_require_shared [label="Yes\n&& shared_memory == false"];
+    check_threads -> set_shared_memory [label="Yes → true\nNo → options.shared_memory"];
+    error_threads_require_shared [label="return error.ThreadsRequireSharedMemory", shape=box, fillcolor="pink"];
+    set_shared_memory [label="shared_memory = resolved value"];
+
+    // LLVM library check
+    check_llvm_available [label="have_llvm?", shape=diamond];
+    check_llvm_available -> error_llvm_unavailable [label="No\n&& use_lib_llvm == true"];
+    check_llvm_available -> set_use_lib_llvm [label="Yes"];
+    error_llvm_unavailable [label="return error.LlvmLibraryUnavailable", shape=box, fillcolor="pink"];
+    set_use_lib_llvm [label="use_lib_llvm = options.use_lib_llvm\norelse true"];
+
+    // Main logic connections
+    start -> check_wasi_os;
+    set_wasi_exec_model -> check_wasm_arch;
+    set_shared_memory -> check_llvm_available;
+    set_use_lib_llvm -> end [style=invis];  // 示意流程继续
+    
+    // 其他分支省略以保持简洁...
+    end [fillcolor="skyblue"];
+    
+    // 层级排列
+    {rank=same; check_wasi_os set_wasi_exec_model}
+    {rank=same; check_wasm_arch check_output_mode check_atomics check_threads}
+    {rank=same; error_wasi_exec_model error_shared_memory_wasm}
+}

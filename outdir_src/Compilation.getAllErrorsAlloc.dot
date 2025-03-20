@@ -1,0 +1,72 @@
+
+digraph GetAllErrorsAllocFlow {
+    rankdir=TB;
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+
+    init_bundle [label="初始化 ErrorBundle"];
+    process_c_objects [label="遍历 comp.failed_c_objects\n添加诊断信息"];
+    process_win32_res [label="遍历 comp.failed_win32_resources\n添加错误包"];
+    process_lld_errors [label="处理 LLD 链接错误\n添加根错误和上下文行"];
+    process_misc_failures [label="遍历 comp.misc_failures\n添加根错误和子错误"];
+    check_alloc_failure [label="检查内存分配失败", shape=diamond];
+    add_alloc_error [label="添加内存分配错误"];
+    process_zcu_errors [label="处理 ZCU 相关错误"];
+    check_entry_point [label="检查无入口点", shape=diamond];
+    add_entry_error [label="添加无入口点错误"];
+    check_libc [label="检查缺少 libc", shape=diamond];
+    add_libc_error [label="添加 libc 错误和注释"];
+    add_link_diags [label="添加链接诊断消息"];
+    process_compile_logs [label="处理编译日志错误"];
+    check_incremental [label="增量编译检查\n验证未报告的错误"];
+    finalize_bundle [label="生成最终 ErrorBundle\n包含编译日志"];
+
+    start -> init_bundle;
+    init_bundle -> process_c_objects;
+    process_c_objects -> process_win32_res;
+    process_win32_res -> process_lld_errors;
+    process_lld_errors -> process_misc_failures;
+    process_misc_failures -> check_alloc_failure;
+
+    check_alloc_failure -> add_alloc_error [label="是"];
+    check_alloc_failure -> process_zcu_errors [label="否"];
+    add_alloc_error -> process_zcu_errors;
+
+    process_zcu_errors -> check_entry_point;
+    check_entry_point -> add_entry_error [label="无错误且无入口"];
+    check_entry_point -> check_libc [label="否则"];
+    add_entry_error -> check_libc;
+
+    check_libc -> add_libc_error [label="是"];
+    check_libc -> add_link_diags [label="否"];
+    add_libc_error -> add_link_diags;
+
+    add_link_diags -> process_compile_logs;
+    process_compile_logs -> check_incremental;
+    check_incremental -> finalize_bundle;
+    finalize_bundle -> end;
+
+    // ZCU 错误处理的子流程
+    subgraph cluster_zcu {
+        label="处理 ZCU 错误";
+        color=blue;
+
+        zcu_failed_files [label="遍历 zcu.failed_files\n添加模块错误"];
+        zcu_analysis [label="处理分析失败\n排序并添加错误"];
+        zcu_codegen [label="处理代码生成失败"];
+        zcu_types [label="处理类型错误"];
+        zcu_exports [label="处理导出失败"];
+        error_limit_check [label="检查错误数量限制\n添加超限错误"];
+
+        zcu_failed_files -> zcu_analysis;
+        zcu_analysis -> zcu_codegen;
+        zcu_codegen -> zcu_types;
+        zcu_types -> zcu_exports;
+        zcu_exports -> error_limit_check;
+    }
+
+    process_zcu_errors -> zcu_failed_files [lhead=cluster_zcu];
+    error_limit_check -> check_entry_point [ltail=cluster_zcu];
+}

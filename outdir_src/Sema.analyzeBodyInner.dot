@@ -1,0 +1,58 @@
+
+digraph analyzeBodyInner {
+    node [shape=rectangle, fontname="Arial", style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="Start analyzeBodyInner", fillcolor="#cae1ff"];
+    init [label="初始化指令映射\n准备崩溃报告"];
+    loop_start [label="进入主循环 (i=0)"];
+    process_inst [label="处理指令 body[i]"];
+    check_noreturn [label="是否是noreturn指令？"];
+    handle_inst [label="根据指令类型分派处理"];
+    extended_inst [label="处理扩展指令 (extended)"];
+    control_flow [label="处理控制流指令\n(break/loop/block)"];
+    map_put [label="将结果存入inst_map"];
+    increment_i [label="i += 1"];
+    end [label="结束函数", fillcolor="#cae1ff"];
+
+    subgraph cluster_main_loop {
+        label="主循环流程";
+        loop_start -> process_inst;
+        process_inst -> check_noreturn;
+        check_noreturn -> handle_inst [label="否"];
+        check_noreturn -> end [label="是（退出循环）"];
+        handle_inst -> extended_inst [label="extended类型"];
+        handle_inst -> control_flow [label="控制流指令"];
+        handle_inst -> map_put [label="普通指令"];
+        extended_inst -> map_put;
+        control_flow -> map_put [label="处理完成"];
+        map_put -> increment_i;
+        increment_i -> loop_start [label="继续循环"];
+    }
+
+    subgraph cluster_extended {
+        label="扩展指令处理";
+        extended_inst -> extended_opcode [label="分派扩展操作码"];
+        extended_opcode [label="匹配.opcode\n处理特定扩展指令"];
+        extended_opcode -> handle_special [label="如.set_float_mode等"];
+        handle_special [label="特殊处理\n（如跳过后续指令）"];
+        handle_special -> map_put;
+    }
+
+    subgraph cluster_control {
+        label="控制流指令处理";
+        control_flow -> handle_break [label="break指令"];
+        handle_break [label="处理comptime/runtime break"];
+        control_flow -> handle_loop [label="loop指令"];
+        handle_loop [label="处理循环结构"];
+        control_flow -> handle_block [label="block指令"];
+        handle_block [label="处理嵌套代码块"];
+        handle_break -> map_put;
+        handle_loop -> map_put;
+        handle_block -> map_put;
+    }
+
+    start -> init;
+    init -> loop_start;
+    end [peripheries=2];
+}

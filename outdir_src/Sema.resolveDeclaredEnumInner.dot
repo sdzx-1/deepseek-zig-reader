@@ -1,0 +1,51 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="Start resolveDeclaredEnumInner"];
+    parse_tag_type [label="解析tag_type_ref是否存在"];
+    resolve_type [label="解析tag_type_ref的类型"];
+    check_int_type [label="检查类型是否为int或comptime_int"];
+    determine_int_type [label="根据字段数量确定整数类型"];
+    set_tag_type [label="设置wip_ty的标签类型"];
+    init_loop [label="初始化循环变量"];
+    loop_condition [label="遍历所有字段 (0..fields_len)"];
+    handle_has_tag [label="处理显式标签值"];
+    check_tag_overflow [label="检查标签值是否溢出"];
+    handle_auto_tag [label="自动生成标签值"];
+    check_auto_overflow [label="检查自动生成是否溢出"];
+    handle_conflict [label="处理字段名/值冲突"];
+    next_field [label="处理下一个字段"];
+    check_nonexhaustive [label="检查非穷举枚举条件"];
+    error_nonexhaustive [label="报错：非穷举枚举覆盖所有值"];
+    end [label="结束"];
+
+    start -> parse_tag_type;
+    parse_tag_type -> resolve_type [label="tag_type_ref存在"];
+    parse_tag_type -> determine_int_type [label="tag_type_ref不存在"];
+    resolve_type -> check_int_type;
+    check_int_type -> set_tag_type [label="是整数类型"];
+    check_int_type -> return_error [label="非整数类型"];
+    determine_int_type -> set_tag_type;
+    set_tag_type -> init_loop;
+    init_loop -> loop_condition;
+    loop_condition -> handle_has_tag [label="有显式标签"];
+    loop_condition -> handle_auto_tag [label="无显式标签"];
+    handle_has_tag -> check_tag_overflow;
+    check_tag_overflow -> handle_conflict [label="未溢出"];
+    check_tag_overflow -> return_error [label="溢出"];
+    handle_auto_tag -> check_auto_overflow;
+    check_auto_overflow -> handle_conflict [label="未溢出"];
+    check_auto_overflow -> return_error [label="溢出"];
+    handle_conflict -> next_field;
+    next_field -> loop_condition;
+    loop_condition -> check_nonexhaustive [label="循环结束"];
+    check_nonexhaustive -> error_nonexhaustive [label="条件不满足"];
+    check_nonexhaustive -> end [label="条件满足"];
+    error_nonexhaustive -> end;
+
+    // 错误处理公共节点
+    return_error [label="生成错误信息并返回"];
+    return_error -> end;
+}

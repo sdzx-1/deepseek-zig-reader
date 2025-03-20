@@ -1,0 +1,95 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 flushModule"];
+    end [label="结束"];
+    error [label="错误处理", shape=diamond];
+
+    subgraph cluster_init {
+        label="初始化";
+        init_tracy [label="启动性能跟踪 (trace)"];
+        init_comp [label="获取 comp, gpa, diags"];
+        check_llvm [label="检查 llvm_object 是否存在？", shape=diamond];
+        emit_llvm [label="调用 emitLlvmObject"];
+        sub_prog [label="创建子进度节点 sub_prog_node"];
+        handle_module_path [label="处理 module_obj_path"];
+        verbose_link [label="若开启 verbose_link，打印参数"];
+        handle_static_or_object [label="检查是否为静态库/对象文件？", shape=diamond];
+        flush_static_or_object [label="调用对应 flush 方法"];
+        init_positionals [label="初始化 positionals 数组"];
+
+        init_tracy -> init_comp -> check_llvm;
+        check_llvm -> emit_llvm [label="是"];
+        check_llvm -> sub_prog [label="否"];
+        emit_llvm -> sub_prog;
+        sub_prog -> handle_module_path -> verbose_link;
+        verbose_link -> handle_static_or_object;
+        handle_static_or_object -> flush_static_or_object [label="是"];
+        handle_static_or_object -> init_positionals [label="否"];
+    }
+
+    subgraph cluster_inputs {
+        label="处理输入文件";
+        collect_c_objects [label="收集 C 对象文件到 positionals"];
+        add_module_obj [label="添加 module_obj_path 到 positionals"];
+        handle_sanitizers [label="处理 sanitizers/fuzzers 库"];
+        classify_inputs [label="对 positionals 分类输入文件"];
+        handle_system_libs [label="处理系统库（框架、libc++、libSystem）"];
+        parse_inputs [label="解析输入文件"];
+        check_errors [label="检查是否有错误？", shape=diamond];
+
+        init_positionals -> collect_c_objects -> add_module_obj;
+        add_module_obj -> handle_sanitizers -> classify_inputs;
+        classify_inputs -> handle_system_libs -> parse_inputs;
+        parse_inputs -> check_errors;
+        check_errors -> error [label="有错误"];
+        check_errors -> create_internal_obj [label="无错误"];
+    }
+
+    subgraph cluster_symbols {
+        label="符号处理";
+        create_internal_obj [label="创建内部对象并初始化符号"];
+        resolve_symbols [label="解析符号"];
+        dedup_literals [label="去重字面量"];
+        gc_sections [label="若启用 GC，清理无用节"];
+        check_duplicates [label="检查重复符号"];
+
+        create_internal_obj -> resolve_symbols -> dedup_literals;
+        dedup_literals -> gc_sections -> check_duplicates;
+    }
+
+    subgraph cluster_sections {
+        label="段与节处理";
+        scan_relocs [label="扫描重定位"];
+        init_sections [label="初始化输出节和合成节"];
+        allocate_sections [label="分配节和段"];
+        calc_sizes [label="计算节大小"];
+        generate_unwind [label="生成展开信息"];
+
+        check_duplicates -> scan_relocs -> init_sections;
+        init_sections -> allocate_sections -> calc_sizes -> generate_unwind;
+    }
+
+    subgraph cluster_write {
+        label="写入文件";
+        write_sections [label="写入节并更新 linkedit 大小"];
+        write_linkedit [label="写入 linkedit 段"];
+        handle_codesig [label="处理代码签名？", shape=diamond];
+        write_loadcmds [label="写入加载命令和头部"];
+        write_uuid [label="写入 UUID"];
+        handle_dsyms [label="处理调试符号"];
+        finalize [label="最终代码签名和缓存无效化"];
+
+        generate_unwind -> write_sections -> write_linkedit -> handle_codesig;
+        handle_codesig -> write_loadcmds [label="是"];
+        handle_codesig -> write_loadcmds [label="否"];
+        write_loadcmds -> write_uuid -> handle_dsyms -> finalize -> end;
+    }
+
+    // 错误处理连接
+    error -> end [label="返回错误"];
+    // 主流程连接
+    start -> init_tracy;
+}

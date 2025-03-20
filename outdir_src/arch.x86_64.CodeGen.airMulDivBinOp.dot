@@ -1,0 +1,40 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 airMulDivBinOp"];
+    get_pt_zcu [label="获取 pt/zcu/bin_op"];
+    check_dst_type [label="检查 dst_ty 类型\n(ZigTypeTag)"];
+    float_vector_case [label="浮点/向量类型\n生成 genBinOp 结果"];
+    integer_case [label="整数处理路径"];
+    calc_dst_info [label="计算目标类型\nABI大小/符号信息"];
+    handle_16byte_abi [label="处理 16 字节 ABI 特殊情况"];
+    signed_div_floor [label="处理有符号除法 (div_floor)"];
+    call_compiler_rt [label="调用编译器内置函数\n(__udivti3/__divti3)"];
+    handle_mod [label="处理 mod 运算\n寄存器调整"];
+    spill_registers [label="溢出寄存器\n(rax/rcx/rdx)"];
+    gen_muldiv [label="生成最终\nMulDivBinOp"];
+    finish [label="结束并返回结果"];
+
+    start -> get_pt_zcu;
+    get_pt_zcu -> check_dst_type;
+
+    check_dst_type -> float_vector_case [label="float/vector"];
+    check_dst_type -> integer_case [label="其他类型"];
+
+    integer_case -> calc_dst_info;
+    calc_dst_info -> handle_16byte_abi [label="dst_abi_size=16\n&& src_abi_size=16"];
+    handle_16byte_abi -> signed_div_floor [label="tag=div_floor\n且有符号"];
+    signed_div_floor -> call_compiler_rt [label="保存状态\n分配临时寄存器"];
+    
+    handle_16byte_abi -> call_compiler_rt [label="其他除法/取模操作"];
+    call_compiler_rt -> handle_mod [label="tag=mod"];
+    handle_mod -> gen_muldiv;
+    
+    handle_16byte_abi -> spill_registers [label="非 16 字节或\n其他操作"];
+    spill_registers -> gen_muldiv;
+    
+    gen_muldiv -> finish;
+    float_vector_case -> finish;
+}

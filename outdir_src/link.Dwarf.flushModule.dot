@@ -1,0 +1,76 @@
+
+digraph flushModule {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 flushModule"];
+    handle_anyerror_type [label="处理 anyerror 类型\n创建 WipNav 结构体\n生成调试信息"];
+    process_mod_paths [label="处理模块路径\n解析根目录并更新 debug_line_str"];
+    check_aranges [label="检查 debug_aranges 是否脏"];
+    update_aranges [label="更新 debug_aranges 头部和尾部"];
+    check_frame [label="检查 debug_frame 是否脏"];
+    update_frame_x86_64 [label="针对 x86_64 架构更新 debug_frame"];
+    check_info [label="检查 debug_info 是否脏"];
+    update_info [label="填充 debug_info 单元数据\n处理模块和交叉引用"];
+    check_abbrev [label="检查 debug_abbrev 是否脏"];
+    update_abbrev [label="写入 debug_abbrev 尾部"];
+    check_str [label="检查 debug_str 是否脏"];
+    update_str [label="写入 debug_str 内容"];
+    check_line [label="检查 debug_line 是否脏"];
+    update_line [label="更新 debug_line 头部和文件信息"];
+    check_line_str [label="检查 debug_line_str 是否脏"];
+    update_line_str [label="写入 debug_line_str 内容"];
+    check_loclists [label="检查 debug_loclists 是否脏"];
+    check_rnglists [label="检查 debug_rnglists 是否脏"];
+    update_rnglists [label="更新 debug_rnglists 头部"];
+    final_assert [label="验证所有段已清理"];
+    end [label="结束"];
+
+    start -> handle_anyerror_type;
+    handle_anyerror_type -> process_mod_paths;
+    process_mod_paths -> check_aranges;
+
+    check_aranges -> update_aranges [label="是"];
+    check_aranges -> check_frame [label="否"];
+
+    update_aranges -> check_frame;
+
+    check_frame -> update_frame_x86_64 [label="是且架构为 x86_64"];
+    check_frame -> check_info [label="否或其他架构"];
+
+    update_frame_x86_64 -> check_info;
+
+    check_info -> update_info [label="是"];
+    check_info -> check_abbrev [label="否"];
+
+    update_info -> check_abbrev;
+
+    check_abbrev -> update_abbrev [label="是"];
+    check_abbrev -> check_str [label="否"];
+
+    update_abbrev -> check_str;
+
+    check_str -> update_str [label="是"];
+    check_str -> check_line [label="否"];
+
+    update_str -> check_line;
+
+    check_line -> update_line [label="是"];
+    check_line -> check_line_str [label="否"];
+
+    update_line -> check_line_str;
+
+    check_line_str -> update_line_str [label="是"];
+    check_line_str -> check_loclists [label="否"];
+
+    update_line_str -> check_loclists;
+
+    check_loclists -> check_rnglists [label="否"];
+    check_loclists -> check_rnglists [label="是（标记为不脏）"];
+
+    check_rnglists -> update_rnglists [label="是"];
+    check_rnglists -> final_assert [label="否"];
+
+    update_rnglists -> final_assert;
+
+    final_assert -> end;
+}

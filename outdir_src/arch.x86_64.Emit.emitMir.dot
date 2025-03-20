@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始 emitMir"];
+    init_vars [label="初始化变量\n- 分配 code_offset_mapping\n- 初始化 relocs/table_relocs"];
+    loop_mir [label="循环遍历每条 MIR 指令"];
+    handle_mir [label="处理 MIR 指令\n- 记录 code_offset_mapping\n- 调用 lowerMir 生成 lowered"];
+    loop_lowered_insts [label="遍历 lowered 指令"];
+    check_prefix [label="检查指令前缀\n是否为伪指令 (.cfi_*)"];
+    handle_dwarf [label="生成 DWARF 调试信息"];
+    encode_inst [label="编码指令到 emit.code"];
+    handle_relocs [label="处理重定位信息\n根据类型添加到 relocs/table_relocs"];
+    check_empty_insts [label="检查是否有空指令\n处理调试伪指令"];
+    process_relocs [label="处理所有 relocs\n计算位移并写入代码"];
+    process_table_relocs [label="处理 table_relocs\n生成 ELF 重定位并填充代码"];
+    end [label="函数结束"];
+
+    start -> init_vars;
+    init_vars -> loop_mir;
+    loop_mir -> handle_mir [label="遍历每条指令"];
+    handle_mir -> loop_lowered_insts;
+    loop_lowered_insts -> check_prefix;
+    check_prefix -> handle_dwarf [label="是伪指令"];
+    check_prefix -> encode_inst [label="非伪指令"];
+    handle_dwarf -> handle_relocs;
+    encode_inst -> handle_relocs;
+    handle_relocs -> loop_lowered_insts [label="继续遍历指令"];
+    loop_lowered_insts -> check_empty_insts [label="指令处理完成"];
+    check_empty_insts -> loop_mir [label="继续下一条 MIR"];
+    loop_mir -> process_relocs [label="所有指令处理完成"];
+    process_relocs -> process_table_relocs;
+    process_table_relocs -> end;
+
+    // 子流程细化
+    handle_dwarf -> {handle_cfi_directive} [style=invis];
+    handle_cfi_directive [label="根据 .cfi_* 类型\n生成对应调试帧"];
+    handle_relocs -> {reloc_switch} [style=invis];
+    reloc_switch [label="根据重定位类型\n(inst/table/linker_extern_fn)\n分发到不同处理逻辑"];
+    check_empty_insts -> {handle_pseudo} [style=invis];
+    handle_pseudo [label="处理伪指令\n如调试标记、局部变量信息"];
+
+    // 条件分支示例
+    edge [label="ELF", fontsize=10];
+    reloc_switch -> elf_reloc;
+    elf_reloc [label="ELF 重定位处理"];
+    edge [label="Mach-O", fontsize=10];
+    reloc_switch -> macho_reloc;
+    macho_reloc [label="Mach-O 重定位处理"];
+    edge [label="COFF", fontsize=10];
+    reloc_switch -> coff_reloc;
+    coff_reloc [label="COFF 重定位处理"];
+
+    // 隐藏连接保持布局
+    {rank=same; handle_dwarf encode_inst}
+    {rank=same; elf_reloc macho_reloc coff_reloc}
+}

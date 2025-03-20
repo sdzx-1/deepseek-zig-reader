@@ -1,0 +1,53 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start zirIntFromFloat", shape=ellipse];
+    resolve_dest_ty [label="Resolve dest_ty (extra.lhs)"];
+    resolve_operand [label="Resolve operand (extra.rhs)"];
+    check_operand_types [label="Check vectorizable binary operands"];
+    is_vector [label="dest_ty is vector?", shape=diamond];
+    resolve_values [label="Resolve operand_val (sema.resolveValue)"];
+    operand_val_exists [label="operand_val exists?", shape=diamond];
+    handle_comptime_int [label="Fail: casted_to_comptime_int"];
+    require_runtime [label="Require runtime block"];
+    dest_bits_zero [label="dest_scalar_ty.bits == 0?", shape=diamond];
+    handle_zero_bits_non_vector [label="Add safety check (non-vector)\nReturn 0"];
+    handle_zero_bits_vector [label="Loop vector elements\nAdd safety checks\nReturn aggregated 0"];
+    backend_support_vector [label="Backend supports vector instructions?", shape=diamond];
+    single_int_from_float [label="Add int_from_float instruction\nAdd safety check"];
+    loop_vector_elements [label="Loop vector elements\nConvert each element\nAdd safety checks\nAggregate results"];
+    end [label="Return result", shape=ellipse];
+
+    start -> resolve_dest_ty;
+    resolve_dest_ty -> resolve_operand;
+    resolve_operand -> check_operand_types;
+    check_operand_types -> is_vector;
+
+    is_vector -> resolve_values [label="No"];
+    is_vector -> resolve_values [label="Yes"];
+
+    resolve_values -> operand_val_exists;
+    operand_val_exists -> handle_comptime_int [label="No"];
+    operand_val_exists -> end [label="Yes (via intFromFloat)"];
+
+    handle_comptime_int -> require_runtime [label="Continue"];
+    require_runtime -> dest_bits_zero;
+
+    dest_bits_zero -> handle_zero_bits_non_vector [label="Yes (non-vector)"];
+    dest_bits_zero -> handle_zero_bits_vector [label="Yes (vector)"];
+    dest_bits_zero -> backend_support_vector [label="No"];
+
+    backend_support_vector -> single_int_from_float [label="Yes"];
+    backend_support_vector -> loop_vector_elements [label="No"];
+
+    handle_zero_bits_non_vector -> end;
+    handle_zero_bits_vector -> end;
+    single_int_from_float -> end;
+    loop_vector_elements -> end;
+
+    // Hidden edges for alignment
+    { rank=same; is_vector resolve_values }
+    { rank=same; dest_bits_zero backend_support_vector }
+}

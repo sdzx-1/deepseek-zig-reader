@@ -1,0 +1,47 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始airAggregateInit"];
+    get_type_info [label="获取类型信息(pt, zcu, ip)"];
+    resolve_elements [label="分配并解析元素(resolved_elements)"];
+    iterate_tomb [label="遍历BigTomb处理指令依赖"];
+    check_type [label="检查聚合类型", shape=diamond];
+
+    array_vector_case [label="数组/向量类型处理"];
+    array_loop [label="循环赋值每个元素"];
+    sentinel_check [label="检查哨兵值", shape=diamond];
+    handle_sentinel [label="处理哨兵值"];
+
+    struct_case [label="结构体类型处理"];
+    struct_layout_check [label="检查结构体布局", shape=diamond];
+    auto_extern_layout [label="auto/extern布局处理\n遍历字段并赋值"];
+    packed_layout [label="packed布局处理\n位操作和移位处理"];
+
+    tuple_case [label="元组类型处理"];
+    tuple_loop [label="遍历元组字段并赋值"];
+
+    return [label="返回local变量"];
+
+    start -> get_type_info -> resolve_elements -> iterate_tomb -> check_type;
+
+    check_type -> array_vector_case [label="array/vector"];
+    array_vector_case -> array_loop;
+    array_loop -> sentinel_check;
+    sentinel_check -> handle_sentinel [label="存在哨兵"];
+    sentinel_check -> struct_case [label="无哨兵", style=dashed];
+
+    check_type -> struct_case [label="struct"];
+    struct_case -> struct_layout_check;
+    struct_layout_check -> auto_extern_layout [label="auto/extern"];
+    struct_layout_check -> packed_layout [label="packed"];
+
+    check_type -> tuple_case [label="tuple"];
+    tuple_case -> tuple_loop;
+
+    auto_extern_layout -> return;
+    packed_layout -> return;
+    tuple_loop -> return;
+    handle_sentinel -> return;
+}

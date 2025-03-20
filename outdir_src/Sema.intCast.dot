@@ -1,0 +1,61 @@
+
+digraph intCast_flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始intCast"];
+    check_comptime_known [label="检查operand是否编译时已知"];
+    coerce [label="执行sema.coerce()返回"];
+    check_dest_comptime_int [label="目标类型是comptime_int?"];
+    fail_comptime_int [label="报错: 无法转换运行时值到comptime_int"];
+    check_vectorizable [label="检查向量化操作数"];
+    check_one_possible_value [label="目标类型是否只有一个可能值?"];
+    handle_opv [label="生成零值检查和安全检查\n返回opv值"];
+    require_runtime_block [label="要求运行时block"];
+    backend_supports_safety [label="后端支持安全检查指令?"];
+    add_safe_intcast [label="添加intcast_safe指令返回"];
+    check_range_shrinkage [label="目标范围是否缩小?"];
+    check_sign_loss [label="是否符号丢失?(signed->unsigned)"];
+    handle_range_shrinkage_signed [label="生成有符号范围检查\n添加cast_truncated_data安全检查"];
+    handle_range_shrinkage_unsigned [label="生成无符号范围检查\n添加cast_truncated_data安全检查"];
+    handle_sign_loss [label="生成非负检查\n添加negative_to_unsigned安全检查"];
+    add_normal_intcast [label="添加普通intcast指令返回"];
+
+    start -> check_comptime_known;
+    
+    check_comptime_known -> coerce [label="是"];
+    check_comptime_known -> check_dest_comptime_int [label="否"];
+    
+    check_dest_comptime_int -> fail_comptime_int [label="是"];
+    check_dest_comptime_int -> check_vectorizable [label="否"];
+    
+    check_vectorizable -> check_one_possible_value;
+    
+    check_one_possible_value -> handle_opv [label="是"];
+    check_one_possible_value -> require_runtime_block [label="否"];
+    
+    handle_opv -> end;
+    
+    require_runtime_block -> backend_supports_safety;
+    
+    backend_supports_safety -> add_safe_intcast [label="是"];
+    backend_supports_safety -> check_range_shrinkage [label="否"];
+    
+    check_range_shrinkage -> handle_range_shrinkage_signed [label="是且源有符号"];
+    check_range_shrinkage -> handle_range_shrinkage_unsigned [label="是且源无符号"];
+    check_range_shrinkage -> check_sign_loss [label="否"];
+    
+    handle_range_shrinkage_signed -> end;
+    handle_range_shrinkage_unsigned -> end;
+    
+    check_sign_loss -> handle_sign_loss [label="是"];
+    check_sign_loss -> add_normal_intcast [label="否"];
+    
+    handle_sign_loss -> end;
+    add_safe_intcast -> end;
+    add_normal_intcast -> end;
+    
+    fail_comptime_int -> end;
+
+    end [label="返回结果"];
+}

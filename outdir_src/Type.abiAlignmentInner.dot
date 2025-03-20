@@ -1,0 +1,74 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start abiAlignmentInner(ty, strat, zcu, tid)"];
+    switch_ty [label="Switch ty.toIntern()", shape=diamond];
+    empty_tuple [label="Return .{ scalar = 1 }"];
+    else_case [label="ip.indexToKey(ty.toIntern())", shape=diamond];
+    int_type [label="int_type case", shape=diamond];
+    ptr_anyframe [label="Return ptrAbiAlignment"];
+    array_type [label="Recurse on array_type.child"];
+    vector_type [label="vector_type case", shape=diamond];
+    backend_switch [label="Switch zig_backend", shape=diamond];
+    stage2_c [label="Recurse on vector_type.child"];
+    stage2_x86 [label="x86_64 logic", shape=diamond];
+    bool_vector [label="bool_type vector logic"];
+    other_vector [label="Generic vector logic"];
+    opt_type [label="Recurse on optional"];
+    error_union [label="Handle error union"];
+    error_set [label="Error set alignment"];
+    func_type [label="Return function alignment"];
+    simple_type [label="Handle simple_type", shape=diamond];
+    struct_type [label="struct_type logic", shape=diamond];
+    tuple_type [label="tuple_type logic"];
+    union_type [label="union_type logic", shape=diamond];
+    enum_type [label="Return enum tag alignment"];
+    others [label="Unreachable cases"];
+
+    start -> switch_ty;
+    switch_ty -> empty_tuple [label="empty_tuple_type"];
+    switch_ty -> else_case [label="else"];
+
+    else_case -> int_type [label="int_type"];
+    else_case -> ptr_anyframe [label="ptr_type/anyframe_type"];
+    else_case -> array_type [label="array_type"];
+    else_case -> vector_type [label="vector_type"];
+    else_case -> opt_type [label="opt_type"];
+    else_case -> error_union [label="error_union_type"];
+    else_case -> error_set [label="error_set_type"];
+    else_case -> func_type [label="func_type"];
+    else_case -> simple_type [label="simple_type"];
+    else_case -> struct_type [label="struct_type"];
+    else_case -> tuple_type [label="tuple_type"];
+    else_case -> union_type [label="union_type"];
+    else_case -> enum_type [label="enum_type"];
+    else_case -> others [label="其他值类型"];
+
+    int_type -> "bits == 0?" [shape=diamond];
+    "bits == 0?" -> empty_tuple [label="Yes"];
+    "bits == 0?" -> "intAbiAlignment" [label="No"];
+
+    vector_type -> "len == 0?" [shape=diamond];
+    "len == 0?" -> empty_tuple [label="Yes"];
+    "len == 0?" -> backend_switch [label="No"];
+
+    backend_switch -> stage2_c [label="stage2_c"];
+    backend_switch -> stage2_x86 [label="stage2_x86_64"];
+    backend_switch -> "generic_vector_logic" [label="其他后端"];
+
+    stage2_x86 -> "child == bool_type?" [shape=diamond];
+    "child == bool_type?" -> bool_vector [label="Yes"];
+    "child == bool_type?" -> other_vector [label="No"];
+
+    bool_vector -> "AVX512检查逻辑" -> "返回对应对齐";
+    other_vector -> "elem_bytes计算" -> "AVX检查逻辑" -> "返回对应对齐";
+
+    simple_type -> "处理各简单类型分支" [shape=diamond];
+    struct_type -> "packed?" [shape=diamond];
+    "packed?" -> "backingIntType对齐" [label="Yes"];
+    "packed?" -> "处理struct对齐" [label="No"];
+
+    { rank=same; empty_tuple; ptr_anyframe; array_type; opt_type; error_union; error_set; func_type; enum_type }
+}

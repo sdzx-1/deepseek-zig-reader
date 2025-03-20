@@ -1,0 +1,90 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start: getCoerced(ip, gpa, tid, val, new_ty)"];
+    check_old_new_type [label="old_ty = ip.typeOf(val)\nif (old_ty == new_ty)", shape=diamond];
+    return_val [label="Return val"];
+
+    start -> check_old_new_type;
+    check_old_new_type -> return_val [label="Yes"];
+    check_old_new_type -> switch_val [label="No"];
+
+    subgraph cluster_val_switch {
+        label="switch (val)";
+        switch_val [label="Switch(val)", shape=diamond];
+        undef_case [label=".undef:\nreturn ip.get(.undef with new_ty)"];
+        null_value_case [label=".null_value:\nCheck new_ty type"];
+        null_opt_ptr [label="Check if new_ty is optional/pointer", shape=diamond];
+        ptr_size_switch [label="Switch ptr_type.flags.size", shape=diamond];
+        ptr_one_many_c [label="Return ptr(base_addr=int, offset=0)"];
+        ptr_slice [label="Return slice(ptr and undef len)"];
+        default_case [label="default:\nUnwrap val and check tags"];
+        func_decl_case [label="func_decl:\nCall getCoercedFuncDecl"];
+        func_instance_case [label="func_instance:\nCall getCoercedFuncInstance"];
+        func_coerced_case [label="func_coerced:\nCheck func type"];
+
+        switch_val -> undef_case [label=".undef"];
+        switch_val -> null_value_case [label=".null_value"];
+        switch_val -> default_case [label="else"];
+
+        null_value_case -> null_opt_ptr;
+        null_opt_ptr -> ptr_size_switch [label="Is pointer"];
+        ptr_size_switch -> ptr_one_many_c [label="one/many/c"];
+        ptr_size_switch -> ptr_slice [label="slice"];
+        null_opt_ptr -> return_opt [label="Is optional"];
+
+        default_case -> func_decl_case [label=".func_decl"];
+        default_case -> func_instance_case [label=".func_instance"];
+        default_case -> func_coerced_case [label=".func_coerced"];
+    }
+
+    subgraph cluster_key_switch {
+        label="switch (ip.indexToKey(val))";
+        key_switch [label="Switch val's type", shape=diamond];
+        int_case [label=".int:\nCheck new_ty"];
+        float_case [label=".float:\nCheck new_ty"];
+        enum_tag_case [label=".enum_tag:\nCoerce to int"];
+        slice_case [label=".slice:\nCoerce ptr/len"];
+        ptr_case [label=".ptr:\nAdjust type"];
+        aggregate_case [label=".aggregate:\nHandle elements"];
+
+        key_switch -> int_case;
+        key_switch -> float_case;
+        key_switch -> enum_tag_case;
+        key_switch -> slice_case;
+        key_switch -> ptr_case;
+        key_switch -> aggregate_case;
+
+        aggregate_case -> check_storage [label="Check storage type"];
+        check_storage [label="bytes/elems/repeated_elem", shape=diamond];
+        check_storage -> copy_bytes [label="bytes"];
+        check_storage -> copy_elems [label="elems"];
+        check_storage -> repeated_elem [label="repeated_elem"];
+        copy_bytes [label="Intern each byte"];
+        copy_elems [label="Copy elements"];
+        repeated_elem [label="Fill with repeated elem"];
+        coerce_elements [label="Recursively coerce elements"];
+    }
+
+    subgraph cluster_new_ty_switch {
+        label="switch (ip.indexToKey(new_ty))";
+        new_ty_switch [label="Check new_ty type", shape=diamond];
+        opt_type_case [label=".opt_type:\nWrap as optional"];
+        error_union_case [label=".error_union_type:\nWrap payload"];
+
+        new_ty_switch -> opt_type_case;
+        new_ty_switch -> error_union_case;
+    }
+
+    edge [style=dashed];
+    check_old_new_type -> key_switch [label="Continue after val switch"];
+    key_switch -> new_ty_switch;
+    new_ty_switch -> panic [label="No match"];
+    panic [label="Panic/Unreachable"];
+
+    // Hidden edges to enforce order
+    {rank=same; check_old_new_type switch_val}
+    {rank=same; key_switch new_ty_switch}
+}

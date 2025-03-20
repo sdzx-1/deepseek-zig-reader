@@ -1,0 +1,52 @@
+
+digraph buildCrtFile {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始"];
+    check_llvm [label="检查 build_options.have_llvm"];
+    error_llvm [label="返回错误 ZigCompilerNotBuiltWithLLVMExtensions"];
+    init_allocator [label="初始化 ArenaAllocator"];
+    get_target [label="获取目标系统信息"];
+    set_flags [label="设置 nonshared_stat 和 start_old_init_fini"];
+    switch_crt_file [label="switch (crt_file)", shape=diamond];
+
+    subgraph cluster_scrt1 {
+        label="处理 .scrt1_o";
+        scrt1_start [label="构建 start_o"];
+        scrt1_abi_note [label="构建 abi_note_o"];
+        scrt1_init [label="构建 init_o"];
+        scrt1_build [label="调用 comp.build_crt_file(Scrt1)"];
+        scrt1_start -> scrt1_abi_note -> scrt1_init -> scrt1_build;
+    }
+
+    subgraph cluster_nonshared {
+        label="处理 .libc_nonshared_a";
+        nonshared_loop_start [label="遍历 deps 数组", shape=hexagon];
+        check_include [label="dep.include 为真？", shape=diamond];
+        build_args [label="生成编译参数"];
+        add_file [label="添加 CSourceFile 到 files_buf"];
+        loop_end [label="继续下一个 dep"];
+        nonshared_build [label="调用 comp.build_crt_file(libc_nonshared)"];
+        nonshared_loop_start -> check_include;
+        check_include -> build_args [label="是"];
+        check_include -> loop_end [label="否"];
+        build_args -> add_file -> loop_end;
+        loop_end -> nonshared_loop_start [style=dotted];
+        loop_end -> nonshared_build [label="所有 dep 处理完成"];
+    }
+
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="未启用 LLVM"];
+    check_llvm -> init_allocator [label="已启用"];
+    init_allocator -> get_target;
+    get_target -> set_flags;
+    set_flags -> switch_crt_file;
+
+    switch_crt_file -> scrt1_start [label=".scrt1_o"];
+    switch_crt_file -> nonshared_loop_start [label=".libc_nonshared_a"];
+
+    scrt1_build -> end;
+    nonshared_build -> end;
+
+    end [label="结束"];
+}

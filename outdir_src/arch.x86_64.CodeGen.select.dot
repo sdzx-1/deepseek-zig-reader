@@ -1,0 +1,54 @@
+
+digraph select_flow {
+    node [shape=rectangle, style=rounded];
+    start [label="Start select function"];
+    end [label="Return error.SelectFailed", shape=ellipse];
+    return_ok [label="Return void", shape=ellipse];
+    
+    start -> iterate_cases;
+    
+    subgraph cluster_cases {
+        label="Iterate over cases";
+        iterate_cases [label="For each case in cases"];
+        check_features [label="Check required features"];
+        check_src_constraints [label="Check source constraints"];
+        check_dst_constraints [label="Check destination constraints"];
+        check_patterns [label="Check patterns (runtime safety)"];
+        handle_case [label="Case accepted"];
+        
+        iterate_cases -> check_features;
+        check_features -> check_src_constraints [label="Features met"];
+        check_features -> iterate_cases [label="Feature missing" style=dashed];
+        check_src_constraints -> check_dst_constraints [label="Constraints met"];
+        check_src_constraints -> iterate_cases [label="Constraint failed" style=dashed];
+        check_dst_constraints -> check_patterns [label="Constraints met"];
+        check_dst_constraints -> iterate_cases [label="Constraint failed" style=dashed];
+        check_patterns -> handle_case;
+    }
+    
+    subgraph cluster_patterns {
+        label="Process patterns";
+        handle_case -> iterate_patterns;
+        iterate_patterns [label="For each pattern in case.patterns"];
+        check_src_matches [label="Check source patterns match"];
+        handle_call_frame [label="Update call frame alignment/size"];
+        init_select [label="Initialize Select structure"];
+        handle_registers [label="Lock registers and temps"];
+        generate_code [label="Emit instructions"];
+        cleanup [label="Unlock registers and cleanup"];
+        
+        iterate_patterns -> check_src_matches;
+        check_src_matches -> handle_call_frame [label="Patterns match"];
+        check_src_matches -> iterate_patterns [label="Pattern mismatch" style=dashed];
+        handle_call_frame -> init_select;
+        init_select -> handle_registers;
+        handle_registers -> generate_code;
+        generate_code -> cleanup;
+        cleanup -> return_ok;
+    }
+    
+    // Error and exit paths
+    iterate_cases -> end [label="All cases processed"];
+    cleanup -> iterate_patterns [label="Next pattern" style=dashed];
+    iterate_patterns -> iterate_cases [label="All patterns processed" style=dashed];
+}

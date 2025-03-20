@@ -1,0 +1,54 @@
+
+digraph flowchart {
+    node [fontname="Helvetica", shape=box, style="rounded"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 airCondBr"];
+    parse_inst [label="解析指令数据\n(pl_op, cond_inst, extra)"];
+    check_operand_death [label="检查条件操作数是否死亡\n并处理"];
+    save_parent_state [label="保存父状态\n(寄存器、堆栈、CPSR)"];
+    gen_then [label="生成 then 分支代码\n处理 then_deaths\n调用 genBody(then_body)"];
+    restore_state [label="恢复父状态\n(寄存器、堆栈、CPSR)"];
+    gen_else [label="生成 else 分支代码\n处理 else_deaths\n调用 genBody(else_body)"];
+    merge_states [label="合并分支状态\n同步指令表和寄存器分配"];
+    finish [label="结束指令\nfinishAir 返回"];
+
+    start -> parse_inst;
+    parse_inst -> check_operand_death;
+    check_operand_death -> save_parent_state;
+    save_parent_state -> gen_then;
+    gen_then -> restore_state;
+    restore_state -> gen_else;
+    gen_else -> merge_states;
+    merge_states -> finish;
+
+    // 子过程细节
+    subgraph cluster_then {
+        label="Then 分支";
+        style=dashed;
+        process_then_deaths [label="处理 then_deaths"];
+        gen_then_body [label="生成 then_body 代码"];
+        process_then_deaths -> gen_then_body;
+    }
+
+    subgraph cluster_else {
+        label="Else 分支";
+        style=dashed;
+        process_else_deaths [label="处理 else_deaths"];
+        gen_else_body [label="生成 else_body 代码"];
+        process_else_deaths -> gen_else_body;
+    }
+
+    subgraph cluster_merge {
+        label="合并状态";
+        style=dashed;
+        merge_else [label="遍历 else 分支指令表\n同步到父分支"];
+        merge_then [label="遍历 then 分支指令表\n同步到父分支"];
+        merge_else -> merge_then;
+    }
+
+    // 连接子过程
+    gen_then -> process_then_deaths [style=invis];
+    gen_else -> process_else_deaths [style=invis];
+    merge_states -> merge_else [style=invis];
+}

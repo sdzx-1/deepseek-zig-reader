@@ -1,0 +1,49 @@
+
+digraph flowchart {
+    node [shape=ellipse, style=filled, color=lightblue, fontname="Arial"];
+    start [label="Start genBody"];
+    end [label="End genBody"];
+    
+    node [shape=diamond, color=orange, fontname="Arial"];
+    check_inst_unused [label="Is inst unused\nand not mustLower?"];
+    check_air_bookkeeping [label="air_bookkeeping\ncorrect?"];
+    
+    node [shape=rectangle, color=black, fontname="Arial"];
+    loop_start [label="For each inst in body"];
+    save_old_state [label="Save old_air_bookkeeping\nEnsure process death capacity"];
+    reset_reused_operands [label="Reset reused_operands"];
+    process_instruction [label="Switch on air_tags\nDispatch to handler functions"];
+    handle_fail [label="Call self.fail()\nReturn error"];
+    finish_air_bookkeeping [label="Finish air bookkeeping"];
+    assert_locked_regs [label="Assert no locked registers exist"];
+    panic_check [label="Runtime safety:\nCheck bookkeeping consistency"];
+    
+    // 结构布局
+    start -> loop_start;
+    
+    loop_start -> check_inst_unused;
+    
+    check_inst_unused -> save_old_state [label="No"];
+    check_inst_unused -> loop_start [label="Yes", xlabel="Continue loop"];
+    
+    save_old_state -> reset_reused_operands;
+    reset_reused_operands -> process_instruction;
+    
+    process_instruction -> handle_fail [label="Unimplemented case"];
+    process_instruction -> assert_locked_regs [label="Handled"];
+    
+    handle_fail -> end [style=dashed, color=red];
+    
+    assert_locked_regs -> check_air_bookkeeping;
+    
+    check_air_bookkeeping -> panic_check [label="Incorrect", color=red];
+    check_air_bookkeeping -> loop_start [label="Correct"];
+    
+    panic_check -> end [style=dashed, color=red];
+    
+    loop_start -> end [label="Loop end"];
+    
+    // 隐藏边保持顺序
+    edge [style=invis];
+    finish_air_bookkeeping -> assert_locked_regs;
+}

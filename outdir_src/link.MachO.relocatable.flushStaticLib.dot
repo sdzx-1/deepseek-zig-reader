@@ -1,0 +1,70 @@
+
+digraph flushStaticLib {
+    node [shape=rectangle];
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    init_vars [label="初始化变量 (gpa, diags, positionals)"];
+    collect_inputs [label="收集输入文件到 positionals\n（包括 c_object_table、module_obj_path 等）"];
+    classify_inputs [label="对每个输入文件进行分类"];
+    parse_files [label="解析输入文件 (parseInputFilesAr)"];
+    handle_zig_object [label="处理 Zig 对象文件"];
+    resolve_symbols [label="解析符号 (resolveSymbols)"];
+    mark_exports [label="标记导出 (markExportsRelocatable)"];
+    claim_unresolved [label="处理未解析符号 (claimUnresolvedRelocatable)"];
+    sort_sections [label="排序节 (sortSections)"];
+    add_atoms [label="添加原子到节 (addAtomsToSections)"];
+    calc_sizes [label="计算节大小 (calcSectionSizes)"];
+    create_segment [label="创建段 (createSegment)"];
+    allocate_sections [label="分配节内存 (allocateSections)"];
+    allocate_segment [label="分配段 (allocateSegment)"];
+    write_sections [label="写入节内容 (writeSections)"];
+    sanitize_sections [label="清理段名 (sanitizeZigSections)"];
+    write_load_commands [label="写入加载命令 (writeLoadCommands)"];
+    write_header [label="写入头 (writeHeader)"];
+    collect_files [label="收集所有文件索引"];
+    update_symtab [label="更新归档符号表 (ar_symtab)"];
+    calculate_size [label="计算总大小和文件偏移"];
+    write_archive [label="写入归档内容到缓冲区"];
+    write_to_file [label="将缓冲区写入文件 (pwriteAll)"];
+    error_check1 [label="检查错误", shape=diamond];
+    error_check2 [label="检查错误", shape=diamond];
+    error_check3 [label="检查错误", shape=diamond];
+    error_check4 [label="检查错误", shape=diamond];
+    error_link_failure [label="返回 LinkFailure", shape=ellipse];
+
+    start -> init_vars;
+    init_vars -> collect_inputs;
+    collect_inputs -> classify_inputs;
+    classify_inputs -> error_check1;
+    error_check1 -> parse_files [label="无错误"];
+    error_check1 -> error_link_failure [label="有错误"];
+    parse_files -> error_check2;
+    error_check2 -> handle_zig_object [label="无错误"];
+    error_check2 -> error_link_failure [label="有错误"];
+    handle_zig_object -> resolve_symbols;
+    resolve_symbols -> mark_exports;
+    mark_exports -> claim_unresolved;
+    claim_unresolved -> sort_sections;
+    sort_sections -> add_atoms;
+    add_atoms -> calc_sizes;
+    calc_sizes -> create_segment;
+    create_segment -> allocate_sections;
+    allocate_sections -> allocate_segment;
+    allocate_segment -> write_sections;
+    write_sections -> sanitize_sections;
+    sanitize_sections -> write_load_commands;
+    write_load_commands -> write_header;
+    write_header -> collect_files;
+    collect_files -> update_symtab;
+    update_symtab -> calculate_size;
+    calculate_size -> write_archive;
+    write_archive -> error_check3;
+    error_check3 -> write_to_file [label="无错误"];
+    error_check3 -> error_link_failure [label="有错误"];
+    write_to_file -> error_check4;
+    error_check4 -> end [label="无错误"];
+    error_check4 -> error_link_failure [label="有错误"];
+
+    // 错误处理路径
+    error_link_failure -> end [style=dotted];
+}

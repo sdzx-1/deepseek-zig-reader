@@ -1,0 +1,60 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="genSetReg开始"];
+    check_abi_size [label="计算abi_size\n检查bitSize是否超过目标寄存器"];
+    check_abi_size_error [label="返回错误", shape=ellipse];
+    switch_src_mcv [label="根据src_mcv类型分支", shape=diamond];
+
+    // src_mcv分支
+    undef_case [label="处理.undef\n根据目标寄存器类生成mov指令"];
+    eflags_case [label="处理.eflags\n生成asmSetcc指令"];
+    immediate_case [label="处理.immediate\n根据立即数值生成xor/mov指令"];
+    register_case [label="处理.register\n判断源和目标寄存器类型"];
+    memory_case [label="处理.memory/load_symbol等\n生成内存加载指令"];
+    lea_symbol_case [label="处理.lea_symbol\n生成lea指令"];
+    air_ref_case [label="处理.air_ref\n递归调用resolveInst"];
+    other_cases [label="其他未实现或错误情况\n返回错误或未实现", shape=ellipse];
+
+    // 寄存器子分支
+    register_gp_to_gp [label="通用寄存器到通用寄存器\n生成mov指令"];
+    register_gp_to_sse [label="通用寄存器到SSE寄存器\n生成mov指令或临时栈操作"];
+    register_x87_handling [label="处理x87寄存器交换\n生成fld/fxch指令"];
+    register_sse_to_gp [label="SSE寄存器到通用寄存器\n使用movd/movq或临时栈操作"];
+
+    // 连接节点
+    start -> check_abi_size;
+    check_abi_size -> check_abi_size_error [label="bitSize超过"];
+    check_abi_size -> switch_src_mcv [label="检查通过"];
+
+    switch_src_mcv -> undef_case [label=".undef"];
+    switch_src_mcv -> eflags_case [label=".eflags"];
+    switch_src_mcv -> immediate_case [label=".immediate"];
+    switch_src_mcv -> register_case [label=".register"];
+    switch_src_mcv -> memory_case [label=".memory/.load_*"];
+    switch_src_mcv -> lea_symbol_case [label=".lea_symbol"];
+    switch_src_mcv -> air_ref_case [label=".air_ref"];
+    switch_src_mcv -> other_cases [label="其他未处理类型"];
+
+    // 寄存器分支细化
+    register_case -> register_gp_to_gp [label="目标寄存器是通用寄存器"];
+    register_case -> register_gp_to_sse [label="目标寄存器是SSE\n源是通用寄存器"];
+    register_case -> register_x87_handling [label="目标寄存器是x87"];
+    register_case -> register_sse_to_gp [label="目标寄存器是通用\n源是SSE寄存器"];
+
+    // 各分支终止
+    undef_case -> end;
+    eflags_case -> end;
+    immediate_case -> end;
+    register_gp_to_gp -> end;
+    register_gp_to_sse -> end;
+    register_x87_handling -> end;
+    register_sse_to_gp -> end;
+    memory_case -> end;
+    lea_symbol_case -> end;
+    air_ref_case -> end;
+
+    end [label="返回void或错误", shape=ellipse];
+}

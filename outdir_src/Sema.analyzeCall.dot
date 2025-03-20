@@ -1,0 +1,79 @@
+
+digraph analyzeCall {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 analyzeCall"];
+    check_async [label="检查 modifier 是否为 async_kw"];
+    handle_async_error [label="返回 sema.failWithUseOfAsync"];
+    check_callconv [label="检查调用约定是否合法"];
+    handle_callconv_error [label="返回错误信息"];
+    resolve_callee [label="解析 callee_val 和 func_val"];
+    handle_generic [label="处理泛型函数参数和返回类型推断"];
+    analyze_args [label="分析参数，填充 generic_inst_map"];
+    check_noreturn [label="参数类型是否为 noreturn"];
+    return_noreturn [label="返回参数值，终止分析"];
+    resolve_return_type [label="解析返回类型 resolved_ret_ty"];
+    check_inline_comptime [label="判断是否是 inline/comptime 调用"];
+    runtime_call [label="生成运行时调用 Air 指令"];
+    inline_call [label="处理 inline/comptime 调用"];
+    ensure_result_used [label="确保结果被使用"];
+    return_result [label="返回结果"];
+
+    start -> check_async;
+    check_async -> handle_async_error [label="是"];
+    check_async -> check_callconv [label="否"];
+
+    handle_async_error -> return_result;
+
+    check_callconv -> handle_callconv_error [label="调用约定不可调用"];
+    check_callconv -> resolve_callee [label="合法"];
+
+    handle_callconv_error -> return_result;
+
+    resolve_callee -> handle_generic [label="处理泛型检查"];
+    handle_generic -> analyze_args;
+
+    analyze_args -> check_noreturn;
+    check_noreturn -> return_noreturn [label="参数类型为 noreturn"];
+    check_noreturn -> resolve_return_type [label="继续"];
+
+    resolve_return_type -> check_inline_comptime;
+
+    check_inline_comptime -> runtime_call [label="否"];
+    check_inline_comptime -> inline_call [label="是"];
+
+    runtime_call -> ensure_result_used;
+    inline_call -> ensure_result_used;
+
+    ensure_result_used -> return_result;
+
+    // 错误处理和其他分支的简化表示
+    subgraph cluster_errors {
+        label="错误处理分支";
+        handle_async_error;
+        handle_callconv_error;
+        return_noreturn;
+    }
+
+    // inline_call 内部流程
+    subgraph cluster_inline {
+        label="Inline/Comptime 调用处理";
+        check_recursion [label="检查递归调用"];
+        setup_child_block [label="创建 child_block 和 inlining 上下文"];
+        analyze_fn_body [label="分析函数体"];
+        handle_result [label="处理结果和 memoization"];
+        inline_call -> check_recursion;
+        check_recursion -> setup_child_block [label="无递归"];
+        setup_child_block -> analyze_fn_body;
+        analyze_fn_body -> handle_result;
+    }
+
+    // 泛型参数处理细节
+    subgraph cluster_generic {
+        label="泛型处理";
+        create_inst_map [label="创建 generic_inst_map"];
+        evaluate_params [label="评估泛型参数类型"];
+        handle_generic -> create_inst_map;
+        create_inst_map -> evaluate_params;
+    }
+}

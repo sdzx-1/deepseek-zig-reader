@@ -1,0 +1,36 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="mapOldZirToNew 函数入口", shape=ellipse];
+    init_vars [label="初始化 match_stack, old_contents, new_contents"];
+    process_root [label="处理 main_struct_inst\n填充 explicit_types 和 other 到 match_stack/inst_map"];
+    while_loop [label="while (从 match_stack 弹出 match_item)", shape=diamond];
+    check_captures [label="检查类型捕获数量是否一致", shape=diamond];
+    skip_capture [label="跳过映射，继续循环"];
+    map_inst [label="将 match_item 的旧新指令加入 inst_map"];
+    populate_decls [label="填充命名声明、测试、未命名测试等到哈希映射和数组"];
+    new_decl_loop [label="遍历新声明 new_decl_it"];
+    match_decl [label="根据类型匹配旧声明（名称/顺序）", shape=diamond];
+    map_decl_inst [label="将匹配的旧新声明指令加入 inst_map"];
+    process_trackable [label="处理声明内的 trackable 内容\n填充 explicit_types 和 other"];
+    end [label="函数返回", shape=ellipse];
+
+    start -> init_vars;
+    init_vars -> process_root;
+    process_root -> while_loop;
+    while_loop -> check_captures;
+    check_captures -> skip_capture [label="数量不一致"];
+    check_captures -> map_inst [label="数量一致"];
+    skip_capture -> while_loop;
+    map_inst -> populate_decls;
+    populate_decls -> new_decl_loop;
+    new_decl_loop -> match_decl;
+    match_decl -> map_decl_inst [label="找到匹配"];
+    match_decl -> new_decl_loop [label="未找到匹配"];
+    map_decl_inst -> process_trackable;
+    process_trackable -> new_decl_loop;
+    new_decl_loop -> while_loop [label="遍历完成"];
+    while_loop -> end [label="match_stack 为空"];
+}

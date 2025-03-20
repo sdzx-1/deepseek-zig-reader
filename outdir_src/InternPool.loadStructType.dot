@@ -1,0 +1,76 @@
+
+digraph loadStructType {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.5];
+    node [fontname="Arial", shape=box, style="rounded"];
+    edge [fontname="Arial"];
+
+    start [label="Start: loadStructType(ip, index)"];
+    unwrap_index [label="Unwrap index"];
+    get_extra [label="Get extra_list and extra_items"];
+    switch_tag [label="Switch item.tag", shape=diamond];
+
+    // .type_struct branch
+    type_struct [label="Case: .type_struct"];
+    process_flags_struct [label="Process flags (is_reified, any_captures)"];
+    calc_captures_struct [label="Calculate captures_len (if any_captures)"];
+    handle_reified_struct [label="Skip type_hash (if is_reified)"];
+    field_types_struct [label="Extract field_types slice"];
+    names_processing_struct [label="Process names_map and names"];
+    handle_inits_struct [label="Extract inits (if any_default_inits)"];
+    handle_aligns_struct [label="Extract aligns (if any_aligned_fields)"];
+    handle_comptime_struct [label="Extract comptime_bits (if any_comptime_fields)"];
+    handle_runtime_order [label="Extract runtime_order (if not extern)"];
+    process_offsets [label="Extract offsets"];
+    return_struct [label="Construct and return LoadedStructType"];
+
+    // .type_struct_packed branch
+    type_struct_packed [label="Case: .type_struct_packed(_inits)"];
+    process_flags_packed [label="Process flags (any_captures, is_reified)"];
+    calc_captures_packed [label="Calculate captures_len (if any_captures)"];
+    handle_reified_packed [label="Skip type_hash (if is_reified)"];
+    field_types_packed [label="Extract field_types slice"];
+    field_names_packed [label="Extract field_names"];
+    handle_inits_packed [label="Extract inits (if _packed_inits)"];
+    return_packed [label="Construct and return LoadedStructType"];
+
+    // Error case
+    unreachable [label="unreachable", color=red];
+
+    // Edges
+    start -> unwrap_index;
+    unwrap_index -> get_extra;
+    get_extra -> switch_tag;
+
+    switch_tag -> type_struct [label=".type_struct"];
+    switch_tag -> type_struct_packed [label=".type_struct_packed(_inits)"];
+    switch_tag -> unreachable [label="else"];
+
+    // .type_struct branch flow
+    type_struct -> process_flags_struct;
+    process_flags_struct -> calc_captures_struct;
+    calc_captures_struct -> handle_reified_struct;
+    handle_reified_struct -> field_types_struct;
+    field_types_struct -> names_processing_struct;
+    names_processing_struct -> handle_inits_struct;
+    handle_inits_struct -> handle_aligns_struct;
+    handle_aligns_struct -> handle_comptime_struct;
+    handle_comptime_struct -> handle_runtime_order;
+    handle_runtime_order -> process_offsets;
+    process_offsets -> return_struct;
+
+    // .type_struct_packed branch flow
+    type_struct_packed -> process_flags_packed;
+    process_flags_packed -> calc_captures_packed;
+    calc_captures_packed -> handle_reified_packed;
+    handle_reified_packed -> field_types_packed;
+    field_types_packed -> field_names_packed;
+    field_names_packed -> handle_inits_packed;
+    handle_inits_packed -> return_packed;
+
+    // Final returns
+    return_struct -> end;
+    return_packed -> end;
+    unreachable -> end [style=dashed];
+
+    end [label="Return LoadedStructType", shape=doublecircle];
+}

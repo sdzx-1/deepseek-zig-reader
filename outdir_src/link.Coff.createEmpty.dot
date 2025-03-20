@@ -1,0 +1,53 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 createEmpty"];
+    validate_target [label="验证 target.ofmt == .coff\n(断言)"];
+    set_ptr_width [label="根据 target.ptrBitWidth()\n设置 ptr_width"];
+    set_page_size [label="根据 target.cpu.arch\n设置 page_size"];
+    handle_lld_llvm [label="生成 zcu_object_sub_path\n(根据 use_lld/use_llvm)"];
+    init_coff [label="初始化 Coff 结构体\n填充 base/ptr_width/page_size"];
+    image_base_logic [label="设置 image_base\n根据 output_mode 和 arch"];
+    llvm_object_init [label="use_llvm && have_zcu?\n初始化 coff.llvm_object"];
+    errdefer [label="errdefer coff.base.destroy()"];
+    check_lld_llvm [label="use_lld && (use_llvm || !have_zcu)?\n返回 coff"];
+    create_file [label="创建输出文件\n设置 coff.base.file"];
+    init_strtab [label="初始化字符串表\n添加空符号"];
+    allocate_sections [label="分配各段:\n.text/.got/.rdata/.data/.idata/.reloc"];
+    handle_strtab_offset [label="计算 strtab_offset\n找到空闲空间"];
+    calc_max_offset [label="遍历 sections\n计算 max_file_offset"];
+    pwrite_zero [label="在文件末尾填充 0\n确保文件大小正确"];
+    return_coff [label="返回 coff*"];
+    error_exit [label="错误处理"];
+
+    start -> validate_target;
+    validate_target -> set_ptr_width;
+    set_ptr_width -> set_page_size;
+    set_page_size -> handle_lld_llvm;
+    handle_lld_llvm -> init_coff;
+    init_coff -> image_base_logic;
+    image_base_logic -> llvm_object_init [label="use_llvm && have_zcu"];
+    llvm_object_init -> errdefer;
+    errdefer -> check_lld_llvm;
+    check_lld_llvm -> return_coff [label="条件成立"];
+    check_lld_llvm -> create_file [label="条件不成立"];
+    create_file -> init_strtab;
+    init_strtab -> allocate_sections;
+    allocate_sections -> handle_strtab_offset;
+    handle_strtab_offset -> calc_max_offset;
+    calc_max_offset -> pwrite_zero;
+    pwrite_zero -> return_coff;
+
+    // 错误处理路径
+    validate_target -> error_exit [label="断言失败"];
+    set_ptr_width -> error_exit [label="UnsupportedCOFFArchitecture"];
+    handle_lld_llvm -> error_exit [label="allocPrint 失败"];
+    init_coff -> error_exit [label="arena.create 失败"];
+    llvm_object_init -> error_exit [label="LlvmObject.create 失败"];
+    create_file -> error_exit [label="createFile 失败"];
+    allocate_sections -> error_exit [label="allocateSection 失败"];
+    handle_strtab_offset -> error_exit [label="findFreeSpace 失败"];
+    pwrite_zero -> error_exit [label="pwriteAll 失败"];
+}

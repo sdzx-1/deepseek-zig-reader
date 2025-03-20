@@ -1,0 +1,58 @@
+
+digraph buildLibCxx_flowchart {
+    graph [bgcolor=transparent];
+    node [shape=rectangle, style=filled, fillcolor=lightblue, fontname="Courier"];
+
+    start [label="Start buildLibCxx"];
+    check_llvm [label="Check build_options.have_llvm"];
+    error_llvm [label="Return error.ZigCompilerNotBuiltWithLLVMExtensions", shape=oval, fillcolor=pink];
+    init_trace [label="Initialize Tracy trace"];
+    init_arena [label="Initialize ArenaAllocator"];
+    gen_basename [label="Generate output basename"];
+    setup_paths [label="Set up include paths (cxxabi, cxx, cxx_src)"];
+    set_abi_args [label="Generate ABI version/namespace arguments"];
+    config_resolve [label="Resolve Compilation.Config"];
+    config_error [label="Set misc failure\n(error.SubCompilationFailed)", shape=oval, fillcolor=pink];
+    create_root_mod [label="Create root Module"];
+    mod_error [label="Set misc failure\n(error.SubCompilationFailed)", shape=oval, fillcolor=pink];
+    handle_files [label="Select libcxx_files\n(based on any_non_single_threaded)"];
+    loop_start [label="Loop over libcxx_files", shape=diamond];
+    check_platform [label="Check target.os.tag\n(exclude filesystem/win32/ibm files)"];
+    add_cflags [label="Add platform-specific flags\n(-D_LIBCPP_HAS_NO_THREADS etc)"];
+    append_csource [label="Append to c_source_files"];
+    create_subcomp [label="Create sub_compilation"];
+    subcomp_error [label="Set misc failure\n(error.SubCompilationFailed)", shape=oval, fillcolor=pink];
+    update_subcomp [label="Update sub_compilation"];
+    update_error [label="Set misc failure\n(error.SubCompilationFailed)", shape=oval, fillcolor=pink];
+    success [label="Set libcxx_static_lib\nQueue link task\nReturn successfully", shape=oval, fillcolor=lightgreen];
+
+    start -> check_llvm;
+    check_llvm -> error_llvm [label="No"];
+    check_llvm -> init_trace [label="Yes"];
+    init_trace -> init_arena;
+    init_arena -> gen_basename;
+    gen_basename -> setup_paths;
+    setup_paths -> set_abi_args;
+    set_abi_args -> config_resolve;
+    config_resolve -> config_error [label="Error"];
+    config_resolve -> create_root_mod [label="OK"];
+    create_root_mod -> mod_error [label="Error"];
+    create_root_mod -> handle_files [label="OK"];
+    handle_files -> loop_start;
+    loop_start -> check_platform [label="Next file"];
+    check_platform -> add_cflags [label="Platform match"];
+    check_platform -> loop_start [label="Skip file"];
+    add_cflags -> append_csource;
+    append_csource -> loop_start [label="Continue loop"];
+    loop_start -> create_subcomp [label="Loop end"];
+    create_subcomp -> subcomp_error [label="Error"];
+    create_subcomp -> update_subcomp [label="OK"];
+    update_subcomp -> update_error [label="Error"];
+    update_subcomp -> success [label="OK"];
+
+    // Error handling connections
+    config_error -> error_llvm [style=dashed, color=red];
+    mod_error -> error_llvm [style=dashed, color=red];
+    subcomp_error -> error_llvm [style=dashed, color=red];
+    update_error -> error_llvm [style=dashed, color=red];
+}

@@ -1,0 +1,61 @@
+
+digraph updateLazyType {
+    graph [fontname="Arial", rankdir=TB];
+    node [fontname="Arial", shape=rectangle, style=rounded];
+    edge [fontname="Arial"];
+
+    start [label="开始 updateLazyType"];
+    init_wip_nav [label="初始化 wip_nav 结构"];
+    type_switch [label="type_index 类型判断", shape=diamond];
+    handle_int [label="处理 int_type"];
+    handle_ptr [label="处理 ptr_type\n(判断指针大小)", shape=diamond];
+    handle_slice [label="处理 slice 指针"];
+    handle_array [label="处理 array_type"];
+    handle_vector [label="处理 vector_type"];
+    handle_opt [label="处理 opt_type"];
+    handle_error_union [label="处理 error_union_type"];
+    handle_simple [label="处理 simple_type"];
+    handle_tuple [label="处理 tuple_type\n(循环处理字段)"];
+    handle_enum [label="处理 enum_type"];
+    handle_func [label="处理 func_type"];
+    handle_error_set [label="处理 error_set_type"];
+    cleanup [label="清理资源 (defer块)"];
+    end [label="结束函数"];
+
+    start -> init_wip_nav;
+    init_wip_nav -> type_switch;
+
+    type_switch -> handle_int [label="int_type"];
+    type_switch -> handle_ptr [label="ptr_type"];
+    type_switch -> handle_array [label="array_type"];
+    type_switch -> handle_vector [label="vector_type"];
+    type_switch -> handle_opt [label="opt_type"];
+    type_switch -> handle_error_union [label="error_union_type"];
+    type_switch -> handle_simple [label="simple_type"];
+    type_switch -> handle_tuple [label="tuple_type"];
+    type_switch -> handle_enum [label="enum_type"];
+    type_switch -> handle_func [label="func_type"];
+    type_switch -> handle_error_set [label="error_set_type"];
+    type_switch -> cleanup [label="其他类型"];
+
+    handle_ptr -> handle_slice [label="size == slice"];
+    handle_ptr -> ptr_common [label="one/many/c"];
+
+    ptr_common [label="处理普通指针\n(写入指针属性)"];
+    handle_slice -> ptr_common;
+
+    handle_array -> cleanup;
+    handle_vector -> cleanup;
+    handle_opt -> cleanup;
+    handle_error_union -> cleanup;
+    handle_simple -> cleanup;
+    handle_tuple -> cleanup [label="完成字段处理"];
+    handle_enum -> cleanup;
+    handle_func -> cleanup;
+    handle_error_set -> cleanup;
+
+    cleanup -> end;
+
+    // 公共清理路径
+    {handle_int ptr_common} -> cleanup;
+}

@@ -1,0 +1,66 @@
+
+digraph moveStrategy {
+    graph [rankdir=TB];
+    node [shape=rectangle, style="rounded"];
+    edge [fontsize=10];
+
+    start [label="开始"];
+    end [label="返回错误或策略"];
+    class_switch [label="switch(class)", shape=diamond];
+    sse_case [label="case .sse"];
+    type_switch [label="switch(ty.zigTypeTag(zcu))", shape=diamond];
+    float_case [label="case .float"];
+    vector_case [label="case .vector"];
+    child_type_switch [label="switch(childType)", shape=diamond];
+    abi_size_check [label="检查abi_size", shape=diamond];
+    feature_check_avx [label="cg.hasFeature(.avx)?", shape=diamond];
+    feature_check_sse41 [label="cg.hasFeature(.sse4_1)?", shape=diamond];
+    feature_check_sse2 [label="cg.hasFeature(.sse2)?", shape=diamond];
+    return_load_store [label="返回.load_store"];
+    return_insert_extract [label="返回.insert_extract"];
+    return_vex [label="返回.vex_insert_extract"];
+    return_move_through_gpr [label="返回.move_through_gpr"];
+    return_frame [label="返回.load_store_through_frame"];
+    error_todo [label="返回TODO错误"];
+
+    start -> class_switch;
+    
+    class_switch -> "返回.load_store(.mov)" [label=".general_purpose/.segment"];
+    class_switch -> "返回.load_store_x87" [label=".x87"];
+    class_switch -> sse_case [label=".sse"];
+    class_switch -> error_todo [label="其他(.mmx/.ip/.cr/.dr)"];
+
+    sse_case -> type_switch;
+    
+    type_switch -> float_case [label=".float"];
+    type_switch -> vector_case [label=".vector"];
+    type_switch -> abi_size_check [label="其他类型"];
+    
+    float_case -> "根据floatBits检查" -> feature_check_avx;
+    feature_check_avx -> return_vex [label="是"];
+    feature_check_avx -> feature_check_sse41 [label="否"];
+    feature_check_sse41 -> return_insert_extract [label="是"];
+    feature_check_sse41 -> feature_check_sse2 [label="否"];
+    feature_check_sse2 -> return_move_through_gpr [label="是"];
+    feature_check_sse2 -> return_frame [label="否"];
+    
+    vector_case -> child_type_switch;
+    child_type_switch -> "根据child类型处理" -> abi_size_check;
+    
+    abi_size_check -> "根据abi_size范围" -> feature_check_avx;
+    abi_size_check -> feature_check_sse41;
+    abi_size_check -> feature_check_sse2;
+    
+    feature_check_avx -> return_load_store [label="是"];
+    feature_check_avx -> feature_check_sse2 [label="否"];
+    feature_check_sse2 -> return_load_store [label="是"];
+    feature_check_sse2 -> return_frame [label="否"];
+    
+    "返回.load_store(.mov)" -> end;
+    "返回.load_store_x87" -> end;
+    return_vex -> end;
+    return_insert_extract -> end;
+    return_move_through_gpr -> end;
+    return_frame -> end;
+    error_todo -> end;
+}

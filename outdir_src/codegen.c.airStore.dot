@@ -1,0 +1,32 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 airStore"];
+    check_val_undef [label="检查 val_is_undef"];
+    handle_undef [label="调用 memset\n释放操作数"];
+    check_need_memcpy [label="判断 need_memcpy\n(对齐/数组类型)"];
+    handle_memcpy [label="处理 memcpy\n处理常量源\n向量化操作"];
+    check_packed_offset [label="检查 packed_offset\n和 host_size"];
+    handle_bitops [label="处理位操作\n(掩码/位移)\n向量化操作"];
+    default_assign [label="普通赋值操作\n向量化操作"];
+    end [label="返回 .none"];
+
+    start -> check_val_undef;
+    
+    check_val_undef -> handle_undef [label="是"];
+    check_val_undef -> check_need_memcpy [label="否"];
+    
+    handle_undef -> end;
+    
+    check_need_memcpy -> handle_memcpy [label="需要"];
+    check_need_memcpy -> check_packed_offset [label="不需要"];
+    
+    check_packed_offset -> handle_bitops [label="host_size>0\n且非向量索引"];
+    check_packed_offset -> default_assign [label="其他情况"];
+    
+    handle_memcpy -> end;
+    handle_bitops -> end;
+    default_assign -> end;
+}

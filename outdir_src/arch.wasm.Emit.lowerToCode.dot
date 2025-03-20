@@ -1,0 +1,95 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始lowerToCode"];
+    loop_start [label="循环开始: inst初始化"];
+    switch_node [label="switch(tags[inst])"];
+    return_node [label="返回"];
+    block_loop [label="处理block/loop类型\n写入操作码和块类型"];
+    uav_ref [label="处理uav_ref\n根据is_obj调用不同函数"];
+    uav_ref_off [label="处理uav_ref_off\n根据is_obj调用不同函数"];
+    nav_ref [label="处理nav_ref\n调用navRefOff"];
+    nav_ref_off [label="处理nav_ref_off\n调用navRefOff"];
+    func_ref [label="处理func_ref\n写入i32_const操作码"];
+    dbg_line [label="跳过dbg_line"];
+    errors_len [label="处理errors_len\n写入i32_const和错误长度"];
+    error_name_table_ref [label="处理error_name_table_ref\n根据is_obj处理重定位"];
+    br_ops [label="处理br_if/br/memory_grow/memory_size\n写入操作码和标签"];
+    local_ops [label="处理local_get/local_set/local_tee\n写入操作码和局部索引"];
+    br_table [label="处理br_table\n写入跳转表"];
+    call_nav [label="处理call_nav\n写入call操作码"];
+    call_indirect [label="处理call_indirect\n写入call_indirect操作码"];
+    call_tag_name [label="处理call_tag_name\n写入call操作码"];
+    call_intrinsic [label="处理call_intrinsic\n写入call操作码"];
+    global_set_sp [label="处理global_set_sp\n写入global_set操作码"];
+    const_ops [label="处理常量操作(f32/i32/i64等)\n写入对应操作码和值"];
+    load_store [label="处理load/store指令\n写入操作码和内存参数"];
+    simple_ops [label="处理单字节操作(end/return等)\n直接写入操作码"];
+    misc_prefix [label="处理misc_prefix\n写入前缀和扩展操作码"];
+    simd_prefix [label="处理simd_prefix\n写入前缀和SIMD操作码"];
+    atomics_prefix [label="处理atomics_prefix\n写入前缀和原子操作码"];
+    panic_node [label="触发panic或TODO"];
+    inst_inc [label="inst += 1\n继续下一个指令"];
+    loop_end [label="循环结束"];
+
+    start -> loop_start;
+    loop_start -> switch_node;
+
+    switch_node -> return_node [label=".dbg_epilogue_begin"];
+    switch_node -> block_loop [label=".block/.loop"];
+    switch_node -> uav_ref [label=".uav_ref"];
+    switch_node -> uav_ref_off [label=".uav_ref_off"];
+    switch_node -> nav_ref [label=".nav_ref"];
+    switch_node -> nav_ref_off [label=".nav_ref_off"];
+    switch_node -> func_ref [label=".func_ref"];
+    switch_node -> dbg_line [label=".dbg_line"];
+    switch_node -> errors_len [label=".errors_len"];
+    switch_node -> error_name_table_ref [label=".error_name_table_ref"];
+    switch_node -> br_ops [label=".br_if/.br/.memory_grow/.memory_size"];
+    switch_node -> local_ops [label=".local_get/.local_set/.local_tee"];
+    switch_node -> br_table [label=".br_table"];
+    switch_node -> call_nav [label=".call_nav"];
+    switch_node -> call_indirect [label=".call_indirect"];
+    switch_node -> call_tag_name [label=".call_tag_name"];
+    switch_node -> call_intrinsic [label=".call_intrinsic"];
+    switch_node -> global_set_sp [label=".global_set_sp"];
+    switch_node -> const_ops [label=".f32_const/.i32_const等"];
+    switch_node -> load_store [label=".i32_load/.i64_store等"];
+    switch_node -> simple_ops [label=".end/.return等单字节指令"];
+    switch_node -> misc_prefix [label=".misc_prefix"];
+    switch_node -> simd_prefix [label=".simd_prefix"];
+    switch_node -> atomics_prefix [label=".atomics_prefix"];
+
+    return_node -> loop_end;
+    block_loop -> inst_inc;
+    uav_ref -> inst_inc;
+    uav_ref_off -> inst_inc;
+    nav_ref -> inst_inc;
+    nav_ref_off -> inst_inc;
+    func_ref -> inst_inc;
+    dbg_line -> inst_inc;
+    errors_len -> inst_inc;
+    error_name_table_ref -> inst_inc;
+    br_ops -> inst_inc;
+    local_ops -> inst_inc;
+    br_table -> inst_inc;
+    call_nav -> inst_inc;
+    call_indirect -> inst_inc;
+    call_tag_name -> inst_inc;
+    call_intrinsic -> inst_inc;
+    global_set_sp -> inst_inc;
+    const_ops -> inst_inc;
+    load_store -> inst_inc;
+    simple_ops -> inst_inc;
+    misc_prefix -> inst_inc [label="成功处理"];
+    misc_prefix -> panic_node [label="未实现的操作"];
+    simd_prefix -> inst_inc [label="成功处理"];
+    simd_prefix -> panic_node [label="未实现的操作"];
+    atomics_prefix -> inst_inc [label="成功处理"];
+    atomics_prefix -> panic_node [label="未实现的操作"];
+    
+    inst_inc -> loop_start [label="继续循环"];
+    panic_node -> loop_end [label="终止流程"];
+}

@@ -1,0 +1,69 @@
+
+digraph airShlShrBinOp_flowchart {
+    node [shape=ellipse]; start end;
+    node [shape=diamond]; 
+    node [shape=rectangle];
+
+    start -> resolve_operands;
+    resolve_operands [label="解析指令操作数（bin_op）"];
+    resolve_operands -> check_lhs_type;
+
+    check_lhs_type [label="lhs_ty的类型是？"];
+    check_lhs_type -> handle_int [label=".int"];
+    check_lhs_type -> handle_vector [label=".vector"];
+    check_lhs_type -> todo_error [label="其他类型"];
+
+    handle_int [label="处理整数类型"];
+    handle_int -> spill_rcx;
+    spill_rcx [label="保存并分配rcx寄存器"];
+    spill_rcx -> resolve_lhs_rhs;
+    
+    resolve_lhs_rhs [label="解析lhs和rhs的MCValue"];
+    resolve_lhs_rhs -> gen_shift_binop;
+    
+    gen_shift_binop [label="生成位移指令"];
+    gen_shift_binop -> check_shift_type;
+    
+    check_shift_type [label="位移类型是shl吗？"];
+    check_shift_type -> truncate_register [label="是"];
+    check_shift_type -> result_dst_mcv [label="否（shr/shr_exact）"];
+    
+    truncate_register [label="截断寄存器（根据dst_mcv类型）"];
+    truncate_register -> result_dst_mcv;
+    
+    result_dst_mcv [label="获取结果dst_mcv"];
+    result_dst_mcv -> end;
+
+    handle_vector [label="处理向量类型"];
+    handle_vector -> check_child_type;
+    
+    check_child_type [label="向量子元素类型是？"];
+    check_child_type -> check_bits_16 [label="16位"];
+    check_child_type -> check_bits_32 [label="32位"];
+    check_child_type -> check_bits_64 [label="64位"];
+    check_child_type -> todo_error [label="其他"];
+    
+    check_bits_16 [label="检查向量长度和CPU特性"];
+    check_bits_16 -> handle_imm_or_splat [label="支持"];
+    check_bits_16 -> todo_error [label="不支持"];
+    
+    check_bits_32 -> handle_imm_or_splat [label="支持"];
+    check_bits_32 -> todo_error [label="不支持"];
+    
+    check_bits_64 -> handle_imm_or_splat [label="支持"];
+    check_bits_64 -> todo_error [label="不支持"];
+    
+    handle_imm_or_splat [label="处理立即数或splat指令"];
+    handle_imm_or_splat -> gen_vector_shift;
+    
+    gen_vector_shift [label="生成向量位移指令"];
+    gen_vector_shift -> result_dst_reg;
+    
+    result_dst_reg [label="结果存入寄存器"];
+    result_dst_reg -> end;
+
+    todo_error [label="返回未实现错误"];
+    todo_error -> end;
+
+    end [label="返回结果并清理资源"];
+}

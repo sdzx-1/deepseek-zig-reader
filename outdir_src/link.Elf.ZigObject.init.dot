@@ -1,0 +1,56 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+    start [label="Start init function", shape=ellipse];
+    end [label="End init function", shape=ellipse];
+    
+    subgraph cluster_init {
+        label = "Initialization";
+        init1 [label="Get comp, gpa, ptr_size"];
+        init2 [label="Append null input section to atoms"];
+        init3 [label="Append null relocs section"];
+        init4 [label="Append 0 to strtab.buffer"];
+    }
+    
+    subgraph cluster_symbol {
+        label = "File Symbol Setup";
+        symbol1 [label="Insert basename into strtab"];
+        symbol2 [label="Create new local symbol"];
+        symbol3 [label="Set esym.st_info = STT_FILE\nesym.st_shndx = SHN_ABS"];
+    }
+    
+    subgraph cluster_debug {
+        label = "Debug Format Handling";
+        debug_switch [label="Check comp.config.debug_format", shape=diamond];
+        strip [label="strip: Do nothing"];
+        dwarf [label="dwarf: Initialize Dwarf"];
+        codeview [label="code_view: unreachable", shape=box];
+        
+        subgraph cluster_dwarf_sections {
+            label = "Create DWARF Sections";
+            dwarf_section [label="For each debug section (.debug_str, .debug_info, etc.)"];
+            check_null [label="Check if section index is null", shape=diamond];
+            create_section [label="Add new section to elf_file\nCreate section symbol and atom"];
+        }
+        
+        dwarf_final [label="Initialize Dwarf metadata"];
+    }
+    
+    start -> init1;
+    init1 -> init2 -> init3 -> init4 -> symbol1;
+    symbol1 -> symbol2 -> symbol3 -> debug_switch;
+    
+    debug_switch -> strip [label="strip"];
+    debug_switch -> dwarf [label="dwarf"];
+    debug_switch -> codeview [label="code_view"];
+    
+    dwarf -> dwarf_section;
+    dwarf_section -> check_null;
+    check_null -> create_section [label="Yes"];
+    check_null -> dwarf_section [label="No"];
+    create_section -> dwarf_section [label="Loop next section"];
+    
+    dwarf_section -> dwarf_final -> end;
+    strip -> end;
+}

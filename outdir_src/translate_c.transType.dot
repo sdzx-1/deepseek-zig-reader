@@ -1,0 +1,184 @@
+
+digraph transType_flowchart {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.3];
+    node [fontname="Arial", shape=box, style=filled, fillcolor="#f0f0f0"];
+    edge [fontname="Arial"];
+
+    start [label="Start transType", shape=ellipse, fillcolor="#c0ffc0"];
+    end [label="Return Node", shape=ellipse, fillcolor="#ffc0c0"];
+    error [label="Return Error", shape=ellipse, fillcolor="#ffc0c0"];
+
+    start -> switch_type_class;
+
+    subgraph cluster_main {
+        label="Switch ty.getTypeClass()";
+
+        switch_type_class [label="Switch Type Class", shape=diamond];
+        switch_type_class -> builtin [label="Builtin"];
+        switch_type_class -> function_proto [label="FunctionProto"];
+        switch_type_class -> function_no_proto [label="FunctionNoProto"];
+        switch_type_class -> paren [label="Paren"];
+        switch_type_class -> pointer [label="Pointer"];
+        switch_type_class -> const_array [label="ConstantArray"];
+        switch_type_class -> incomplete_array [label="IncompleteArray"];
+        switch_type_class -> typedef [label="Typedef"];
+        switch_type_class -> record [label="Record"];
+        switch_type_class -> enum [label="Enum"];
+        switch_type_class -> elaborated [label="Elaborated"];
+        switch_type_class -> decayed [label="Decayed"];
+        switch_type_class -> attributed [label="Attributed"];
+        switch_type_class -> macroqualified [label="MacroQualified"];
+        switch_type_class -> type_of [label="TypeOf"];
+        switch_type_class -> type_of_expr [label="TypeOfExpr"];
+        switch_type_class -> vector [label="Vector"];
+        switch_type_class -> bitint_extvector [label="BitInt/ExtVector"];
+        switch_type_class -> default [label="else"];
+    }
+
+    builtin [label="Handle BuiltinType\nSwitch builtin_ty.getKind()", shape=diamond];
+    builtin -> builtin_void [label="Void"];
+    builtin -> builtin_bool [label="Bool"];
+    builtin -> builtin_char [label="Char_U/UChar/..."];
+    builtin -> builtin_schar [label="SChar"];
+    builtin -> builtin_ushort [label="UShort"];
+    builtin -> builtin_uint [label="UInt"];
+    builtin -> builtin_ulong [label="ULong"];
+    builtin -> builtin_ulonglong [label="ULongLong"];
+    builtin -> builtin_short [label="Short"];
+    builtin -> builtin_int [label="Int"];
+    builtin -> builtin_long [label="Long"];
+    builtin -> builtin_longlong [label="LongLong"];
+    builtin -> builtin_uint128 [label="UInt128"];
+    builtin -> builtin_int128 [label="Int128"];
+    builtin -> builtin_float [label="Float"];
+    builtin -> builtin_double [label="Double"];
+    builtin -> builtin_float128 [label="Float128"];
+    builtin -> builtin_float16 [label="Float16"];
+    builtin -> builtin_longdouble [label="LongDouble"];
+    builtin -> builtin_else [label="else"];
+
+    builtin_void -> return_anyopaque;
+    builtin_bool -> return_bool;
+    builtin_char -> return_u8;
+    builtin_schar -> return_i8;
+    builtin_ushort -> return_c_ushort;
+    builtin_uint -> return_c_uint;
+    builtin_ulong -> return_c_ulong;
+    builtin_ulonglong -> return_c_ulonglong;
+    builtin_short -> return_c_short;
+    builtin_int -> return_c_int;
+    builtin_long -> return_c_long;
+    builtin_longlong -> return_c_longlong;
+    builtin_uint128 -> return_u128;
+    builtin_int128 -> return_i128;
+    builtin_float -> return_f32;
+    builtin_double -> return_f64;
+    builtin_float128 -> return_f128;
+    builtin_float16 -> return_f16;
+    builtin_longdouble -> return_c_longdouble;
+    builtin_else -> error;
+
+    function_proto [label="Call transFnProto()\nReturn Node.initPayload()"];
+    function_proto -> end;
+
+    function_no_proto [label="Call transFnNoProto()\nReturn Node.initPayload()"];
+    function_no_proto -> end;
+
+    paren [label="Recurse transQualType()"];
+    paren -> end;
+
+    pointer [label="Get child_qt\nCheck is_fn_proto/opaque"];
+    pointer -> pointer_cond1 [label="Check conditions"];
+    pointer_cond1 [shape=diamond, label="is_fn_proto ||\ntypeIsOpaque() ||\ndemotedToOpaque"];
+    pointer_cond1 -> ptr_optional [label="Yes"];
+    pointer_cond1 -> ptr_c_pointer [label="No"];
+    ptr_optional [label="Create single_pointer\n+ optional_type"];
+    ptr_optional -> end;
+    ptr_c_pointer [label="Create c_pointer"];
+    ptr_c_pointer -> end;
+
+    const_array [label="Get size/elem_type\nCreate array_type"];
+    const_array -> end;
+
+    incomplete_array [label="Create c_pointer\nwith elem_type"];
+    incomplete_array -> end;
+
+    typedef [label="Check builtin_typedef_map\nCall transTypeDef()"];
+    typedef -> end;
+
+    record [label="Call transRecordDecl()\nReturn identifier"];
+    record -> end;
+
+    enum [label="Call transEnumDecl()\nReturn identifier"];
+    enum -> end;
+
+    elaborated [label="Recurse transQualType()"];
+    elaborated -> end;
+
+    decayed [label="Recurse transQualType()"];
+    decayed -> end;
+
+    attributed [label="Recurse transQualType()"];
+    attributed -> end;
+
+    macroqualified [label="Recurse transQualType()"];
+    macroqualified -> end;
+
+    type_of [label="Recurse transQualType()"];
+    type_of -> end;
+
+    type_of_expr [label="Translate underlying_expr\nCheck errors"];
+    type_of_expr -> type_of_expr_ok [label="Success"];
+    type_of_expr -> error [label="Error"];
+    type_of_expr_ok [label="Create typeof node"];
+    type_of_expr_ok -> end;
+
+    vector [label="Create vector\nwith num_elements/elem_type"];
+    vector -> end;
+
+    bitint_extvector [label="Return TODO error"];
+    bitint_extvector -> error;
+
+    default [label="Return unsupported\ntype error"];
+    default -> error;
+
+    // Return nodes
+    return_anyopaque [label="Return 'anyopaque'"];
+    return_anyopaque -> end;
+    return_bool [label="Return 'bool'"];
+    return_bool -> end;
+    return_u8 [label="Return 'u8'"];
+    return_u8 -> end;
+    return_i8 [label="Return 'i8'"];
+    return_i8 -> end;
+    return_c_ushort [label="Return 'c_ushort'"];
+    return_c_ushort -> end;
+    return_c_uint [label="Return 'c_uint'"];
+    return_c_uint -> end;
+    return_c_ulong [label="Return 'c_ulong'"];
+    return_c_ulong -> end;
+    return_c_ulonglong [label="Return 'c_ulonglong'"];
+    return_c_ulonglong -> end;
+    return_c_short [label="Return 'c_short'"];
+    return_c_short -> end;
+    return_c_int [label="Return 'c_int'"];
+    return_c_int -> end;
+    return_c_long [label="Return 'c_long'"];
+    return_c_long -> end;
+    return_c_longlong [label="Return 'c_longlong'"];
+    return_c_longlong -> end;
+    return_u128 [label="Return 'u128'"];
+    return_u128 -> end;
+    return_i128 [label="Return 'i128'"];
+    return_i128 -> end;
+    return_f32 [label="Return 'f32'"];
+    return_f32 -> end;
+    return_f64 [label="Return 'f64'"];
+    return_f64 -> end;
+    return_f128 [label="Return 'f128'"];
+    return_f128 -> end;
+    return_f16 [label="Return 'f16'"];
+    return_f16 -> end;
+    return_c_longdouble [label="Return 'c_longdouble'"];
+    return_c_longdouble -> end;
+}

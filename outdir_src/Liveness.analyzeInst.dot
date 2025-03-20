@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始 analyzeInst"];
+    end [label="结束"];
+
+    subgraph cluster_main {
+        label="主处理流程";
+        
+        start -> switch_inst [label="读取inst_tags"];
+        switch_inst [label="switch(inst_tags)"];
+        
+        switch_inst -> bin_ops [label="算术/逻辑/存储指令"];
+        switch_inst -> vector_store [label=".vector_store_elem"];
+        switch_inst -> no_operands [label="arg/alloc/ret_ptr等"];
+        switch_inst -> unary_ops [label="not/bitcast/load等"];
+        switch_inst -> func_end [label=".trap/.unreach"];
+        switch_inst -> call_ops [label=".call系列"];
+        switch_inst -> assembly_ops [label=".assembly"];
+        switch_inst -> control_flow [label="br/repeat/switch等"];
+        switch_inst -> other_cases [label="其他指令分支"];
+        
+        bin_ops [label="提取二元操作数\n调用analyzeOperands"];
+        vector_store [label="解析vector_store_elem\n提取额外数据"];
+        no_operands [label="调用analyzeOperands\n无操作数"];
+        unary_ops [label="提取一元操作数\n调用analyzeOperands"];
+        func_end [label="调用analyzeFuncEnd"];
+        
+        call_ops -> call_check [label="检查参数数量"];
+        call_check [label="args.len+1 <= bpi-1?"];
+        call_check -> call_small [label="是\n使用缓冲区"];
+        call_check -> call_big [label="否\n初始化大操作数"];
+        call_small [label="填充缓冲区\n调用analyzeOperands"];
+        call_big [label="反向填充操作数\n调用AnalyzeBigOperands"];
+        
+        assembly_ops -> asm_parse [label="解析outputs/inputs"];
+        asm_parse -> asm_check [label="计算操作数数量"];
+        asm_check [label="操作数数量 <= bpi-1?"];
+        asm_check -> asm_small [label="是\n填充缓冲区"];
+        asm_check -> asm_big [label="否\n反向填充大操作数"];
+        
+        control_flow -> specific_handlers [label="调用对应分析函数\n如analyzeInstBr等"];
+    }
+
+    bin_ops -> end;
+    vector_store -> end;
+    no_operands -> end;
+    unary_ops -> end;
+    func_end -> end;
+    call_small -> end;
+    call_big -> end;
+    asm_small -> end;
+    asm_big -> end;
+    specific_handlers -> end;
+    other_cases -> end [label="各分支最终调用\nanalyzeOperands或特定函数"];
+}

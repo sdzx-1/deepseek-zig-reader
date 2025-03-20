@@ -1,0 +1,32 @@
+
+digraph flowchart {
+    node [shape=rectangle, style=rounded];
+    start [label="开始"];
+    check_instrs_len [label="检查instrs长度是否为1"];
+    gen_error [label="生成错误信息\n添加注释\n返回错误"];
+    check_comptime [label="检查是否在编译时\n且union_ptr已解析"];
+    get_field_info [label="获取字段指针信息\n确定字段索引"];
+    traverse_instrs [label="遍历指令\n查找存储指令\n确定是否编译时已知"];
+    check_field_type [label="检查字段类型\n是否只有一个可能值"];
+    set_init_val [label="设置init_val为唯一值"];
+    handle_comptime [label="删除旧指令\n插入新存储指令"];
+    check_comptime_only [label="联合体是否必须编译时处理"];
+    validate_runtime [label="验证运行时值\n设置联合体标签"];
+    end [label="结束"];
+
+    start -> check_instrs_len;
+    check_instrs_len -> gen_error [label="长度≠1"];
+    check_instrs_len -> check_comptime [label="长度=1"];
+    check_comptime -> end [label="是"];
+    check_comptime -> get_field_info [label="否"];
+    get_field_info -> traverse_instrs;
+    traverse_instrs -> check_field_type;
+    check_field_type -> set_init_val [label="是"];
+    check_field_type -> check_comptime_only [label="否"];
+    set_init_val -> handle_comptime;
+    handle_comptime -> end;
+    check_comptime_only -> gen_error [label="是"];
+    check_comptime_only -> validate_runtime [label="否"];
+    validate_runtime -> end;
+    gen_error -> end;
+}

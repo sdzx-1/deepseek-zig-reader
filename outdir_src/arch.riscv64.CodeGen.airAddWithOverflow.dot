@@ -1,0 +1,32 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 airAddWithOverflow"];
+    check_unused [label="检查结果是否未使用"];
+    get_types [label="获取 lhs_ty 和 rhs_ty"];
+    type_switch [label="switch(lhs_ty类型)", shape=diamond];
+    vector_case [label="处理向量类型\n返回TODO错误"];
+    int_case [label="处理整数类型"];
+    check_bits [label="检查bits是否≥8且是2的幂", shape=diamond];
+    handle_power_of_two [label="生成加法结果\n存储到结构体字段0"];
+    truncate_and_compare [label="截断寄存器\n比较是否溢出\n存储到结构体字段1"];
+    handle_non_power [label="提升寄存器\n截断操作\n生成加法指令"];
+    set_memory [label="存储结果和溢出标志"];
+    finish [label="结束并返回结果"];
+
+    start -> check_unused;
+    check_unused -> get_types [label="结果被使用"];
+    get_types -> type_switch;
+    type_switch -> vector_case [label="Vector"];
+    type_switch -> int_case [label="Int"];
+    vector_case -> finish [label="返回错误"];
+    int_case -> check_bits;
+    check_bits -> handle_power_of_two [label="是"];
+    check_bits -> handle_non_power [label="否"];
+    handle_power_of_two -> truncate_and_compare;
+    handle_non_power -> truncate_and_compare;
+    truncate_and_compare -> set_memory;
+    set_memory -> finish;
+}

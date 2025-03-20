@@ -1,0 +1,47 @@
+
+digraph airAtomicRmw {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 airAtomicRmw"];
+    check_atomic_feature [label="检查 useAtomicFeature()"];
+    handle_max_min_nand [label="处理 Max/Min/Nand\n创建循环使用 cmpxchg"];
+    handle_other_ops [label="处理其他操作\n选择对应Wasm原子指令"];
+    handle_non_atomic [label="非原子模式处理"];
+    handle_xchg [label="存储操作数到指针"];
+    handle_arithmetic [label="执行算术/位操作\n并存储结果"];
+    handle_max_min [label="比较并选择最大值/最小值\n存储结果"];
+    handle_nand [label="执行AND后取反\n存储结果"];
+    end [label="结束并返回结果"];
+
+    start -> check_atomic_feature;
+
+    check_atomic_feature -> handle_max_min_nand [label="是"];
+    check_atomic_feature -> handle_non_atomic [label="否"];
+
+    handle_max_min_nand -> end [label="完成循环操作"];
+
+    handle_other_ops -> end [label="直接使用原子指令"];
+
+    handle_non_atomic -> handle_xchg [label="操作类型为Xchg"];
+    handle_non_atomic -> handle_arithmetic [label="Add/Sub/And/Or/Xor"];
+    handle_non_atomic -> handle_max_min [label="Max/Min"];
+    handle_non_atomic -> handle_nand [label="Nand"];
+
+    handle_xchg -> end;
+    handle_arithmetic -> end;
+    handle_max_min -> end;
+    handle_nand -> end;
+
+    // 原子分支的子流程
+    subgraph cluster_atomic {
+        label="原子特性分支";
+        handle_max_min_nand -> handle_other_ops [style=invis];
+        handle_other_ops [label="其他操作选择指令\nXchg/Add/Sub/And/Or/Xor"];
+    }
+
+    // 错误处理节点（简化表示）
+    error_exit [label="返回错误", shape=ellipse, color=red];
+    handle_max_min_nand -> error_exit [label="不支持的类型"];
+    handle_nand -> error_exit [label="不支持的类型"];
+    handle_other_ops -> error_exit [label="不支持的abi大小"];
+}

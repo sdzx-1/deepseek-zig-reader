@@ -1,0 +1,64 @@
+
+digraph transStmt_flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    
+    start [label="transStmt开始"];
+    switch_node [label="switch(sc)", shape=diamond];
+    end_node [label="返回/结束"];
+    error_node [label="返回错误", color=red];
+    
+    start -> switch_node;
+    
+    // 常见分支
+    subgraph cluster_main_cases {
+        label="主要分支处理";
+        
+        binary_op [label="调用 transBinaryOperator"];
+        compound_stmt [label="调用 transCompoundStmt"];
+        return_stmt [label="调用 transReturnStmt"];
+        null_stmt [label="返回 empty_block"];
+        continue_stmt [label="返回 continue"];
+        break_stmt [label="返回 break"];
+        error_case [label="未实现分支", color=orange];
+        
+        switch_node -> binary_op [label=".BinaryOperatorClass"];
+        switch_node -> compound_stmt [label=".CompoundStmtClass"];
+        switch_node -> return_stmt [label=".ReturnStmtClass"];
+        switch_node -> null_stmt [label=".NullStmtClass"];
+        switch_node -> continue_stmt [label=".ContinueStmtClass"];
+        switch_node -> break_stmt [label=".BreakStmtClass"];
+        switch_node -> error_case [label=".CaseStmtClass/.DefaultStmtClass"];
+    }
+    
+    // 其他分支（示例部分）
+    subgraph cluster_other_cases {
+        label="其他分支示例";
+        
+        paren_expr [label="调用 transExpr → maybeSuppressResult"];
+        if_stmt [label="调用 transIfStmt"];
+        for_loop [label="调用 transForLoop"];
+        unsupported [label="返回 TODO 错误", color=orange];
+        
+        switch_node -> paren_expr [label=".ParenExprClass"];
+        switch_node -> if_stmt [label=".IfStmtClass"];
+        switch_node -> for_loop [label=".ForStmtClass"];
+        switch_node -> unsupported [label="GCCAsmStmt/.GotoStmt等"];
+    }
+    
+    // 错误处理分支
+    switch_node -> error_node [label="其他未处理分支"];
+    
+    // 连接最终节点
+    binary_op -> end_node;
+    compound_stmt -> end_node;
+    return_stmt -> end_node;
+    null_stmt -> end_node;
+    continue_stmt -> end_node;
+    break_stmt -> end_node;
+    error_case -> error_node;
+    paren_expr -> end_node;
+    if_stmt -> end_node;
+    for_loop -> end_node;
+    unsupported -> error_node;
+}

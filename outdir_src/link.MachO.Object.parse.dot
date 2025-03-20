@@ -1,0 +1,56 @@
+
+digraph parse_flowchart {
+    node [shape=rectangle, style=rounded];
+    edge [arrowhead=vee];
+
+    start [label="开始解析Object"];
+    init_log [label="初始化日志记录\n分配内存\n读取Mach-O文件头"];
+    check_cpu [label="验证CPU架构匹配"];
+    process_lc [label="遍历处理加载命令"];
+    handle_segment [label="处理SEGMENT_64命令\n初始化sections"];
+    handle_symtab [label="处理SYMTAB命令\n加载符号表和字符串表"];
+    handle_data [label="处理DATA_IN_CODE\n记录数据编码"];
+    handle_platform [label="处理平台版本命令"];
+    sort_symbols [label="符号表排序\n按sect/value/rank排序"];
+    init_subsections [label="初始化subsections或sections"];
+    init_literals [label="初始化各类字面量\n(cstring/固定大小/指针)"];
+    link_atoms [label="符号与Atom关联"];
+    sort_atoms [label="Atom排序\n初始化符号信息"];
+    init_relocs [label="初始化重定位信息"];
+    eh_compact [label="处理__eh_frame\n和__compact_unwind"];
+    check_platform [label="平台版本兼容性验证"];
+    parse_debug [label="解析调试信息"];
+    set_atom_alive [label="根据段属性设置Atom存活状态"];
+    check_objc [label="检查-ObjC强制加载标志"];
+    end [label="结束解析"];
+
+    start -> init_log;
+    init_log -> check_cpu;
+    check_cpu -> process_lc [label="架构验证通过"];
+    process_lc -> handle_segment [label="SEGMENT_64"];
+    process_lc -> handle_symtab [label="SYMTAB"];
+    process_lc -> handle_data [label="DATA_IN_CODE"];
+    process_lc -> handle_platform [label="BUILD_VERSION等"];
+    process_lc -> sort_symbols [label="加载命令处理完成"];
+    handle_segment -> process_lc [label="继续下一条命令"];
+    handle_symtab -> process_lc;
+    handle_data -> process_lc;
+    handle_platform -> process_lc;
+    sort_symbols -> init_subsections [label="hasSubsections?=Yes"];
+    sort_symbols -> init_subsections [label="hasSubsections?=No"];
+    init_subsections -> init_literals;
+    init_literals -> link_atoms;
+    link_atoms -> sort_atoms;
+    sort_atoms -> init_relocs;
+    init_relocs -> eh_compact [label="存在对应section"];
+    eh_compact -> check_platform;
+    check_platform -> parse_debug;
+    parse_debug -> set_atom_alive;
+    set_atom_alive -> check_objc;
+    check_objc -> end;
+
+    // 异常路径
+    check_cpu -> end [label="架构不匹配" color=red];
+    process_lc -> end [label="加载命令错误" color=red];
+    check_platform -> end [label="平台不兼容" color=red];
+}

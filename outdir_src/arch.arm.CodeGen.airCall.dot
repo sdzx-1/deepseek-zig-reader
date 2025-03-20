@@ -1,0 +1,60 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+    rankdir=TB;
+
+    start [label="开始 airCall"];
+    check_tail_call [label="检查 modifier == .always_tail?"];
+    fail_tail_call [label="返回错误: TODO实现尾部调用"];
+    get_pl_op [label="获取 pl_op, callee, extra"];
+    resolve_ty [label="解析函数类型（fn或pointer）"];
+    resolve_conv [label="解析调用约定信息"];
+    spill_flags [label="保存比较标志"];
+    save_regs [label="保存调用者保存的寄存器"];
+    check_return_ref [label="返回类型是引用？"];
+    alloc_stack [label="分配栈空间并设置r0"];
+    lock_r0 [label="锁定r0寄存器"];
+    stack_space [label="分配栈参数空间"];
+    process_args [label="处理参数传递"];
+    check_callee [label="被调用函数是常量？"];
+    handle_extern [label="返回错误: TODO实现extern调用"];
+    handle_bitcast [label="返回错误: TODO实现位转换调用"];
+    handle_ptr [label="生成函数地址到LR寄存器"];
+    check_cpu_feature [label="检查CPU支持BLX指令？"];
+    gen_blx [label="生成BLX LR指令"];
+    gen_bx [label="返回错误: TODO实现旧ARM调用"];
+    handle_return [label="处理返回值"];
+    finish_air [label="完成Air指令并返回结果"];
+
+    start -> check_tail_call;
+    check_tail_call -> fail_tail_call [label="是"];
+    check_tail_call -> get_pl_op [label="否"];
+    get_pl_op -> resolve_ty;
+    resolve_ty -> resolve_conv;
+    resolve_conv -> spill_flags;
+    spill_flags -> save_regs;
+    save_regs -> check_return_ref;
+    check_return_ref -> alloc_stack [label="是"];
+    check_return_ref -> stack_space [label="否"];
+    alloc_stack -> lock_r0;
+    lock_r0 -> stack_space;
+    stack_space -> process_args;
+    process_args -> check_callee;
+    check_callee -> handle_extern [label="extern函数"];
+    check_callee -> handle_bitcast [label="位转换"];
+    check_callee -> handle_ptr [label="函数指针"];
+    handle_ptr -> check_cpu_feature;
+    check_cpu_feature -> gen_blx [label="支持v5t"];
+    check_cpu_feature -> gen_bx [label="不支持"];
+    gen_blx -> handle_return;
+    gen_bx -> handle_return;
+    handle_return -> finish_air;
+    finish_air -> end;
+    fail_tail_call -> end;
+    handle_extern -> end;
+    handle_bitcast -> end;
+    gen_bx -> end;
+
+    end [shape=oval, label="结束"];
+}

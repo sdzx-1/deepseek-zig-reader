@@ -1,0 +1,37 @@
+
+digraph flushModule {
+    node [shape=rectangle, style=rounded];
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    check_format [label="检查对象格式\nif (builtin.object_format != .plan9)\n@panic"];
+    init_vars [label="初始化变量\ncomp, diags, gpa, target"];
+    sub_progress [label="创建子进度节点\nsub_prog_node"];
+    handle_lazy_syms [label="处理延迟符号\n更新.text和.rodata状态"];
+    prepare_got [label="准备GOT表\n计算大小并分配内存"];
+    process_text [label="处理文本段\n迭代函数表，写入代码\n更新GOT条目和符号偏移"];
+    process_data [label="处理数据段\n迭代数据表，写入数据\n更新GOT条目和符号偏移"];
+    generate_syms [label="生成符号表\nsym_buf写入符号信息"];
+    handle_relocs [label="处理重定位\n修正PC相对和绝对地址"];
+    write_file [label="写入文件\npwritevAll所有iovec数据"];
+
+    start -> check_format;
+    check_format -> init_vars [label="格式正确"];
+    init_vars -> sub_progress;
+    sub_progress -> handle_lazy_syms;
+    handle_lazy_syms -> prepare_got;
+    prepare_got -> process_text;
+    process_text -> process_data;
+    process_data -> generate_syms;
+    generate_syms -> handle_relocs;
+    handle_relocs -> write_file;
+    write_file -> end;
+
+    // 分支和循环结构示例
+    process_text -> process_text [label="迭代函数表"];
+    process_data -> process_data [label="迭代数据表"];
+    handle_relocs -> handle_relocs [label="迭代重定位条目"];
+
+    // 错误处理路径
+    check_format -> end [label="格式错误，panic"];
+    write_file -> end [label="错误处理\n返回FlushError"];
+}

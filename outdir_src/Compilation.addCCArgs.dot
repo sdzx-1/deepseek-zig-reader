@@ -1,0 +1,130 @@
+
+digraph addCCArgs {
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始 addCCArgs"];
+    end [label="结束"];
+
+    subgraph cluster_main {
+        label="addCCArgs 主要流程";
+
+        start -> add_no_default_config;
+        add_no_default_config [label="添加 --no-default-config"];
+
+        add_no_default_config -> check_passthrough;
+        check_passthrough [label="检查 clang_passthrough_mode", shape=diamond];
+        check_passthrough -> add_fno_caret_diag [label="否"];
+        check_passthrough -> skip_caret_diag [label="是"];
+        add_fno_caret_diag [label="添加 -fno-caret-diagnostics"];
+        skip_caret_diag [label="跳过"];
+
+        add_fno_caret_diag -> check_integrated_as;
+        skip_caret_diag -> check_integrated_as;
+
+        check_integrated_as [label="目标是否需要集成汇编器？", shape=diamond];
+        check_integrated_as -> add_integrated_as [label="是"];
+        check_integrated_as -> skip_integrated_as [label="否"];
+        add_integrated_as [label="添加 -integrated-as"];
+        skip_integrated_as [label="跳过"];
+
+        add_integrated_as -> add_target_triple;
+        skip_integrated_as -> add_target_triple;
+
+        add_target_triple [label="添加 -target 和三重目标"];
+
+        add_target_triple -> check_arm_thumb;
+        check_arm_thumb [label="目标是否为 ARM Thumb？", shape=diamond];
+        check_arm_thumb -> add_mthumb [label="是"];
+        check_arm_thumb -> add_mno_thumb [label="否"];
+        add_mthumb [label="添加 -mthumb"];
+        add_mno_thumb [label="添加 -mno-thumb"];
+
+        add_mthumb -> check_mabi;
+        add_mno_thumb -> check_mabi;
+
+        check_mabi [label="是否需要设置 ABI？", shape=diamond];
+        check_mabi -> add_mabi [label="是"];
+        check_mabi -> skip_mabi [label="否"];
+        add_mabi [label="添加 -mabi=..."];
+        skip_mabi [label="跳过"];
+
+        add_mabi -> check_float_abi;
+        skip_mabi -> check_float_abi;
+
+        check_float_abi [label="是否需要设置浮点 ABI？", shape=diamond];
+        check_float_abi -> add_float_abi [label="是"];
+        check_float_abi -> skip_float_abi [label="否"];
+        add_float_abi [label="添加 -mfloat-abi=..."];
+        skip_float_abi [label="跳过"];
+
+        add_float_abi -> check_pic;
+        skip_float_abi -> check_pic;
+
+        check_pic [label="是否支持 PIC？", shape=diamond];
+        check_pic -> add_pic [label="是"];
+        check_pic -> skip_pic [label="否"];
+        add_pic [label="添加 -fPIC/-fno-PIC"];
+        skip_pic [label="跳过"];
+
+        add_pic -> check_mingw_unicode;
+        skip_pic -> check_mingw_unicode;
+
+        check_mingw_unicode [label="是否为 MinGW Unicode？", shape=diamond];
+        check_mingw_unicode -> add_unicode [label="是"];
+        check_mingw_unicode -> skip_unicode [label="否"];
+        add_unicode [label="添加 -municode"];
+        skip_unicode [label="跳过"];
+
+        add_unicode -> check_code_model;
+        skip_unicode -> check_code_model;
+
+        check_code_model [label="代码模型是否为默认？", shape=diamond];
+        check_code_model -> add_code_model [label="否"];
+        check_code_model -> skip_code_model [label="是"];
+        add_code_model [label="添加 -mcmodel=..."];
+        skip_code_model [label="跳过"];
+
+        add_code_model -> check_debug_format;
+        skip_code_model -> check_debug_format;
+
+        check_debug_format [label="调试格式选择"];
+        check_debug_format -> debug_strip [label="strip"];
+        check_debug_format -> debug_codeview [label="code_view"];
+        check_debug_format -> debug_dwarf [label="dwarf"];
+        debug_strip [label="无操作"];
+        debug_codeview [label="添加 -g -gcodeview"];
+        debug_dwarf [label="添加 -gdwarf-4 和其他选项"];
+
+        debug_strip -> check_lto;
+        debug_codeview -> check_lto;
+        debug_dwarf -> check_lto;
+
+        check_lto [label="LTO 设置"];
+        check_lto -> add_lto [label="none/full/thin"];
+        add_lto [label="添加 -flto 或 -fno-lto"];
+
+        add_lto -> check_dep_file;
+        check_dep_file [label="是否有依赖文件路径？", shape=diamond];
+        check_dep_file -> add_dep_flags [label="是"];
+        check_dep_file -> skip_dep_flags [label="否"];
+        add_dep_flags [label="添加 -MD -MV -MF ..."];
+        skip_dep_flags [label="跳过"];
+
+        add_dep_flags -> check_ext_type;
+        skip_dep_flags -> check_ext_type;
+
+        check_ext_type [label="文件扩展类型检查"];
+        check_ext_type -> handle_non_assembly [label="非汇编"];
+        check_ext_type -> handle_assembly [label="汇编"];
+        handle_non_assembly [label="添加非汇编特有参数\n(-ffreestanding、栈保护选项等)"];
+        handle_assembly [label="添加汇编特有参数\n(-march、-mcpu 等)"];
+
+        handle_non_assembly -> add_global_cc_args;
+        handle_assembly -> add_global_cc_args;
+
+        add_global_cc_args [label="添加全局和模块级 CC 参数"];
+    }
+
+    add_global_cc_args -> end;
+    start -> end [style=invis];
+}

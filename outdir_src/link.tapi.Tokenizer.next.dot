@@ -1,0 +1,82 @@
+
+digraph next_token_flowchart {
+    rankdir=TB;
+    node [shape=rectangle, style="rounded"];
+    edge [fontname="Arial"];
+
+    start [label="开始\n初始化Token为EOF"];
+    loop [label="循环：遍历缓冲区字符"];
+    check_index [label="索引是否在缓冲区内？"];
+    end [label="设置Token结束位置\n记录日志并返回Token"];
+
+    start -> loop;
+    loop -> check_index;
+
+    check_index -> process_char [label="是"];
+    check_index -> finalize [label="否"];
+
+    process_char [label="获取当前字符c"];
+    process_char -> state_machine;
+
+    subgraph cluster_states {
+        label="状态处理";
+        state_start [label="状态: start"];
+        state_comment [label="状态: comment"];
+        state_space [label="状态: space"];
+        state_tab [label="状态: tab"];
+        state_new_line [label="状态: new_line"];
+        state_single_quoted [label="状态: single_quoted"];
+        state_double_quoted [label="状态: double_quoted"];
+        state_literal [label="状态: literal"];
+    }
+
+    state_machine -> state_start [label="初始状态"];
+    state_start -> handle_start;
+
+    handle_start [label="根据c选择分支"];
+    handle_start -> handle_special_cases [label="匹配特殊符号"];
+    handle_start -> state_literal [label="其他字符"];
+
+    handle_special_cases [label="处理符号：\n- 空格/制表符切换状态\n- 换行符立即返回\n- 匹配---/...等模式\n- 引号进入对应状态"];
+    handle_special_cases -> break_loop [label="生成Token后break"];
+
+    break_loop [label="更新索引并退出循环"];
+    break_loop -> end;
+
+    state_comment -> check_comment_end [label="检查是否遇到换行符"];
+    check_comment_end -> break_loop [label="是"];
+    check_comment_end -> continue_loop [label="否"];
+
+    state_space -> check_space_end [label="检查是否非空格"];
+    check_space_end -> break_loop [label="生成space Token"];
+    check_space_end -> continue_loop [label="继续空格"];
+
+    state_tab -> check_tab_end [label="检查是否非制表符"];
+    check_tab_end -> break_loop [label="生成tab Token"];
+    check_tab_end -> continue_loop [label="继续制表符"];
+
+    state_new_line -> check_newline_end [label="检查是否换行符"];
+    check_newline_end -> break_loop [label="生成new_line Token"];
+    check_newline_end -> error_handling [label="其他字符（TODO错误处理）"];
+
+    state_single_quoted -> check_single_quote_end [label="检查是否结束单引号"];
+    check_single_quote_end -> break_loop [label="生成single_quoted Token"];
+    check_single_quote_end -> continue_loop [label="继续处理"];
+
+    state_double_quoted -> check_double_quote_end [label="检查是否结束双引号"];
+    check_double_quote_end -> break_loop [label="生成double_quoted Token"];
+    check_double_quote_end -> continue_loop [label="继续处理"];
+
+    state_literal -> check_literal_end [label="检查分隔符"];
+    check_literal_end -> break_loop [label="生成literal Token"];
+    check_literal_end -> continue_loop [label="继续literal"];
+
+    error_handling [label="错误处理（TODO）", color=red];
+    error_handling -> continue_loop;
+
+    continue_loop [label="索引+1，继续循环"];
+    continue_loop -> loop;
+
+    finalize [label="处理结束状态：\n- 若在literal状态则标记\n- 设置end位置"];
+    finalize -> end;
+}

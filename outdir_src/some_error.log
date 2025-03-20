@@ -1,0 +1,14 @@
+main.cmdBuild.dot
+----------err-----------------
+Error: main.cmdBuild.dot: syntax error in line 29 near '|'
+
+----------out-----------------
+
+------------------------------
+mingw.buildCrtFile.dot
+----------err-----------------
+Error: mingw.buildCrtFile.dot: syntax error in line 58 near '@'
+
+----------out-----------------
+
+------------------------------

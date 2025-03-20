@@ -1,0 +1,58 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="Start getEnumType"];
+    construct_key [label="Construct key based on ini.key"];
+    check_replace [label="replace_existing?", shape=diamond];
+    put_replace [label="ip.putKeyReplace(tid, key)"];
+    get_or_put [label="try ip.getOrPutKey(gpa, tid, key)"];
+    check_gop [label="gop == .existing?", shape=diamond];
+    return_existing [label="Return .existing"];
+    get_local [label="ip.getLocal(tid)"];
+    ensure_capacity [label="items.ensureUnusedCapacity(1)"];
+    add_names_map [label="ip.addMap(gpa, tid, ini.fields_len)"];
+    check_tag_mode [label="ini.tag_mode?", shape=diamond];
+    handle_auto [label="Case .auto"];
+    handle_explicit [label="Case .explicit/.nonexhaustive"];
+    add_enum_auto [label="Add EnumAuto to extra"];
+    process_captures_auto [label="Add captures/type_hash to extra"];
+    set_names_auto [label="Set names_start in extra"];
+    return_auto [label="Return WipEnumType.Result for auto"];
+    add_enum_explicit [label="Add EnumExplicit to extra"];
+    process_captures_explicit [label="Add captures/type_hash to extra"];
+    add_values_map [label="Add values_map if has_values"];
+    set_names_values_explicit [label="Set names_start and values_start"];
+    return_explicit [label="Return WipEnumType.Result for explicit"];
+
+    start -> construct_key;
+    construct_key -> check_replace;
+    check_replace -> put_replace [label="Yes"];
+    check_replace -> get_or_put [label="No"];
+    put_replace -> check_gop;
+    get_or_put -> check_gop;
+    check_gop -> return_existing [label="Yes"];
+    check_gop -> get_local [label="No"];
+    get_local -> ensure_capacity;
+    ensure_capacity -> add_names_map;
+    add_names_map -> check_tag_mode;
+    check_tag_mode -> handle_auto [label=".auto"];
+    check_tag_mode -> handle_explicit [label=".explicit/.nonexhaustive"];
+
+    handle_auto -> add_enum_auto;
+    add_enum_auto -> process_captures_auto;
+    process_captures_auto -> set_names_auto;
+    set_names_auto -> return_auto;
+
+    handle_explicit -> add_enum_explicit;
+    add_enum_explicit -> add_values_map [label="if has_values"];
+    add_enum_explicit -> process_captures_explicit;
+    process_captures_explicit -> set_names_values_explicit;
+    set_names_values_explicit -> return_explicit;
+
+    // Error handling edges
+    edge [style=dashed, color=red];
+    add_names_map -> add_names_map [label="errdefer maps.len -= 1"];
+    add_values_map -> add_values_map [label="errdefer maps.len -= 1"];
+}

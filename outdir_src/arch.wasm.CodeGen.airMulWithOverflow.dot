@@ -1,0 +1,44 @@
+
+digraph airMulWithOverflow {
+    node [shape=rectangle, fontname="Courier"];
+    start [label="开始处理airMulWithOverflow"];
+    get_ty_pl [label="获取指令的ty_pl和extra数据"];
+    resolve_operands [label="解析lhs和rhs操作数"];
+    check_vector [label="检查是否是向量类型"];
+    vector_todo [label="返回TODO错误\n（不支持向量）", shape=diamond];
+    get_int_info [label="获取整数类型信息"];
+    check_wasm_bits [label="检查wasm_bits有效性"];
+    unsupported_bits [label="返回错误\n（不支持该bitsize）", shape=diamond];
+    
+    handle_32bit [label="处理32位整数\n上转64位运算并截断"];
+    handle_64bit [label="处理64位整数\n上转128位运算并截断"];
+    handle_128_unsigned [label="处理128位无符号整数\n分解高低位并调用multi3"];
+    handle_128_signed [label="处理128位有符号整数\n调用__muloti4 intrinsic"];
+    
+    common_overflow_check [label="设置溢出标志位"];
+    alloc_result [label="分配结果栈空间"];
+    store_results [label="存储运算结果和溢出位"];
+    finish [label="结束并返回结果"];
+    
+    start -> get_ty_pl -> resolve_operands -> check_vector;
+    check_vector -> vector_todo [label="是向量"];
+    check_vector -> get_int_info [label="非向量"];
+    get_int_info -> check_wasm_bits;
+    
+    check_wasm_bits -> unsupported_bits [label="无效bits"];
+    check_wasm_bits -> handle_32bit [label="32位"];
+    check_wasm_bits -> handle_64bit [label="64位"];
+    check_wasm_bits -> handle_128_unsigned [label="128位无符号"];
+    check_wasm_bits -> handle_128_signed [label="128位有符号"];
+    
+    handle_32bit -> common_overflow_check;
+    handle_64bit -> common_overflow_check;
+    handle_128_unsigned -> common_overflow_check;
+    handle_128_signed -> common_overflow_check;
+    
+    common_overflow_check -> alloc_result -> store_results -> finish;
+    
+    edge [style=dashed];
+    vector_todo -> finish;
+    unsupported_bits -> finish;
+}

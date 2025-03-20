@@ -1,0 +1,95 @@
+
+digraph fieldPtr_flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=10];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="开始: fieldPtr函数入口"];
+    check_ptr_type [label="检查object_ptr_ty是否为指针类型"];
+    error_ptr_expected [label="返回错误: 期望指针类型"];
+    get_inner_ty [label="获取inner_ty（如果是单指针则取childType）"];
+    switch_type [label="根据inner_ty的类型分支"];
+
+    // Array分支
+    array_case [label="数组类型（.array）"];
+    check_len [label="检查字段名是否为\"len\""];
+    return_len [label="返回数组长度"];
+    check_ptr_field [label="检查字段名是否为\"ptr\"且是单指针"];
+    create_ptr_type [label="构造新指针类型并返回"];
+    array_error [label="返回错误: 无效字段名"];
+
+    // Slice指针分支
+    pointer_case [label="指针类型（.pointer）且是切片"];
+    check_slice_ptr [label="检查字段名是\"ptr\"或\"len\""];
+    create_slice_ptr [label="生成切片指针字段"];
+    create_slice_len [label="生成切片长度字段"];
+    slice_error [label="返回错误: 无效字段名"];
+
+    // Type分支
+    type_case [label="类型（.type）"];
+    resolve_type_value [label="解析类型值"];
+    handle_error_set [label="处理错误集合类型"];
+    handle_union [label="处理联合体类型"];
+    handle_enum [label="处理枚举类型"];
+    handle_struct [label="处理结构体/opaque类型"];
+    type_error [label="返回错误: 类型无成员"];
+
+    // 结构体/联合体分支
+    struct_case [label="结构体（.struct）"];
+    union_case [label="联合体（.union）"];
+    get_struct_field [label="调用structFieldPtr"];
+    get_union_field [label="调用unionFieldPtr"];
+
+    // 默认分支
+    default_case [label="其他类型"];
+    invalid_access [label="返回错误: 无效字段访问"];
+
+    // 连接节点
+    start -> check_ptr_type;
+    check_ptr_type -> error_ptr_expected [label="非指针类型"];
+    check_ptr_type -> get_inner_ty [label="是指针类型"];
+    get_inner_ty -> switch_type;
+
+    switch_type -> array_case [label=".array"];
+    array_case -> check_len;
+    check_len -> return_len [label="是\"len\""];
+    check_len -> check_ptr_field [label="不是\"len\""];
+    check_ptr_field -> create_ptr_type [label="是\"ptr\"且单指针"];
+    check_ptr_field -> array_error [label="其他情况"];
+    
+    switch_type -> pointer_case [label=".pointer且是切片"];
+    pointer_case -> check_slice_ptr;
+    check_slice_ptr -> create_slice_ptr [label="\"ptr\""];
+    check_slice_ptr -> create_slice_len [label="\"len\""];
+    check_slice_ptr -> slice_error [label="其他字段名"];
+
+    switch_type -> type_case [label=".type"];
+    type_case -> resolve_type_value;
+    resolve_type_value -> handle_error_set [label="错误集合"];
+    resolve_type_value -> handle_union [label="联合体"];
+    resolve_type_value -> handle_enum [label="枚举"];
+    resolve_type_value -> handle_struct [label="结构体/opaque"];
+    handle_error_set -> type_error [label="字段不存在"];
+    handle_union -> type_error [label="字段不存在"];
+    handle_enum -> type_error [label="字段不存在"];
+    handle_struct -> type_error [label="字段不存在"];
+
+    switch_type -> struct_case [label=".struct"];
+    struct_case -> get_struct_field;
+    get_struct_field -> invalid_access [label="检查失败"];
+
+    switch_type -> union_case [label=".union"];
+    union_case -> get_union_field;
+    get_union_field -> invalid_access [label="检查失败"];
+
+    switch_type -> default_case [label="其他类型"];
+    default_case -> invalid_access;
+
+    // 错误节点集中连接
+    error_ptr_expected -> end;
+    array_error -> end;
+    slice_error -> end;
+    type_error -> end;
+    invalid_access -> end;
+
+    end [label="返回结果或错误", shape=ellipse];
+}

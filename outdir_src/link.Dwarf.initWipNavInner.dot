@@ -1,0 +1,45 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Helvetica"];
+    edge [fontname="Helvetica"];
+
+    start [label="开始 initWipNavInner"];
+    init_log [label="初始化变量\n获取zcu, ip, nav, inst_info, file, decl\n记录日志"];
+    check_extern [label="检查nav_key是否为@extern"];
+    get_unit [label="获取或创建unit和nav_gop"];
+    init_wipnav [label="初始化wip_nav结构体"];
+    switch_navkey [label="处理nav_key分支"];
+    handle_else [label="处理其他情况（const/var）\n写入debug_info"];
+    handle_func [label="处理func情况"];
+    handle_func_sub [label="处理debug_frame格式\n32位/64位, debug_frame/eh_frame"];
+    handle_debug_line [label="处理debug_line\n写入地址、文件、列信息"];
+    return_wipnav [label="返回wip_nav"];
+
+    start -> init_log;
+    init_log -> check_extern;
+    check_extern -> get_unit [label="不是@extern"];
+    check_extern -> return_null [label="是@extern且条件满足"];
+    get_unit -> init_wipnav;
+    init_wipnav -> switch_navkey;
+    
+    switch_navkey -> handle_else [label="非func"];
+    switch_navkey -> handle_func [label="func"];
+    
+    handle_else -> handle_const_var [label="处理const/var"];
+    handle_const_var -> return_wipnav;
+    
+    handle_func -> handle_func_sub;
+    handle_func_sub -> handle_debug_line;
+    handle_debug_line -> return_wipnav;
+
+    // 错误处理路径
+    edge [color=red];
+    get_unit -> errdefer_pop [label="nav_gop未找到\n（errdefer）"];
+    init_wipnav -> errdefer_deinit [label="初始化失败\n（errdefer）"];
+    
+    // 虚拟节点占位
+    return_null [shape=point, width=0, height=0, label=""];
+    errdefer_pop [shape=point, width=0, height=0, label=""];
+    errdefer_deinit [shape=point, width=0, height=0, label=""];
+    handle_const_var [shape=point, width=0, height=0, label=""];
+}

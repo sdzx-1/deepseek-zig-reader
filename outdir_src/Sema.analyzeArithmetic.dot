@@ -1,0 +1,56 @@
+
+digraph flowchart {
+    node [shape=rectangle, fontname="Courier", fontsize=12];
+    edge [fontname="Courier", fontsize=10];
+
+    start [label="analyzeArithmetic开始"];
+    check_pointer [label="检查lhs和rhs是否为指针类型"];
+    pointer_case [label="处理指针运算"];
+    non_pointer_case [label="处理常规算术运算"];
+    check_pointer_size [label="检查指针类型是否为slice"];
+    check_zir_tag_sub [label="zir_tag是否为sub?"];
+    check_elem_type [label="检查指针元素类型是否相同"];
+    check_elem_size [label="检查元素大小是否为0"];
+    runtime_src_check [label="尝试解析指针值，检查基地址"];
+    return_pointer_result [label="生成指针运算结果"];
+    resolve_peer_types [label="解析操作数类型"];
+    coerce_operands [label="强制转换操作数类型"];
+    check_scalar_type [label="检查标量类型（int/float）"];
+    check_comptime_values [label="检查编译时值是否存在"];
+    handle_comptime_arith [label="执行编译时算术运算"];
+    handle_runtime_arith [label="生成运行时算术指令"];
+    check_safety [label="安全检查（溢出检查）"];
+    return_result [label="返回结果"];
+    error_handling [label="返回错误", shape=parallelogram];
+
+    start -> check_pointer;
+
+    // 指针处理分支
+    check_pointer -> pointer_case [label="是"];
+    pointer_case -> check_pointer_size;
+    check_pointer_size -> error_handling [label="非slice指针且非sub操作"];
+    check_pointer_size -> check_zir_tag_sub [label="是slice指针"];
+    check_zir_tag_sub -> check_elem_type [label="是sub操作"];
+    check_elem_type -> error_handling [label="元素类型不同"];
+    check_elem_type -> check_elem_size [label="元素类型相同"];
+    check_elem_size -> error_handling [label="元素大小为0"];
+    check_elem_size -> runtime_src_check [label="元素大小有效"];
+    runtime_src_check -> return_pointer_result [label="基地址相同"];
+    runtime_src_check -> error_handling [label="基地址不同"];
+
+    // 常规运算分支
+    check_pointer -> non_pointer_case [label="否"];
+    non_pointer_case -> resolve_peer_types;
+    resolve_peer_types -> coerce_operands;
+    coerce_operands -> check_scalar_type;
+    check_scalar_type -> check_comptime_values;
+    check_comptime_values -> handle_comptime_arith [label="存在编译时值"];
+    check_comptime_values -> handle_runtime_arith [label="无编译时值"];
+    handle_comptime_arith -> return_result;
+    handle_runtime_arith -> check_safety;
+    check_safety -> return_result [label="安全检查通过"];
+    check_safety -> error_handling [label="安全检查失败"];
+
+    // 错误处理连接
+    error_handling -> return_result [style=invis]; // 保持布局整洁
+}

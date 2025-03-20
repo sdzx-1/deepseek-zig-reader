@@ -1,0 +1,72 @@
+
+digraph readFromMemory_flowchart {
+    graph [rankdir=TB];
+    node [shape=rectangle, style=rounded];
+
+    start [label="开始: readFromMemory(ty, pt, buffer, arena)"];
+    check_ty [label="检查 ty.zigTypeTag(zcu)", shape=diamond];
+    
+    // 基本类型分支
+    void_case [label="返回 Value.void"];
+    bool_case [label="检查 buffer[0]\n0 → Value.false\n非0 → Value.true"];
+    int_enum_case [label="处理 int/enum:\n判断 bits ≤64?\n快速路径/大整数路径"];
+    float_case [label="读取浮点数并构造 Value"];
+    array_case [label="递归处理数组元素"];
+    vector_case [label="调用 readFromPackedMemory"];
+    struct_case [label="处理结构体:\n判断 layout (extern/packed)"];
+    error_set_case [label="读取错误码并构造 error Value"];
+    union_case [label="处理联合体:\n判断容器布局"];
+    pointer_case [label="读取 usize 构造指针 Value"];
+    optional_case [label="递归处理可选子类型"];
+    unimplemented [label="返回 error.Unimplemented", color=red];
+    ill_defined [label="返回 error.IllDefinedMemoryLayout", color=red];
+    
+    // 连接节点
+    start -> check_ty;
+    
+    check_ty -> void_case [label=".void"];
+    check_ty -> bool_case [label=".bool"];
+    check_ty -> int_enum_case [label=".int / .enum"];
+    check_ty -> float_case [label=".float"];
+    check_ty -> array_case [label=".array"];
+    check_ty -> vector_case [label=".vector"];
+    check_ty -> struct_case [label=".struct"];
+    check_ty -> error_set_case [label=".error_set"];
+    check_ty -> union_case [label=".union"];
+    check_ty -> pointer_case [label=".pointer"];
+    check_ty -> optional_case [label=".optional"];
+    check_ty -> unimplemented [label="其他类型"];
+    
+    // 结构体分支
+    struct_case -> struct_case_extern [label=".extern"];
+    struct_case -> struct_case_packed [label=".packed"];
+    struct_case_extern [label="递归处理每个字段"];
+    struct_case_packed [label="调用 readFromPackedMemory"];
+    
+    // 联合体分支
+    union_case -> ill_defined [label=".auto"];
+    union_case -> union_extern [label=".extern"];
+    union_case -> union_packed [label=".packed"];
+    union_extern [label="构造字节数组 Value"];
+    union_packed [label="调用 readFromPackedMemory"];
+    
+    // 通用返回路径
+    void_case -> end;
+    bool_case -> end;
+    int_enum_case -> end;
+    float_case -> end;
+    array_case -> end;
+    vector_case -> end;
+    struct_case_extern -> end;
+    struct_case_packed -> end;
+    error_set_case -> end;
+    union_extern -> end;
+    union_packed -> end;
+    pointer_case -> end;
+    optional_case -> end;
+    
+    end [label="返回构造的 Value"];
+    error_path [shape=oval, label="错误路径", color=red];
+    ill_defined -> error_path;
+    unimplemented -> error_path;
+}

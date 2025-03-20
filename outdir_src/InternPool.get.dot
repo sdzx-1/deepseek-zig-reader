@@ -1,0 +1,72 @@
+
+digraph flowchart {
+    graph [fontname="Arial", nodesep=0.5, ranksep=0.3];
+    node [fontname="Arial", shape=box, style="rounded", fontsize=10];
+    edge [fontname="Arial", fontsize=10];
+
+    start [label="Start get()", shape=ellipse];
+    end [label="Return index", shape=ellipse];
+
+    subgraph cluster_main {
+        label="Main Flow";
+        getOrPut [label="GetOrPutKey(gpa, tid, key)"];
+        checkExisting [label="gop is .existing?", shape=diamond];
+        processKey [label="Process key switch"];
+        appendItem [label="Append item to items"];
+        addExtra [label="Add data to extra"];
+        returnPut [label="Return gop.put()"];
+
+        start -> getOrPut;
+        getOrPut -> checkExisting;
+        checkExisting -> end [label="Yes"];
+        checkExisting -> processKey [label="No"];
+        processKey -> appendItem;
+        appendItem -> addExtra;
+        addExtra -> returnPut;
+        returnPut -> end;
+    }
+
+    subgraph cluster_key_types {
+        label="Key Type Handlers";
+        node [style=filled, fillcolor="#e0f0ff"];
+
+        intType [label=".int_type\nSet tag based on signedness"];
+        ptrType [label=".ptr_type\nHandle slice/many pointer\nRecursive calls"];
+        arrayType [label=".array_type\nCheck len/sentinel"];
+        vectorType [label=".vector_type"];
+        optType [label=".opt_type"];
+        errorUnion [label=".error_union_type"];
+        variable [label=".variable\nHandle init/ty"];
+        slice [label=".slice"];
+        ptr [label=".ptr\nHandle base_addr types"];
+        aggregate [label=".aggregate\nCheck storage types\nHandle bytes/elems"];
+        memoizedCall [label=".memoized_call"];
+
+        processKey -> {intType ptrType arrayType vectorType optType errorUnion variable slice ptr aggregate memoizedCall} [style=invis];
+    }
+
+    subgraph cluster_common_ops {
+        label="Shared Operations";
+        node [fillcolor="#f0e0ff"];
+
+        ensureCapacity [label="items.ensureUnusedCapacity()"];
+        addExtraFunc [label="addExtra()"];
+        assertChecks [label="assert() checks", shape=diamond];
+        recursiveCall [label="Recursive ip.get() call"];
+
+        ptrType -> assertChecks;
+        assertChecks -> ensureCapacity [label="Pass"];
+        ensureCapacity -> addExtraFunc;
+        addExtraFunc -> appendItem;
+
+        ptrType -> recursiveCall [label="Handle slice case"];
+        recursiveCall -> getOrPut [style=dashed];
+    }
+
+    edge [style=dashed];
+    ptrType -> ptrType [label="Adjust flags\nCancel gop"];
+    aggregate -> ensureCapacity [label="Check storage"];
+    ptr -> assertChecks [label="Validate ptr_type"];
+    errorUnion -> addExtraFunc [label="Error set data"];
+    memoizedCall -> addExtraFunc [label="Pack args"];
+}

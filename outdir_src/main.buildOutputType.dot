@@ -1,0 +1,82 @@
+
+digraph flowchart {
+    node [shape=rectangle, style="rounded", fontname="Arial"];
+    edge [fontname="Arial"];
+
+    start [label="开始", shape=ellipse];
+    end [label="结束", shape=ellipse];
+    init [label="初始化变量和分配器"];
+    parse_args [label="解析命令行参数"];
+    handle_arg_mode [label="根据arg_mode分支处理", shape=diamond];
+    setup_output [label="设置输出路径和缓存目录"];
+    create_modules [label="创建模块和依赖关系"];
+    process_sources [label="处理源文件(C/Zig/资源)"];
+    configure_target [label="配置目标架构和编译选项"];
+    prepare_compilation [label="准备编译参数和链接选项"];
+    execute_compilation [label="执行编译过程"];
+    handle_post_build [label="处理后续操作\n(run/test/cleanup)"];
+    error_handling [label="错误处理", shape=parallelogram];
+
+    start -> init;
+    init -> parse_args;
+    parse_args -> handle_arg_mode;
+
+    handle_arg_mode -> setup_output [label="build/translate_c"];
+    handle_arg_mode -> setup_output [label="zig_test"];
+    handle_arg_mode -> setup_output [label="run"];
+    handle_arg_mode -> setup_output [label="cc/cpp模式"];
+
+    setup_output -> create_modules;
+    create_modules -> process_sources;
+    process_sources -> configure_target;
+    configure_target -> prepare_compilation;
+    prepare_compilation -> execute_compilation;
+    execute_compilation -> handle_post_build;
+    handle_post_build -> end;
+
+    // 错误处理路径
+    parse_args -> error_handling [label="参数解析失败"];
+    handle_arg_mode -> error_handling [label="无效模式"];
+    create_modules -> error_handling [label="模块创建失败"];
+    execute_compilation -> error_handling [label="编译错误"];
+    error_handling -> end [label="输出错误并退出"];
+
+    // 详细子流程
+    subgraph cluster_arg_parsing {
+        label="参数解析细节";
+        style=dashed;
+        
+        parse_flags [label="解析选项:\n-O, -target, -mcpu等"];
+        handle_response_files [label="处理响应文件"];
+        process_deps [label="处理依赖(-M/--dep)"];
+        setup_emit [label="设置输出类型\n(emit_bin/asm/llvm-ir)"];
+        
+        parse_args -> handle_response_files;
+        handle_response_files -> parse_flags;
+        parse_flags -> process_deps;
+        process_deps -> setup_emit;
+    }
+
+    subgraph cluster_compilation {
+        label="编译核心流程";
+        style=dashed;
+        
+        link_inputs [label="处理链接输入\n(静态库/动态库)"];
+        codegen [label="代码生成\n(Zig/C/LLVM)"];
+        optimize [label="优化阶段"];
+        linking [label="链接阶段"];
+        
+        execute_compilation -> link_inputs -> codegen -> optimize -> linking;
+    }
+
+    subgraph cluster_post_build {
+        label="构建后操作";
+        style=dashed;
+        
+        make_executable [label="设置可执行权限"];
+        run_tests [label="执行测试用例"];
+        cleanup [label="清理临时文件"];
+        
+        handle_post_build -> make_executable -> run_tests -> cleanup;
+    }
+}
